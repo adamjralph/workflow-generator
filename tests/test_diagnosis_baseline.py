@@ -5,6 +5,7 @@ from pathlib import Path
 
 from agent_lab.diagnosis import diagnose
 from agent_lab.diagnosis.hermes import HermesUsage, KanbanAdapter
+from agent_lab.diagnosis.report import KanbanRun, diagnose_report, load_report
 from agent_lab.diagnosis.store import DiagnosisStore
 
 
@@ -46,6 +47,22 @@ def test_september_18_baseline_reproduces_all_four_units(tmp_path):
     store = DiagnosisStore(tmp_path / "artifacts")
     records = [diagnose(r["attribution"]["run_id"], KanbanAdapter(home, r["board"]),
                         HermesUsage(home), store).record for r in fixture["runs"]]
+    selections = tuple(KanbanRun(board=r["board"], run_id=r["attribution"]["run_id"])
+                       for r in fixture["runs"])
+    baseline = diagnose_report(home, selections, "september-18-team", store)
+    result = diagnose_report(home, selections, "september-18-team", store, baseline=baseline.path)
+    report = load_report(result.path, store)
+    assert report.before == baseline.report.current
+    assert report.before.total.run_count == 23
+    assert report.before.total.calls == 214
+    assert report.before.total.tokens.input_tokens == 1132524
+    assert report.current.total.calls_per_run == 214 / 23
+    assert round(report.current.total.context_per_call) == 26826
+    assert round(report.current.total.tokens_per_run.input_tokens) == 49240
+    assert round(report.current.total.cache_hit_rate * 100) == 80
+    assert report.comparison.calls_per_run == 0
+    assert report.comparison.tokens_per_run.input_tokens == 0
+    assert len(report.current.runs) == 23
     assert len(records) == 23
     calls = sum(r.calls_per_run for r in records)
     fresh = sum(r.tokens_per_run.input_tokens for r in records)
@@ -82,3 +99,7 @@ def test_september_18_baseline_reproduces_all_four_units(tmp_path):
         o = sum(r.tokens_per_run.output_tokens for r in group)
         cr = sum(r.tokens_per_run.cache_read_tokens for r in group)
         assert (n, round(c / n, 1), round(i / n), round(o / n), round((i + cr) / c)) == expected
+        measured = next(item.measurements for item in report.current.roles if item.role == role)
+        assert (measured.run_count, round(measured.calls_per_run, 1),
+                round(measured.tokens_per_run.input_tokens), round(measured.tokens_per_run.output_tokens),
+                round(measured.context_per_call)) == expected

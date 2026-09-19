@@ -16,8 +16,10 @@ Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
 remains constrained by Hermes' config opt-in. Ticket 05 adds all four measurement
 units, task-separated worker/auxiliary/review traffic and reasoning counters;
 it is accepted and closed. Ticket 07 clears inherited mypy errors and makes
-malformed judgment failures explicit; it is accepted and closed. Ticket 06 is not started.
-Current offline suite: **158 passed, 3 optional skips**. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
+malformed judgment failures explicit; it is accepted and closed. Ticket 06 adds
+per-role/per-run reports and digest-bound measured baseline comparisons; see
+[ticket 06 usage and evidence](docs/report-ticket06.md).
+Previous offline suite: **158 passed, 3 optional skips**. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
 [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
@@ -60,7 +62,7 @@ business route remains linear; the tests compose real parallel branches around
 these shared semantics, not a new spec engine.
 
 See [ticket 02 evidence and concurrency contract](docs/foundation/parallel-accounting.md).
-`.venv/bin/python -m mypy agent_lab` passes with zero errors (14 source files).
+`.venv/bin/python -m mypy agent_lab` passes with zero errors (15 source files).
 See [ticket 07 verification](docs/typechecking-ticket07.md).
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption
@@ -91,6 +93,17 @@ but only for sessions named by the recorded run. It reads summed usage rows,
 never the sessions rollup. Each invocation creates a new immutable observation;
 unavailable counters are errors, not zero. Undefined rates display as `n/a`.
 See [measurement formulas and baseline reproduction](docs/measurement-ticket05.md).
+
+## Compare a measured baseline
+
+Pass `--report /path/to/runs.json --workflow team` to diagnose an explicit JSON
+list of `{"board": "board-name", "run_id": "2"}` selections. Save the artifact
+path, then add `--baseline /path/to/that/artifact.json` when measuring the next
+cohort. Reports show all four units per run and role, plus the measured before
+and numeric deltas. Without a measured before, there is no comparison.
+
+The plugin equivalent is `/workflow-report HERMES_HOME RUNS_JSON WORKFLOW STORE
+[BASELINE_ARTIFACT]`. See [the complete contract](docs/report-ticket06.md).
 
 ## In one line
 

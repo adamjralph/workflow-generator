@@ -61,6 +61,19 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
   observation); ticket-02 Spec found zero actionable findings. Details and the
   findings-data-channel qualification are in `docs/foundation/parallel-accounting.md`.
 
+## Ticket 03 verification
+
+- `tests/test_diagnosis.py`: **20 passed**, using offline temporary databases.
+- Final full suite: **95 passed, 2 optional live-Jev skips**.
+- Mypy: the same **11 inherited errors in 3 files**, no diagnosis errors.
+- Historical pilot run: `stillroom-research`, run `2`, reports **10 calls/run**
+  (9 main-loop + 1 auxiliary), matching the original join and published one-run
+  media-analyst figure; the rollup is only 9.
+- Parallel review against `02e4f6d`: Standards found one path-guard violation,
+  reproduced and fixed with independent follow-up, plus a nonblocking internal
+  protocol-typing heuristic. Spec found zero ticket-03 findings. Details in
+  `docs/diagnosis-ticket03.md`.
+
 ## Boundaries and remaining work
 
 Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,

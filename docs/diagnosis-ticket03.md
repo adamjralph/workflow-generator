@@ -90,9 +90,37 @@ unknown runs/missing databases, and tampered artifacts.
 AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
 ```
 
-Targeted result: **19 passed**. Regular typechecks report the same **11 inherited
+Targeted result: **20 passed**. Regular typechecks report the same **11 inherited
 errors in 3 files**, none in diagnosis; no green whole-project typecheck claim.
-Full-suite and independent review results are recorded below after final checks.
+Final full offline suite: **95 passed, 2 optional live-Jev skips**.
+
+## Standards
+
+Independent worker review of `git diff 02e4f6d...HEAD` at `fcfb06c`:
+
+- **Hard violation, store path protection:** containment alone permitted a
+  workflow-directory symlink into a protected Hermes root when the artifact store
+  was an ancestor of Hermes. This violated CONTEXT §9.3 / ADR-0002. **Fixed:**
+  retain resolved protected roots and check the actual destination before any
+  creation/write. The exact regression failed red, then passed. An independent
+  follow-up confirmed the finding resolved, with no new actionable issue.
+- **Judgement call, possible Primitive Obsession:** the internal fresh-process
+  protocol uses `dict[str, Any]` / string operation tags rather than typed request
+  models. Malformed manual requests can escape the subprocess's friendly error
+  handling. Nonblocking and retained for now: callers construct both request
+  variants locally; public return values are validated and subprocess failures
+  become `DiagnosisError`. This is not an external-input security claim.
+
+## Spec
+
+Independent parallel worker review found **no confirmed ticket-03 findings**:
+no missing/partial requirements, scope creep, or incorrectly implemented ticket
+requirements. Historical reproduction was supported by the documented 9+1 fixture;
+reviewer did not independently reread the real databases. Other units, breakdowns,
+full boundary proof and role/baseline management correctly remain later tickets.
+
+**Review summary:** Standards: 2 initial findings (1 hard violation fixed and
+independently verified, 1 nonblocking heuristic retained); Spec: 0 findings.
 
 ## Boundaries
 

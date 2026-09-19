@@ -12,7 +12,8 @@ Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime 
 Ticket 02 adds run-level budget reservations, atomic event numbering, and a
 return-value findings join; both tickets are accepted. Ticket 03 adds single-run
 Kanban diagnosis, immutable records and a minimal terminal UI, pending acceptance.
-Tickets 04–06 are untouched. See [ticket 03 evidence](docs/diagnosis-ticket03.md).
+Tickets 04–06 are untouched. Current suite: **95 passed, 2 optional live-Jev skips**.
+See [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
 The product spec and ADRs record future work, not this ticket's build target.
 Spec serialization, distribution/packaging, product naming, and the community-plugin

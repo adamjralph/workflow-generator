@@ -14,15 +14,21 @@ class DiagnosisStore:
         protected = (Path.home() / ".hermes", *protected_roots)
         if configured := os.environ.get("HERMES_HOME"):
             protected += (Path(configured),)
-        if any(self.root.is_relative_to(path.resolve()) for path in protected):
+        self.protected_roots = tuple(path.resolve() for path in protected)
+        self._check_outside_hermes(self.root)
+
+    def _check_outside_hermes(self, path: Path) -> None:
+        if any(path.is_relative_to(root) for root in self.protected_roots):
             raise DiagnosisError("Artifact store must be outside Hermes")
 
     def save(self, record: DiagnosisRecord) -> StoredDiagnosis:
         identity = json.dumps([record.attribution.runtime, record.attribution.workflow_identity])
         workflow = hashlib.sha256(identity.encode()).hexdigest()
         directory = self.root / workflow / "diagnoses"
-        if not directory.resolve().is_relative_to(self.root):
+        resolved = directory.resolve()
+        if not resolved.is_relative_to(self.root):
             raise DiagnosisError("Artifact directory resolves outside this store")
+        self._check_outside_hermes(resolved)
         directory.mkdir(parents=True, exist_ok=True)
         raw = record.model_dump_json().encode("utf-8")
         path = directory / (hashlib.sha256(raw).hexdigest() + ".json")

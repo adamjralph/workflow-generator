@@ -191,3 +191,15 @@ def test_store_rejects_a_workflow_directory_redirected_outside_the_store(tmp_pat
     with pytest.raises(DiagnosisError, match="outside"):
         diagnose("2", KanbanAdapter(home, "stillroom-research"), HermesUsage(home), store)
     assert not (home / "diagnoses").exists()
+
+
+def test_store_rejects_redirect_into_hermes_even_when_hermes_is_inside_store(tmp_path):
+    home = make_hermes(tmp_path)
+    store = DiagnosisStore(tmp_path, protected_roots=(home,))
+    result = diagnose("2", KanbanAdapter(home, "stillroom-research"), HermesUsage(home), store)
+    workflow = result.path.parent.parent
+    workflow.rename(tmp_path / "saved-workflow")
+    workflow.symlink_to(home, target_is_directory=True)
+    with pytest.raises(DiagnosisError, match="outside Hermes"):
+        diagnose("2", KanbanAdapter(home, "stillroom-research"), HermesUsage(home), store)
+    assert not (home / "diagnoses").exists()

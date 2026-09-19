@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 import fcntl
 from dataclasses import asdict, dataclass, field, replace
+from contextlib import contextmanager
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +45,29 @@ class RunLog:
 
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
+
+    @contextmanager
+    def fresh_run(self, run_id: str) -> Iterator[None]:
+        """Exclusive single-pass reference execution, not resume or scheduling.
+
+        The sidecar only holds a lock; events still use append_next's allocator.
+        Existing foundation callers do not opt into this restriction.
+        """
+        if not isinstance(run_id, str) or not run_id.strip():
+            raise ValueError("run_id must be nonempty")
+        path = self.path.resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.with_name(path.name + ".reference.lock").open("a") as handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ValueError("A reference run is already active on this log") from exc
+            try:
+                if any(event.run_id == run_id for event in self.read()):
+                    raise ValueError("Run identity already recorded; resume is unsupported")
+                yield
+            finally:
+                fcntl.flock(handle, fcntl.LOCK_UN)
 
     def append(self, event: RunEvent) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)

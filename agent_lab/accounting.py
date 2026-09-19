@@ -17,12 +17,16 @@ class RunAccounting:
         self._budgets: dict[str, Budget] = {}
 
     def spend(self, state: RunState) -> Budget:
+        return self.reserve(state.run_id, state.budget)
+
+    def reserve(self, run_id: str, initial: Budget) -> Budget:
+        """Reserve one step independently of business-specific state fields."""
         with self._lock:
-            budget = self._budgets.setdefault(state.run_id, state.budget)
-            if budget.max_steps != state.budget.max_steps:
+            budget = self._budgets.setdefault(run_id, initial)
+            if budget.max_steps != initial.max_steps:
                 raise ValueError("branches of a run must declare the same step cap")
             spent = budget.spend()
-            self._budgets[state.run_id] = spent
+            self._budgets[run_id] = spent
             return spent
 
     def snapshot(self, state: RunState) -> RunState:

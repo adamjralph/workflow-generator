@@ -15,9 +15,9 @@ Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted an
 Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
 remains constrained by Hermes' config opt-in. Ticket 05 adds all four measurement
 units, task-separated worker/auxiliary/review traffic and reasoning counters;
-it is accepted and closed. Ticket 07 tracks inherited mypy cleanup.
-Tickets 06–07 are not started. Final suite with the real-loader check opted in:
-**131 passed, 2 live-Jev skips**. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
+it is accepted and closed. Ticket 07 clears inherited mypy errors and makes
+malformed judgment failures explicit. Ticket 06 is not started.
+Current offline suite: **156 passed, 3 optional skips**. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
 [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
@@ -60,7 +60,8 @@ business route remains linear; the tests compose real parallel branches around
 these shared semantics, not a new spec engine.
 
 See [ticket 02 evidence and concurrency contract](docs/foundation/parallel-accounting.md).
-The inherited **11 mypy errors** remain unsuppressed; typechecking is not green.
+`.venv/bin/python -m mypy agent_lab` passes with zero errors (14 source files).
+See [ticket 07 verification](docs/typechecking-ticket07.md).
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption
 scope, inherited limitations, and verification details.

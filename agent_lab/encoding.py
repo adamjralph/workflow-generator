@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import unicodedata
 from dataclasses import dataclass, field
+from typing import Literal
 
 UTF8 = "utf-8"
 
@@ -113,7 +114,9 @@ def repair_mojibake(text: str) -> str:
     return text
 
 
-def normalise(text: str, form: str = "NFC") -> str:
+def normalise(
+    text: str, form: Literal["NFC", "NFD", "NFKC", "NFKD"] = "NFC",
+) -> str:
     """Canonical Unicode form. Without this, two names that look identical
     compare unequal and hash differently."""
     return unicodedata.normalize(form, text)

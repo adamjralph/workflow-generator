@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Callable, Iterable, Mapping
 
+from pydantic import ValidationError
+
 from .accounting import RunAccounting
 from .approvals import ApprovalStore, Decision, DecisionRecord
 from .encoding import bind_digest, canonical_digest
@@ -25,6 +27,7 @@ from .state import (
     BudgetExceeded,
     IllegalTransition,
     Intervention,
+    Judgment,
     NotResumable,
     RunState,
     Stage,
@@ -62,12 +65,22 @@ def n_intake(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
     return state, Transition.TO_CLASSIFY, {"chars": len(state.assessment_text)}
 
 
+def _validated_judgment(value: object) -> Judgment:
+    """Refuse missing data and revalidate models built through unchecked copies."""
+    if not isinstance(value, Judgment):
+        raise JudgmentError("judgment is missing or is not a Judgment")
+    try:
+        return Judgment.model_validate(value.model_dump(warnings=False))
+    except ValidationError as exc:
+        raise JudgmentError(f"judgment failed validation: {exc}") from exc
+
+
 def n_classify(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
     """Call the judgment source, validate, and record usage."""
     if not state.assessment_text.strip():
         raise ValueError("assessment text is empty; nothing to classify")
 
-    judgment = deps.judgment.judge(state.assessment_text)
+    judgment = _validated_judgment(deps.judgment.judge(state.assessment_text))
     usage = getattr(deps.judgment, "last_usage", {}) or {}
     next_state = state.model_copy(update={"judgment": judgment})
     detail = {
@@ -82,8 +95,7 @@ def n_classify(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]
 
 def n_route(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
     """Deterministic router. Code decides — the model only supplied data."""
-    assert state.judgment is not None, "router reached without a judgment"
-    judgment = state.judgment
+    judgment = _validated_judgment(state.judgment)
 
     if judgment.intervention is Intervention.NOT_A_FIT:
         return state, Transition.REJECT, {"reason": "no evidenced fit"}
@@ -100,8 +112,7 @@ def n_route(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
 
 def n_prepare(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
     """Deterministically compose the artifact. No model writes this text."""
-    assert state.judgment is not None
-    intervention = state.judgment.intervention
+    intervention = _validated_judgment(state.judgment).intervention
 
     if intervention is Intervention.REVIEW_FOLLOW_UP:
         opening = "Follow up every completed job with a review request."
@@ -126,10 +137,11 @@ def n_prepare(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
 
 def n_verify(state: RunState, deps: Deps) -> tuple[RunState, Transition, dict]:
     """Independent check of the prepared artifact. Fails closed."""
+    judgment = _validated_judgment(state.judgment)
     if not state.draft or not state.draft_digest:
         raise ValueError("verify reached without a prepared draft")
 
-    recomputed = bind_digest(state.run_id, state.judgment.intervention.value, state.draft)
+    recomputed = bind_digest(state.run_id, judgment.intervention.value, state.draft)
     problems: list[str] = []
     if recomputed != state.draft_digest:
         problems.append("digest mismatch")
@@ -158,11 +170,12 @@ def n_await_approval(state: RunState, deps: Deps) -> tuple[RunState, Transition,
     issued for the version before the edit: the field is a convenience for humans
     reading a log, not evidence.
     """
-    if not state.draft or state.judgment is None:
+    judgment = _validated_judgment(state.judgment)
+    if not state.draft:
         raise ValueError("approval gate reached without a prepared draft")
 
     recomputed = bind_digest(
-        state.run_id, state.judgment.intervention.value, state.draft
+        state.run_id, judgment.intervention.value, state.draft
     )
     if recomputed != state.draft_digest:
         return state, Transition.FAIL_APPROVAL_DIGEST, {
@@ -402,9 +415,10 @@ def run_plain(state: RunState, deps: Deps, *, entry: Stage | None = None) -> Run
 
         if state.terminal is not None:
             break
-        node_name = NEXT_NODE.get(state.stage)
-        if node_name is None:
+        next_node = NEXT_NODE.get(state.stage)
+        if next_node is None:
             break
+        node_name = next_node
 
     return state
 

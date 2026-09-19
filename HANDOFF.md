@@ -115,7 +115,17 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
 - Independent parallel review against `35f45fb`: Standards **0 findings**;
   Spec **0 findings**. No Hermes edits or host activation changes.
 - **Ticket 05 is accepted and closed** at Adam's explicit approval. The inherited
-  mypy cleanup is separately tracked in ticket 07, not yet authorized to begin.
+  mypy cleanup was separately tracked in ticket 07 (subsequently authorized; see below).
+
+## Ticket 07 — implemented, awaiting acceptance
+
+- Adam authorized implementation and confirmed judgment/driver test seams and
+  review baseline `70624c1`.
+- All 11 inherited mypy errors cleared without suppressions: **14 files, zero errors**.
+- SDK answer variants are checked; unreported token usage remains `None`, not zero.
+  Malformed recordings and missing/invalid judgments produce recorded failure terminals.
+- Offline suite: **156 passed, 3 optional skips**. No live calls or Hermes edits.
+- Evidence and independent review results: [ticket 07](docs/typechecking-ticket07.md).
 
 ## Boundaries and remaining work
 
@@ -144,6 +154,6 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 
 Tickets 02, 03 and 05 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted. Ticket 07 records the requested inherited-mypy cleanup;
-tickets 06–07 still require new implementation authorization. Historical baseline
+not yet accepted. Ticket 07 is implemented pending acceptance;
+ticket 06 still requires new implementation authorization. Historical baseline
 paths remain in `CONTEXT.md`.

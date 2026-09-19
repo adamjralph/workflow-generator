@@ -19,7 +19,7 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import ValidationError
 
@@ -75,11 +75,11 @@ class JevSource:
     model: str = TYPESAFE_MODEL
     timeout: float = 30.0
     name: str = field(default="jev", init=False)
-    last_usage: dict[str, int] = field(default_factory=dict, init=False)
+    last_usage: dict[str, int | None] = field(default_factory=dict, init=False)
 
     def judge(self, assessment: str) -> Judgment:
         try:
-            from typesafe_sdk import Choice, Noul, TypeSafeClient
+            from typesafe_sdk import Choice, ChoiceAnswer, Noul, NoulAnswer, TypeSafeClient
         except ImportError as exc:  # pragma: no cover - dependency guard
             raise JudgmentError("typesafe-sdk is not installed") from exc
 
@@ -98,12 +98,16 @@ class JevSource:
         except Exception as exc:  # SDK error types vary across versions
             raise JudgmentError(f"TypeSafe call failed: {exc}") from exc
 
-        choice = response.answers["intervention"]
-        noul = response.answers["review_gap"]
+        choice = response.answers.get("intervention")
+        noul = response.answers.get("review_gap")
         self.last_usage = {
             "input_tokens": response.usage.input_tokens,
             "output_tokens": response.usage.output_tokens,
         }
+        if not isinstance(choice, ChoiceAnswer):
+            raise JudgmentError("intervention answer is missing or is not a ChoiceAnswer")
+        if not isinstance(noul, NoulAnswer):
+            raise JudgmentError("review_gap answer is missing or is not a NoulAnswer")
         return _build(choice.choice, choice.confidence, noul.noul, source="jev")
 
 
@@ -118,23 +122,27 @@ class RecordedSource:
 
     recording_path: Path
     name: str = field(default="recorded", init=False)
-    last_usage: dict[str, int] = field(default_factory=dict, init=False)
+    last_usage: dict[str, int | None] = field(default_factory=dict, init=False)
 
     def judge(self, assessment: str) -> Judgment:
         if not self.recording_path.is_file():
             raise JudgmentError(f"no recording at {self.recording_path}")
-        payload = json.loads(self.recording_path.read_text(encoding="utf-8"))
-        if payload.get("assessment_sha") and payload["assessment_sha"] != _sha(assessment):
-            raise JudgmentError("recording was made against a different assessment")
-        # Surface the usage the recording captured: a replay of a live call is
-        # also evidence of what that call cost.
-        self.last_usage = dict(payload.get("usage") or {})
-        return _build(
-            payload["intervention"],
-            float(payload["confidence"]),
-            float(payload["review_gap"]),
-            source="recorded",
-        )
+        try:
+            payload = json.loads(self.recording_path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise JudgmentError("recording must contain a judgment object")
+            if payload.get("assessment_sha") and payload["assessment_sha"] != _sha(assessment):
+                raise JudgmentError("recording was made against a different assessment")
+            # Preserve captured usage, including unreported (null) token counts.
+            self.last_usage = dict(payload.get("usage") or {})
+            return _build(
+                payload["intervention"],
+                float(payload["confidence"]),
+                float(payload["review_gap"]),
+                source="recorded",
+            )
+        except (ValueError, TypeError, KeyError) as exc:
+            raise JudgmentError(f"recorded judgment failed validation: {exc}") from exc
 
 
 def _sha(text: str) -> str:
@@ -161,7 +169,10 @@ class StubSource:
         )
 
 
-def _build(raw_choice: str, confidence: float, review_gap: float, *, source: str) -> Judgment:
+def _build(
+    raw_choice: str, confidence: float, review_gap: float,
+    *, source: Literal["jev", "recorded", "stub"],
+) -> Judgment:
     """Validate before the workflow ever sees it."""
     try:
         return Judgment(

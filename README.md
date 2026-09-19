@@ -9,9 +9,10 @@ what was ruled out and why, and what is still open.
 ## Status
 
 Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime core.
-Its full regression suite runs here: **65 passed, 2 optional live-Jev tests skipped**.
-Diagnosis adapters and measurement are not implemented yet. Tickets 02–06 have not
-been started; ticket closure remains with Adam.
+Ticket 02 adds run-level budget reservations, atomic event numbering, and a
+return-value findings join. Current suite: **75 passed, 2 optional live-Jev tests
+skipped**. Ticket 02 remains claimed pending Adam's acceptance; its boxes are
+unchecked. Tickets 03–06 are untouched. Diagnosis and measurement are not implemented.
 
 The product spec and ADRs record future work, not this ticket's build target.
 Spec serialization, distribution/packaging, product naming, and the community-plugin
@@ -42,6 +43,17 @@ from agent_lab.graph_workflow import run_graph
 `Deps` injects a `JudgmentSource`, approval store, and run log. Both drivers use
 `agent_lab.workflow.step`; the plain driver is the reference. Store paths must be
 in a user-named project directory, never in Hermes.
+
+Concurrent branches must share `Deps.accounting` (a `RunAccounting` owner), even
+when using separate judgment sources. Reserve before work; no model call holds
+an accounting lock. Branches return their own frozen states through a reducer;
+`collect_findings(base, returned_states, deps)` joins notes and refreshes the
+budget without merging incompatible branch stages or artifacts. The existing
+business route remains linear; the tests compose real parallel branches around
+these shared semantics, not a new spec engine.
+
+See [ticket 02 evidence and concurrency contract](docs/foundation/parallel-accounting.md).
+The inherited **11 mypy errors** remain unsuppressed; typechecking is not green.
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption
 scope, inherited limitations, and verification details.

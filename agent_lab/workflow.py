@@ -12,10 +12,11 @@ semantics already live here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Callable, Mapping
+from typing import Callable, Iterable, Mapping
 
+from .accounting import RunAccounting
 from .approvals import ApprovalStore, Decision, DecisionRecord
 from .encoding import bind_digest, canonical_digest
 from .judgment import JudgmentError, JudgmentSource
@@ -41,6 +42,7 @@ class Deps:
     judgment: JudgmentSource
     approvals: ApprovalStore
     log: RunLog
+    accounting: RunAccounting = field(default_factory=RunAccounting)
 
 
 # --------------------------------------------------------------------------
@@ -225,7 +227,9 @@ NODE_BY_NAME: Mapping[str, NodeFn] = MappingProxyType(dict(NODES))
 
 
 def next_seq(state: RunState, deps: Deps) -> int:
-    """One past the highest `seq` already recorded for THIS run in THIS log.
+    """Advisory only: one past the highest sequence currently in this run's log.
+
+    Not a reservation. `step` delegates authoritative allocation to append_next.
 
     Counting only this run's events means a resume continues the same run's
     numbering, and unrelated runs sharing a log file cannot shift it.
@@ -244,7 +248,7 @@ def _append_event(
     transition: str | None,
     detail: dict,
 ) -> None:
-    deps.log.append(
+    deps.log.append_next(
         RunEvent(
             run_id=state.run_id,
             seq=seq,
@@ -257,7 +261,17 @@ def _append_event(
     )
 
 
-def step(state: RunState, deps: Deps, node_name: str, seq: int) -> RunState:
+def step(state: RunState, deps: Deps, node_name: str, seq: int = 0) -> RunState:
+    """Shared transition boundary; `seq` is retained only for compatibility.
+
+    The log allocates sequence numbers at append time. All branches share the
+    same Deps.accounting (also when they inject different judgment sources).
+    Returned budgets are snapshots; refresh them at the join before resuming.
+    """
+    return deps.accounting.snapshot(_step(state, deps, node_name, seq))
+
+
+def _step(state: RunState, deps: Deps, node_name: str, seq: int) -> RunState:
     """One transition: spend budget, run the node, apply the move, record it.
 
     This is the ONLY place budget is spent, a move is applied, or evidence is
@@ -265,7 +279,7 @@ def step(state: RunState, deps: Deps, node_name: str, seq: int) -> RunState:
     depend on which driver executed it.
     """
     try:
-        state = state.model_copy(update={"budget": state.budget.spend()})
+        state = state.model_copy(update={"budget": deps.accounting.spend(state)})
     except BudgetExceeded as exc:
         spent = state.moved(Transition.ESCALATE_BUDGET)
         _append_event(
@@ -328,6 +342,28 @@ def step(state: RunState, deps: Deps, node_name: str, seq: int) -> RunState:
     return moved
 
 
+def collect_findings(
+    state: RunState, branches: Iterable[RunState], deps: Deps
+) -> RunState:
+    """Join returned branch notes and refresh the run budget, never merge holders.
+
+    Each branch starts from `state` and returns its own notes suffix. Keep the
+    common prefix once and sort the contributed findings for stable replay,
+    independent of completion order. This joins findings only: the caller owns
+    routing after the join; branch stages/judgments/drafts are not interchangeable.
+    """
+    findings: list[str] = []
+    for branch in branches:
+        if branch.run_id != state.run_id:
+            raise ValueError("cannot join findings from different runs")
+        if branch.notes[:len(state.notes)] != state.notes:
+            raise ValueError("a branch must preserve the common notes prefix")
+        findings.extend(branch.notes[len(state.notes):])
+    return deps.accounting.snapshot(
+        state.model_copy(update={"notes": state.notes + tuple(sorted(findings))})
+    )
+
+
 def resume_entry(entry: Stage | None, state: RunState) -> Stage | None:
     """Validate a resume request, shared by both drivers.
 
@@ -360,11 +396,9 @@ def run_plain(state: RunState, deps: Deps, *, entry: Stage | None = None) -> Run
         state = state.model_copy(update={"stage": resume_entry(entry, state)})
 
     node_name = NEXT_NODE[state.stage]
-    seq = next_seq(state, deps)
 
     while state.terminal is None:
-        state = step(state, deps, node_name, seq)
-        seq += 1
+        state = step(state, deps, node_name)
 
         if state.terminal is not None:
             break

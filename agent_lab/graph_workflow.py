@@ -32,15 +32,16 @@ from dataclasses import dataclass
 from pydantic_graph import BaseNode, End, GraphBuilder, GraphRunContext
 
 from .state import RunState, Stage
-from .workflow import Deps, next_seq, resume_entry, step
+from .workflow import Deps, resume_entry, step
 
 
 @dataclass
 class GraphState:
     """Mutable holder so a frozen `RunState` can be replaced in place.
 
-    `seq` lives here too: every event needs a sequence number, and the graph has
-    nowhere else to keep a counter that survives across nodes.
+    This holder belongs to the linear route only. Parallel branches return
+    values to a reducer, never assign a stale snapshot into this holder.
+    `seq` remains constructor-compatible but is not used for allocation.
     """
 
     current: RunState
@@ -56,8 +57,7 @@ def _advance(holder: GraphState, deps: Deps, node_name: str) -> RunState:
     Delegating here is the whole point: the graph is a different *driver* for the
     same semantics, not a second implementation of them.
     """
-    holder.current = step(holder.current, deps, node_name, holder.seq)
-    holder.seq += 1
+    holder.current = step(holder.current, deps, node_name)
     return holder.current
 
 
@@ -178,6 +178,6 @@ def run_graph(state: RunState, deps: Deps, *, entry: Stage | None = None) -> Run
     if entry is not None:
         state = state.model_copy(update={"stage": resume_entry(entry, state)})
 
-    holder = GraphState(current=state, seq=next_seq(state, deps))
+    holder = GraphState(current=state)
     build_graph().run_sync(state=holder, deps=deps, inputs=Intake())
     return holder.current

@@ -14,7 +14,7 @@ sibling checkout, a symlink, or a runtime dependency on the teaching lab. The
 source checkout is left unchanged as historical evidence; it is not a second
 implementation used by this product.
 
-Adopted byte-for-byte:
+At ticket 01 (`cddadc6`), adopted byte-for-byte:
 
 - All nine `agent_lab/*.py` modules.
 - All three `lessons/lesson_*/test_*.py` files (67 collected tests).
@@ -95,8 +95,10 @@ model. Approval still binds the foundation's run/draft digest, not a spec/bundle
 pair; its JSON/JSONL formats do not decide spec serialization or the future
 immutable artifact store.
 
-Known parallel budget/sequence and shared-state defects remain for ticket 02.
-The existing linear drivers do not claim parallel-safe accounting. Existing
+Ticket 02 corrects parallel accounting and provides a return-value findings join;
+see [contract and red/green evidence](parallel-accounting.md). The business route
+itself remains linear. Core files now intentionally differ from the source lab;
+the inherited three test files remain unchanged. Existing
 exception behavior is retained too (for example, invalid intake raises; a
 `JudgmentError` becomes recorded `FAILED_VALIDATION`). The green inherited suite
 is not proof of all future product trust requirements or production readiness.

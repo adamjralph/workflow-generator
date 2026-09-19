@@ -15,6 +15,7 @@ Everything here is small enough to read in one sitting:
     graph_workflow.py   the same workflow driven by pydantic-graph
 """
 
+from .accounting import RunAccounting
 from .approvals import ApprovalStore, Decision, DecisionRecord, UndecidedRecord
 from .credentials import CredentialError, load_typesafe_credentials
 from .encoding import bind_digest, canonical_digest, decode_strict, normalise
@@ -32,7 +33,7 @@ from .state import (
     Terminal,
     Transition,
 )
-from .workflow import Deps, artifact_digest, run_plain
+from .workflow import Deps, artifact_digest, collect_findings, run_plain
 
 __all__ = [
     "ApprovalStore",
@@ -50,6 +51,7 @@ __all__ = [
     "JudgmentSource",
     "NotResumable",
     "RecordedSource",
+    "RunAccounting",
     "RunEvent",
     "RunLog",
     "RunState",
@@ -61,6 +63,7 @@ __all__ = [
     "artifact_digest",
     "bind_digest",
     "canonical_digest",
+    "collect_findings",
     "decode_strict",
     "load_typesafe_credentials",
     "normalise",

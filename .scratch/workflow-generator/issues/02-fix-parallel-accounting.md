@@ -6,7 +6,7 @@
 
 **Source:** `spec.md` → "Concurrency and accounting corrections"; `CONTEXT.md` §5; `spikes/parallel-capability/FINDINGS.md`.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Two concurrent branches produce strictly monotonic, non-colliding sequence numbers for the same run.
 - [ ] Two steps spent across concurrent branches are counted as two; a step cap cannot be exceeded by parallel work.

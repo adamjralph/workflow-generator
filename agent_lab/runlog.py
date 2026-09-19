@@ -13,7 +13,8 @@ does not drive resumption. That distinction is the whole lesson in report §1.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+import fcntl
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,28 @@ class RunLog:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(event.to_json() + "\n")
+
+    def append_next(self, event: RunEvent) -> None:
+        """Allocate this run's sequence and append in one file-locked operation.
+
+        Allocation happens at completion, not before model work. Separate log
+        instances/processes using this method share the same ordering boundary.
+        `append` remains the explicit-sequence import/replay primitive.
+        """
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a+", encoding="utf-8", newline="\n") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            try:
+                handle.seek(0)
+                recorded = [json.loads(line) for line in handle.read().split("\n") if line.strip()]
+                seq = 1 + max(
+                    (row["seq"] for row in recorded if row["run_id"] == event.run_id),
+                    default=-1,
+                )
+                handle.write(replace(event, seq=seq).to_json() + "\n")
+                handle.flush()
+            finally:
+                fcntl.flock(handle, fcntl.LOCK_UN)
 
     def read(self) -> list[RunEvent]:
         """Every recorded event, in file order.

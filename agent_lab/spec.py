@@ -116,9 +116,16 @@ class WorkflowSpec(Declaration):
     terminals: Annotated[tuple[Name, ...], Field(min_length=1)]
 
 
+FindingCode = Literal[
+    "invalid_declaration", "duplicate_identity", "missing_entry", "unknown_reference",
+    "duplicate_outcome", "unknown_outcome", "missing_route", "conflicting_route",
+    "invalid_fork", "invalid_join", "unbounded_cycle",
+]
+
+
 @dataclass(frozen=True)
 class Finding:
-    code: str
+    code: FindingCode
     path: tuple[str | int, ...]
     message: str
 

@@ -162,3 +162,19 @@ diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized bu
 not yet accepted. Ticket 07 is accepted and closed;
 ticket 06 is accepted and closed.
 Historical baseline paths remain in `CONTEXT.md`.
+
+## Ticket 08 — implemented, pending acceptance
+
+- Adam authorized the in-memory spec/validation scope and public validation test
+  seam, and confirmed review baseline `b90ea2e9154eb1503cd20ce314be6c7be57dd630`.
+- Implementation: `98f555a`; `agent_lab/spec.py` admits the five fixed node types,
+  complete typed routing, explicit forks/joins and bounded cycles. Invalid input
+  returns located typed findings. No execution, serialization or conformance
+  engine was added; no Hermes changes were made.
+- Tests: **67 focused passed**, **238 full-suite passed, 3 optional skips**;
+  mypy: **16 files, zero errors**. Independent parallel review: Standards **0
+  violations**, one optional finding-code typing improvement addressed; Spec **0
+  findings**. See `docs/spec-ticket08.md` for declaration rules and evidence.
+- Ticket remains claimed, not accepted/closed. Compilation and conformance require
+  later, separately authorized tickets. Deferred format/packaging decisions remain
+  deferred. The existing Deps runtime seam and both drivers are unchanged.

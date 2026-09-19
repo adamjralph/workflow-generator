@@ -126,5 +126,27 @@ Reproduce:
 AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
 ```
 
-Focused verification: **67 passed**; mypy: **16 files, zero errors**.
-Full-suite and independent review results are recorded after final verification.
+Final verification: **67 focused tests passed**; mypy: **16 files, zero errors**.
+Full offline suite: **238 passed, 3 optional skips** (two live Jev tests and the
+real Hermes loader check). No live calls or Hermes changes. `git diff --check`
+passed and the local Graft graph was refreshed.
+
+## Independent review
+
+Two parallel independent reviews examined `git diff b90ea2e...HEAD` at implementation
+commit `98f555a`.
+
+### Standards
+
+Zero documented-standard violations. One optional heuristic: possible Primitive
+Obsession in the open-ended `Finding.code: str`. Addressed by defining the explicit
+`FindingCode` Literal vocabulary; final tests and mypy passed after this change.
+
+### Spec
+
+Zero actionable findings: no missing/partial criteria, scope creep or confirmed
+incorrect behavior. The reviewer independently reproduced focused/full tests and
+mypy results. Validation remains distinct from conformance and correctness.
+
+Review summary: Standards **0 violations, 1 optional improvement addressed**;
+Spec **0 findings**. Implementation is complete; user acceptance/closure is pending.

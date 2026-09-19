@@ -20,8 +20,11 @@ malformed judgment failures explicit; it is accepted and closed. Ticket 06 adds
 per-role/per-run reports and digest-bound measured baseline comparisons;
 it is accepted and closed. See
 [ticket 06 usage and evidence](docs/report-ticket06.md).
-Current suite: **172 passed, 2 optional live-Jev skips**, including the real
-Hermes loader in isolated fixture homes (without loader opt-in: 171 passed, 3 skips). See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
+Ticket 08 adds the in-memory workflow spec and structural validation boundary;
+implementation is complete, pending acceptance. It does not compile or execute
+specs or claim conformance. See [ticket 08 API and evidence](docs/spec-ticket08.md).
+Current offline suite: **238 passed, 3 optional skips** (two live Jev tests and
+the real Hermes loader check). See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
 [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
@@ -64,7 +67,7 @@ business route remains linear; the tests compose real parallel branches around
 these shared semantics, not a new spec engine.
 
 See [ticket 02 evidence and concurrency contract](docs/foundation/parallel-accounting.md).
-`.venv/bin/python -m mypy agent_lab` passes with zero errors (15 source files).
+`.venv/bin/python -m mypy agent_lab` passes with zero errors (16 source files).
 See [ticket 07 verification](docs/typechecking-ticket07.md).
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption

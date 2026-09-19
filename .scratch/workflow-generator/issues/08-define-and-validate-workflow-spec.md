@@ -19,7 +19,7 @@ conformance check,” “The five node types,” and “Testing Decisions”;
 [ADR 0007](../../../docs/adr/0007-node-types-compile-through-a-fixed-mapping.md),
 [ADR 0008](../../../docs/adr/0008-conformance-pins-the-plain-driver-as-reference.md).
 
-## Proposed scope and acceptance criteria
+## Scope and acceptance criteria
 
 Adam approved this scope and the validation seam. Concrete declaration rules and
 claim boundaries are documented in [ticket 08 evidence](../../../docs/spec-ticket08.md),
@@ -54,7 +54,7 @@ not attributed retroactively to the existing ADRs.
 - [x] A hand-authored fixture represents the foundation's existing business route
   using the documented node mapping, without implementing compilation or
   asserting driver equivalence for generated workflows.
-- [ ] Existing diagnosis/runtime tests and mypy remain green. Tests need no
+- [x] Existing diagnosis/runtime tests and mypy remain green. Tests need no
   network, model credentials, live Hermes state or sibling-repo imports.
 
 ## Test seam and claim boundary
@@ -101,4 +101,10 @@ follow-ons are not authorized by this ticket.
 Implementation uses `agent_lab/spec.py`; focused public-boundary tests are in
 `tests/test_workflow_spec.py`. Declaration rules, red/green evidence and claim
 limits are recorded in `docs/spec-ticket08.md`. No Hermes state or config was
-changed. Independent review and final verification are pending.
+changed. Implementation commit: `98f555a`.
+
+Final verification: **67 focused tests passed**, **238 full-suite tests passed,
+3 optional skips**, and **16 files mypy-clean**. Independent parallel review:
+Standards **0 violations**, one optional finding-code typing improvement addressed;
+Spec **0 findings**. Implementation is complete; ticket remains claimed pending
+Adam's acceptance/closure.

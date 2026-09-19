@@ -135,7 +135,7 @@ def test_local_plugin_install_registration_and_invocation_leave_protected_tree_u
         registered[name] = handler
 
     module.register(SimpleNamespace(register_command=register_command))
-    assert set(registered) == {"workflow-diagnose"}
+    assert set(registered) == {"workflow-diagnose", "workflow-report"}
     before_run = tree_digest(home)
     import shlex
     store = tmp_path / "new artifacts"
@@ -148,12 +148,25 @@ def test_local_plugin_install_registration_and_invocation_leave_protected_tree_u
     assert "auxiliary (title_generation)" in output
     assert "Cache hit rate: 77.9%" in output
     assert len(list(store.rglob("*.json"))) == 1
+    manifest = tmp_path / "runs.json"
+    manifest.write_text('[{"board":"stillroom-research","run_id":"2"}]')
+    report = registered["workflow-report"](shlex.join([
+        str(home), str(manifest), "team", str(store),
+    ]))
+    assert "Role: stillroom-media-analyst" in report
+    assert "No measured baseline" in report
+    assert len(list(store.rglob("*.json"))) == 3
     assert tree_digest(home) == before_run
     assert {k: v for k, v in tree_digest(home).items() if not k.startswith("plugins")} == before_install
     refused = registered["workflow-diagnose"](shlex.join([
         str(home), "stillroom-research", "2", str(source / "artifacts"),
     ]))
     assert "outside Hermes" in refused
+    assert not (source / "artifacts").exists()
+    refused_report = registered["workflow-report"](shlex.join([
+        str(home), str(manifest), "team", str(source / "artifacts"),
+    ]))
+    assert "outside Hermes" in refused_report
     assert not (source / "artifacts").exists()
 
 

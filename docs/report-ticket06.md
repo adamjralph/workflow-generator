@@ -119,4 +119,27 @@ share the token context/cache formulas.
 Independent review found **0 spec findings**; the reviewer independently ran all
 57 targeted offline tests. All ticket-06 acceptance criteria were verified.
 
-Follow-up review and final full-suite results are recorded after verification.
+Follow-up independent reviews of `c4af4d3` confirmed **0 outstanding Standards
+findings and 0 Spec findings**. All three original Standards findings were
+addressed. The Spec reviewer additionally ran 14 report/baseline tests.
+
+## Final verification
+
+The first full suite exposed an older plugin-registration assertion expecting
+only one command. Updated that public-boundary test to expect both commands and
+exercise report invocation, protected-source rejection and byte preservation.
+No production change was needed. The targeted read-only suite then passed (10
+tests), followed by the full suite:
+
+```bash
+AGENT_LAB_JUDGMENT=stub \
+HERMES_PLUGIN_TEST_SOURCE=/home/hermes/.hermes/hermes-agent \
+HERMES_PLUGIN_TEST_PYTHON=/home/hermes/.hermes/hermes-agent/venv/bin/python \
+  .venv/bin/python -m pytest -q
+.venv/bin/python -m mypy agent_lab
+```
+
+**172 passed, 2 optional live-Jev skips.** The real Hermes loader registered and
+invoked both commands in isolated fixture homes. Mypy: **zero errors in 15 source
+files**. `git diff --check` passed. No live Hermes state was changed, no live model
+calls were made, and plugin activation was not enabled.

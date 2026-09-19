@@ -18,7 +18,10 @@
   `7abde37`, against approved baseline `35f45fb`. See `docs/measurement-ticket05.md`.
   **Ticket 07 is accepted and closed** at Adam's explicit approval.
   Implementation and review fixes: `2077d7d`, `12db524`.
-  Do not begin ticket 06 without authorization.
+  Ticket 06 was subsequently authorized with its report/store/CLI/plugin/adapter
+  seams and review baseline `9497f53`. Implementation `ea50593` and review fixes
+  `c4af4d3` are ready for acceptance. See `docs/report-ticket06.md`.
+  Final suite: 172 passed, 2 live-Jev skips; mypy clean in 15 files.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
   with read-only SQLite connections. No Hermes code/config/authentication or
@@ -156,5 +159,5 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 Tickets 02, 03 and 05 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
 not yet accepted. Ticket 07 is accepted and closed;
-ticket 06 still requires new implementation authorization. Historical baseline
-paths remain in `CONTEXT.md`.
+ticket 06 is implemented and independently reviewed, awaiting Adam's acceptance.
+Historical baseline paths remain in `CONTEXT.md`.

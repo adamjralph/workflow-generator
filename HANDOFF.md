@@ -1,10 +1,10 @@
 # Workflow Generator handoff
 
-Updated: 2026-09-19 (after `to-spec` → `grill-with-docs` → `to-tickets`)
-Next objective: **decide whether to authorise building, then start a fresh session at ticket 01.**
+Updated: after ticket 01 implementation (awaiting Adam's acceptance/closure).
+Next objective: **Adam reviews ticket 01 evidence and closes it; no later ticket is authorised here.**
 Final-answer owner: Adam. No coordinating profile is assigned.
-Authorization: **nothing is authorised to be built.** Tickets are published and agent-grabbable, but
-beginning implementation is Adam's decision.
+Authorization: **ticket 01 only was explicitly authorised.** Its code is promoted on `main`;
+acceptance boxes and closure remain Adam's responsibility. Tickets 02–06 were not started.
 
 ## Start here
 
@@ -34,14 +34,18 @@ Suggested skills: `handoff`, `plan`, `pydantic-graph-workflows`,
 **This project** (`~/Projects/workflow-generator/`)
 
 - `CONTEXT.md` — decision record plus `## Language` glossary.
-- `README.md` — orientation; **now stale** in its Status section (still says "No spec yet").
+- `README.md` — current orientation, local setup, and core imports.
+- `agent_lab/` — promoted runtime core; `lessons/` — full inherited regression suite.
+- `docs/foundation/README.md` — provenance, verification, and retained limitations.
 - `HANDOFF.md` — this file.
 - `docs/adr/0001`–`0009` — nine ADRs (see below for subjects).
 - `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` — tracker conventions.
 - `.scratch/workflow-generator/spec.md` — the product spec, `Status: ready-for-agent`.
-- `.scratch/workflow-generator/issues/01`–`06` — six tickets, each `Status: ready-for-agent`.
-- **A git repository on `main`**, with a docs-only baseline commit (spec, ADRs, tickets,
-  handoff, `.gitignore`). Ticket 01 still owns adding the foundation code.
+- `.scratch/workflow-generator/issues/01`–`06` — ticket 01 is `claimed`; 02–06 remain
+  `ready-for-agent`, subject to their blockers.
+- **A git repository on `main`**, with docs-only baseline `e03a19d` and ticket 01 foundation
+  promotion. The existing `agent_lab` namespace is the one local runtime core; no sibling checkout
+  is required. Local test dependencies are in `requirements-dev.txt`, not distribution metadata.
 
 **The foundation** (`~/Projects/agent-workflow-lab`)
 
@@ -108,8 +112,10 @@ per-role breakdown and baseline. **Frontier: ticket 01 only.**
 - **The core/generation half of the spec is deliberately unticketked.** It needs *a* spec
   serialization to persist a spec or emit a bundle, and the format is parked behind the deferred
   community question (`CONTEXT.md` §3.1).
-- **No code exists and no test of this project exists.** Nothing has been validated because nothing
-  has been built.
+- **Ticket 01's foundation suite is green here: 65 passed, 2 live-Jev skips.** All nine core
+  modules and three test files are unchanged from the lab at `ce34093`. An exploratory mypy run
+  found the same 11 errors in both checkouts; see `docs/foundation/README.md`.
+- Parallel corrections, diagnosis, measurement, and the unticketed generation half remain unbuilt.
 
 ## Decisions and boundaries
 
@@ -129,7 +135,7 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 **Boundaries that still hold**
 
-- Do not build without Adam's explicit decision.
+- Do not build beyond ticket 01 without Adam's explicit decision.
 - Do not modify Hermes source, configuration, or authentication.
 - Diagnose-only. Writing to profiles, `model_route`, prompts or board config is not authorised.
 - No real client data in this project.
@@ -137,7 +143,7 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 ## Open decisions still owned by Adam
 
-1. **Authorise building, or not.** The single next action that matters.
+1. **Accept and close ticket 01, or request changes.** Only then can the frontier advance.
 2. **For us only, or a community plugin?** Deferred ~2 months. **Blocks** the spec serialization
    format, packaging, and product naming — which must not be decided ahead of it.
 3. **Gated writes to Hermes beyond the read-only boundary.**
@@ -146,27 +152,28 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 ## Blockers and troubleshooting
 
-- **`workflow-generator` is not a git repo.** Ticket 01 initialises it.
+- The old claim that `workflow-generator` is not a git repo was stale: baseline `e03a19d`
+  already existed before ticket 01; no reinitialisation was performed.
 - **The lab is "a teaching lab".** Promoting it is real, unestimated work inside ticket 01.
 - **The core cannot be ticketed until the spec format is unblocked.** Do not invent a format; it is
   parked behind open decision 2.
-- **The repo has a docs-only baseline and no code.** Ticket 01 adds the foundation; it starts from a
-  clean tree on `main`.
+- **Ticket 01 remains claimed until Adam closes it.** Do not treat implementation as closure
+  or start ticket 02 in the same session.
 - **`sessions.api_call_count` is a rollup** (188) that disagrees with the summed usage rows (214).
   Ticket 03 must use the summed figure.
 - **Bare `except:` swallows schema errors.** Verify column names before trusting an empty result.
 - **`output_tokens` under-reports real work.** Reasoning tokens are separate and dominated 2.89:1.
-- **`README.md` Status section is stale** and should be refreshed when convenient.
+- `CONTEXT.md` and the product spec contain historical status text; their decided constraints
+  and ADRs remain authoritative. Ticket 01 did not redesign the domain model.
 
 ## Next actions
 
-1. Adam decides whether to authorise building.
-2. If authorised — start a **fresh session** at **ticket 01**
-   (`.scratch/workflow-generator/issues/01-promote-the-foundation.md`): add the lab core and get its
-   suite green from the product repo. Then work the frontier: 02 → 03 → {04, 05} → 06. `/implement`
-   takes one ticket per session; do not point it at the spec.
-3. If ticket 01 lands, refresh `README.md` and this handoff.
-4. Do not start any ticket before its blockers are resolved.
+1. Adam checks ticket 01's acceptance criteria against the implementation evidence and closes it.
+2. Only after closure and authorisation, start a **fresh session** for ticket 02. The subsequent
+   dependency order remains 02 → 03 → {04, 05} → 06. `/implement` takes one ticket per session;
+   do not point it at the product spec.
+3. Do not start any ticket before its blockers are resolved. README and this handoff are refreshed;
+   the ticket's acceptance boxes are deliberately untouched.
 
 ## Definition of done
 

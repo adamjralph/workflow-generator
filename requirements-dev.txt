@@ -1,0 +1,6 @@
+# Local development/test environment only; distribution and packaging are undecided.
+# Direct dependency versions used by the foundation at ce34093.
+pydantic==2.13.5
+pydantic-graph==2.44.0
+typesafe-sdk==0.6.0
+pytest==9.1.1

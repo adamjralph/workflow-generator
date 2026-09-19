@@ -6,7 +6,7 @@
 
 **Source:** `spec.md` → "Build on the foundation"; `CONTEXT.md` §4; ADR-0002.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] `workflow-generator` is a git repository with an initial commit.
 - [ ] The foundation's typed state, transition allow-list, terminal states, budget, judgment sources, approval store, and run log are importable from the product as one core.

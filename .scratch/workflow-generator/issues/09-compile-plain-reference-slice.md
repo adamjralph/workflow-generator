@@ -1,7 +1,7 @@
 # 09: Compile a deterministic spec slice to plain reference execution
 
 **Type:** task
-**Status:** claimed
+**Status:** ready-for-human
 **Blocked by:** 08 (accepted and closed).
 **Authorization:** Adam approved implementation, the execution policies, frozen
 Pydantic state/Transform-result contract, public test seam and review baseline
@@ -148,3 +148,17 @@ conformance comparison; this ticket does not authorize those follow-ons.
 Adam subsequently approved the four implementation decisions in the implementation
 conversation. The draft/proposed language above is retained as the original
 proposal; that approval now authorizes this slice, not the out-of-scope follow-ons.
+
+## Answer
+
+Implemented the approved public compilation/execution seam in
+`agent_lab/reference.py`. Foundation accounting reservations and append-only
+`RunLog` sequence allocation are reused; existing business drivers remain unchanged.
+The hand-authored example and failure/immutability/freshness cases are in
+`tests/test_reference.py`. API, limits, red/green evidence and two-axis review:
+[reference-ticket09.md](../../../docs/reference-ticket09.md).
+
+Verification: 26 focused tests; 264 full offline tests passed, 3 optional skips;
+mypy clean across 17 files. Review against approved baseline `e6c1c9b` found
+0 Standards violations and 0 Spec findings; one optional duplication improvement
+was addressed. Ready for Adam's acceptance; no follow-on work is authorized.

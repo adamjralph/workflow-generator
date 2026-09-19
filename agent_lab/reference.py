@@ -83,43 +83,36 @@ class ReferencePlan(Generic[S]):
         current = self.spec.entry
         while current not in self.spec.terminals:
             node = nodes[current]
-            label: object = None
+            selected: str | None = None
             failure = None
             try:
                 budget = accounting.reserve(run_id, budget)
             except BudgetExceeded:
-                failure = "budget_exhausted"
-            try:
-                if failure:
-                    raise BudgetExceeded("Invocation refused")
-                snapshot = self._snapshot(state)
-                next_state = state
-                if isinstance(node, TransformNode):
-                    result = self.bindings[node.operation](snapshot)
-                    if not isinstance(result, TransformResult):
-                        raise ValueError("Expected TransformResult")
-                    next_state, label = self._snapshot(result.state), result.outcome
-                elif isinstance(node, DecisionNode):
-                    label = self.bindings[node.value](snapshot)
-                else:
-                    raise ValueError("Unsupported node")
-                if type(label) is not str or label not in node.route_labels:
-                    raise ValueError("Expected declared route label")
-                target = routes[(current, label)]
-                state = next_state
-            except BudgetExceeded:
-                if failure != "budget_exhausted":
-                    # A binding raising BudgetExceeded is a binding failure,
-                    # not evidence that the reference reservation was refused.
-                    label, target, failure = None, "FAILED_VALIDATION", "invalid_binding_result"
-                else:
-                    label, target = None, "FAILED_BUDGET"
-            except Exception:
-                # Trusted local bindings may raise any ordinary exception. Keep
-                # audit I/O outside this boundary; never translate it to success.
-                label, target, failure = None, "FAILED_VALIDATION", "invalid_binding_result"
+                target, failure = "FAILED_BUDGET", "budget_exhausted"
+            else:
+                try:
+                    snapshot = self._snapshot(state)
+                    next_state = state
+                    label: object
+                    if isinstance(node, TransformNode):
+                        result = self.bindings[node.operation](snapshot)
+                        if not isinstance(result, TransformResult):
+                            raise ValueError("Expected TransformResult")
+                        next_state, label = self._snapshot(result.state), result.outcome
+                    elif isinstance(node, DecisionNode):
+                        label = self.bindings[node.value](snapshot)
+                    else:
+                        raise ValueError("Unsupported node")
+                    if type(label) is not str or label not in node.route_labels:
+                        raise ValueError("Expected declared route label")
+                    target = routes[(current, label)]
+                    state, selected = next_state, label
+                except Exception:
+                    # Includes binding-raised BudgetExceeded, not reservation
+                    # refusal. Audit I/O stays outside the binding boundary.
+                    target, failure = "FAILED_VALIDATION", "invalid_binding_result"
             log.append_next(RunEvent(
-                run_id, 0, current, node.kind, label,
+                run_id, 0, current, node.kind, selected,
                 target if target in self.spec.terminals else None,
                 {"target": target, "failure": failure,
                  "used_steps": budget.used_steps, "max_steps": budget.max_steps},

@@ -121,4 +121,36 @@ real-loader check: **1 passed** on the revision above. Mypy retains the same
 source also passes mypy when checked as a script (the discovery directory has a
 hyphen, not a Python package name).
 
-Full-suite results and independent two-axis review are recorded below after review.
+The final full suite, with `AGENT_LAB_JUDGMENT=stub` and the real-loader opt-in
+variables above, reports **106 passed, 2 optional live-Jev skips**. Without the
+Hermes opt-in, the real-loader check is also skipped. Typechecking was repeated
+throughout and at the end with the same inherited errors, unsuppressed.
+
+## Standards
+
+Independent parallel review of `git diff c3260ab...HEAD` at `6271106` found
+**no documented-standard violations**. Failure-path inspection found no live
+SQLite connections or protected-tree writes. Timeout/termination leftovers and
+the activation limitation are disclosed, not bypassed.
+
+One **nonblocking judgment call — possible Duplicated Code**: `_read_db` and
+`DiagnosisStore.__init__` each assemble the default/configured/caller-supplied
+protected roots. A future common root-policy helper could prevent drift while
+retaining snapshot-specific roots and separate admission checks. Retained for
+this bounded ticket; this is not an ADR-0002 violation.
+
+## Spec
+
+Independent parallel review found **one acknowledged partial requirement**:
+“The tool is installable as a Hermes plugin without editing Hermes source,
+configuration, or authentication,” alongside the parent spec's “plug-and-play.”
+The native directory plugin is compatible with the real loader and its registered
+command works, but normal activation still requires the host config opt-in. The
+test explicitly demonstrates this gate and uses isolated registration, not
+config-free normal activation. The criterion remains open, not falsely completed.
+
+No scope creep or additional incorrect implementation was identified. Reviewers
+used only repository code/fixtures, not live Hermes state.
+
+**Review summary:** Standards: 0 violations, 1 nonblocking duplication heuristic;
+Spec: 1 partial activation requirement, no additional defects.

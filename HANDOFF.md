@@ -79,6 +79,22 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
   protocol-typing heuristic. Spec found zero ticket-03 findings. Details in
   `docs/diagnosis-ticket03.md`.
 
+## Ticket 04 verification and open acceptance
+
+- Implementation: `6271106`; evidence: `docs/read-only-ticket04.md`.
+- Boundary tests: **10 passed**; diagnosis tests: **20 passed**; isolated real
+  Hermes loader: **1 passed**. Final full suite with the loader opted in:
+  **106 passed, 2 optional live-Jev skips**.
+- Mypy retains the **11 inherited errors in 3 files**, no new diagnosis errors;
+  plugin source typechecks as a script.
+- Two-axis review against `c3260ab`: Standards found no violations and one
+  nonblocking duplicated protected-root policy heuristic. Spec found one partial
+  criterion: installation/registration works, but normal plugin activation still
+  requires Hermes config opt-in. No extra implementation defect was identified.
+- No live plugin installation, config activation, or authentication change was
+  made. Ticket 04 remains claimed, **not accepted/closed**, pending Adam's decision
+  on installation versus activation. Do not bypass the host activation gate.
+
 ## Boundaries and remaining work
 
 Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,

@@ -14,6 +14,7 @@ return-value findings join; both tickets are accepted. Ticket 03 adds single-run
 Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
 Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
 remains constrained by Hermes' config opt-in. Tickets 05–06 are untouched.
+Final suite with the real-loader check opted in: **106 passed, 2 live-Jev skips**.
 See [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 

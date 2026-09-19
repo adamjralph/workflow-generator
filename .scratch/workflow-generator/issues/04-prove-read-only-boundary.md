@@ -24,3 +24,8 @@ Hermes requires `plugins.enabled` configuration for normal activation. No config
 was changed and no production activation bypass was added. The plugin criterion
 remains open pending the user's decision on installation versus activation; see
 the evidence for the exact limitation. Tickets 05–06 are not started.
+
+Implementation: `6271106`. Full suite with isolated real-loader check opted in:
+106 passed, 2 live-Jev skips. Mypy retains 11 inherited errors, no new diagnosis
+errors. Independent review: Standards 0 violations + 1 nonblocking duplication
+heuristic; Spec 1 acknowledged partial activation criterion, no further defects.

@@ -10,9 +10,9 @@ what was ruled out and why, and what is still open.
 
 Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime core.
 Ticket 02 adds run-level budget reservations, atomic event numbering, and a
-return-value findings join. Current suite: **75 passed, 2 optional live-Jev tests
-skipped**. Ticket 02 remains claimed pending Adam's acceptance; its boxes are
-unchecked. Tickets 03–06 are untouched. Diagnosis and measurement are not implemented.
+return-value findings join; both tickets are accepted. Ticket 03 adds single-run
+Kanban diagnosis, immutable records and a minimal terminal UI, pending acceptance.
+Tickets 04–06 are untouched. See [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
 The product spec and ADRs record future work, not this ticket's build target.
 Spec serialization, distribution/packaging, product naming, and the community-plugin
@@ -57,6 +57,21 @@ The inherited **11 mypy errors** remain unsuppressed; typechecking is not green.
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption
 scope, inherited limitations, and verification details.
+
+## Diagnose one Kanban run
+
+From this checkout, supply a Hermes home to read and an artifact store outside it:
+
+```bash
+.venv/bin/python -m agent_lab.diagnosis \
+  --hermes-home /path/to/hermes-home --store /path/to/project/artifacts
+```
+
+Enter the board directory name and its `task_runs.id` at the prompts. The terminal
+shows calls/run (including auxiliary calls) and the saved artifact path. It reads
+summed usage rows, never the sessions rollup. Each invocation creates a new
+immutable observation; unavailable data is an error, not zero. Only calls/run is
+implemented; the other units and breakdowns remain ticket 05.
 
 ## In one line
 

@@ -7,7 +7,8 @@
 - **Ticket 02 is accepted and closed** at Adam's explicit request. Implementation
   is `7e1d517`; independent review and final verification are `c492e93`.
   Ticket 03 was subsequently authorized by Adam, including its test seams and
-  review baseline `02e4f6d`. Implementation is complete pending acceptance;
+  review baseline `02e4f6d`. **Ticket 03 is accepted and closed** at Adam's explicit
+  approval. Implementation: `fcfb06c`; review fix and verification: `39a2bd2`;
   see `docs/diagnosis-ticket03.md`. Do not begin tickets 04–06 without authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
@@ -96,6 +97,6 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 - Product naming and distribution.
 - Whether gated writes to Hermes are ever added.
 
-Ticket 02 is resolved. Ticket 03 is implemented, pending acceptance. The remaining
+Tickets 02 and 03 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Tickets 04–06 still require new
 authorization. Historical baseline paths remain in `CONTEXT.md`.

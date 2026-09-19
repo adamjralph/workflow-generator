@@ -138,5 +138,6 @@ are not a cross-database transaction; diagnosing an active run is an observation
 not a promise of its eventual final cost. No snapshot deduplication or legacy
 schema migration is attempted.
 
-Ticket 03 remains claimed pending Adam's acceptance; 04–06 are not authorized by
-this implementation. No generation, conformance engine or packaging was added.
+Ticket 03 is accepted and closed at Adam's explicit approval. Implementation:
+`fcfb06c`; review fix and final verification: `39a2bd2`. Tickets 04–06 are not
+authorized by this approval. No generation, conformance engine or packaging was added.

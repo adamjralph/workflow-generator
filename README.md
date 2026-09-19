@@ -11,7 +11,7 @@ what was ruled out and why, and what is still open.
 Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime core.
 Ticket 02 adds run-level budget reservations, atomic event numbering, and a
 return-value findings join; both tickets are accepted. Ticket 03 adds single-run
-Kanban diagnosis, immutable records and a minimal terminal UI, pending acceptance.
+Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
 Tickets 04–06 are untouched. Current suite: **95 passed, 2 optional live-Jev skips**.
 See [ticket 03 evidence](docs/diagnosis-ticket03.md).
 

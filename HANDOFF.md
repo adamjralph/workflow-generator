@@ -124,7 +124,7 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
 - All 11 inherited mypy errors cleared without suppressions: **14 files, zero errors**.
 - SDK answer variants are checked; unreported token usage remains `None`, not zero.
   Malformed recordings and missing/invalid judgments produce recorded failure terminals.
-- Offline suite: **156 passed, 3 optional skips**. No live calls or Hermes edits.
+- Offline suite: **158 passed, 3 optional skips**. No live calls or Hermes edits.
 - Evidence and independent review results: [ticket 07](docs/typechecking-ticket07.md).
 
 ## Boundaries and remaining work

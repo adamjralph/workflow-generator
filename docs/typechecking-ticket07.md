@@ -44,13 +44,32 @@ Two driver cases prove SDK failures become recorded terminals and spend two step
 ## Verification
 
 - `.venv/bin/python -m mypy agent_lab`: **zero errors, 14 source files**.
-- Targeted new regression file: **26 passed**.
-- Full `.venv/bin/python -m pytest -q`: **156 passed, 3 skipped** (two live Jev
+- Targeted new regression file: **28 passed**.
+- Full `.venv/bin/python -m pytest -q`: **158 passed, 3 skipped** (two live Jev
   calls and the optional real-Hermes loader check).
 - Existing routing, budget, digest-bound approval and driver-equivalence tests pass.
 - No dependencies changed; no ignores/casts/check disabling; no live Hermes edits.
 
 ## Independent review
 
-Review baseline `70624c1`; independent Standards and Spec reviewers run in parallel.
-Results will be recorded after review.
+Review baseline `70624c1`; independent Standards and Spec reviewers ran in parallel
+against implementation commit `2077d7d`.
+
+### Standards
+
+- One documented-standard breach: oversized recording integers could overflow
+  `float()` and escape without a recorded terminal (CONTEXT §2.6). Reproduced with
+  two failing driver tests, then added `OverflowError` to the recording boundary's
+  explicit exception translation. Both tests now pass. An independent follow-up
+  Standards review confirmed resolution with no new findings.
+- One optional Duplicated Code smell: repeated three-line failure assertions in
+  tests. Retained to keep each short public-boundary test self-contained/readable.
+
+### Spec
+
+- Zero implementation findings or scope creep.
+- One procedural finding: review results were not yet recorded. Resolved here.
+
+Summary: Standards 1 hard finding fixed, 1 optional heuristic retained;
+Spec 1 procedural finding resolved, 0 implementation findings.
+Final verification above was rerun after the overflow fix; no live calls or Hermes edits.

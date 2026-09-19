@@ -141,7 +141,7 @@ class RecordedSource:
                 float(payload["review_gap"]),
                 source="recorded",
             )
-        except (ValueError, TypeError, KeyError) as exc:
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
             raise JudgmentError(f"recorded judgment failed validation: {exc}") from exc
 
 

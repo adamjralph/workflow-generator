@@ -8,7 +8,7 @@ and restore a green typechecking baseline without hiding errors.
 **Source:** Adam's ticket-05 acceptance and request for a cleanup ticket;
 `docs/measurement-ticket05.md` → Verification; `CONTEXT.md` §2.6.
 
-**Status:** ready-for-agent
+**Status:** implemented — awaiting acceptance
 
 ## Scope
 
@@ -54,6 +54,14 @@ contracts rather than asserting types through unchecked casts.
 No new workflow features, diagnosis baseline management, Hermes activation
 changes, or unrelated refactors. Do not suppress the errors and call the work
 complete. Update the README/handoff's typechecking status only after verification.
+
+## Answer
+
+Implemented with Adam's explicit authorization and confirmed judgment/driver seams;
+review baseline `70624c1`. Evidence: `docs/typechecking-ticket07.md`.
+Mypy: zero errors in 14 files. Offline suite: 158 passed, 3 optional skips.
+Independent Standards/Spec reviews completed and recorded; overflow finding
+reproduced test-first and fixed. No Hermes edits or live calls.
 
 ## Comments
 

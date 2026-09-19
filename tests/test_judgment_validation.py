@@ -1,5 +1,6 @@
 """Offline regression tests at the judgment and driver boundaries."""
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -101,6 +102,7 @@ def test_missing_state_judgment_is_a_recorded_failure(tmp_path, driver, stage):
 @pytest.mark.parametrize("driver", [run_plain, run_graph])
 @pytest.mark.parametrize("payload", ["{", "[]", "{}",
     '{"intervention":"review_follow_up","confidence":null,"review_gap":0.8}',
+    json.dumps({"intervention": "review_follow_up", "confidence":10**400, "review_gap":0.8}),
 ])
 def test_malformed_recording_is_a_recorded_failure(tmp_path, driver, payload):
     recording = tmp_path / "recording.json"

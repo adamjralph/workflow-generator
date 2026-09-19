@@ -6,9 +6,21 @@
 
 **Source:** `spec.md` → "Never modify Hermes"; `CONTEXT.md` §9.3; ADR-0002.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
-- [ ] Running a diagnosis against a Hermes home leaves source, configuration, authentication, and board/profile state byte-identical (verified by digesting the tree before and after, or by mounting it read-only).
-- [ ] A test asserts the diagnosis adapter has no write path.
+- [x] Running a diagnosis against a Hermes home leaves source, configuration, authentication, and board/profile state byte-identical (verified by digesting the tree before and after, or by mounting it read-only).
+- [x] A test asserts the diagnosis adapter has no write path.
 - [ ] The tool is installable as a Hermes plugin without editing Hermes source, configuration, or authentication.
-- [ ] A diagnosis succeeds in a fresh home with no pre-existing tool state.
+- [x] A diagnosis succeeds in a fresh home with no pre-existing tool state.
+
+## Comments
+
+Implementation and proof: [ticket 04 evidence](../../../docs/read-only-ticket04.md).
+User authorized the three test seams and review baseline `c3260ab`.
+
+A native local directory plugin installs by symlink without protected edits and
+passes isolated real-Hermes loader registration/invocation. However, the installed
+Hermes requires `plugins.enabled` configuration for normal activation. No config
+was changed and no production activation bypass was added. The plugin criterion
+remains open pending the user's decision on installation versus activation; see
+the evidence for the exact limitation. Tickets 05–06 are not started.

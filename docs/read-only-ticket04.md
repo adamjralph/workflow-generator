@@ -1,0 +1,124 @@
+# Ticket 04 — read-only boundary and local plugin
+
+User authorized ticket 04, the diagnosis/adapter/plugin seams, and review baseline
+`c3260ab95ecb80d37e0fd7546b288ea07dd6da52`. No tickets 05–06 are included.
+
+## Read-only measurement
+
+A regression reproduced a write from the ticket-03 reader: connecting with
+SQLite `mode=ro` to a database with a committed WAL and no shared-memory file
+creates `state.db-shm` in Hermes. `query_only` does not prevent that.
+
+The fresh-process adapter now copies the DB and, when present, WAL using ordinary
+read-only file access. SQLite opens **only the temporary copy**, still with
+`mode=ro` and `query_only`. It creates any shared-memory bookkeeping outside
+Hermes. The temporary directory is removed on success and failure. It contains
+potentially sensitive database contents, has private permissions, and is not a
+persisted artifact. Process termination can strand a temporary directory; this
+is not secure deletion or crash-durable cleanup.
+
+Before/after device, inode, size, mtime and ctime checks reject copies observed
+changing. Three failed attempts produce an explicit retry error, never a zero
+measurement. Nonempty rollback journals are conservatively refused: let Hermes
+recover/checkpoint its own database, then retry. We do not recover live databases.
+
+This is an observation of each database, not a cross-database transaction or a
+snapshot of the eventual completed run. Metadata checks assume an ordinary local
+filesystem and cooperative SQLite writers, not adversarial timestamp manipulation
+or concurrently malicious symlink replacement. Copying large databases increases
+I/O; the existing 30-second reader timeout can fail explicitly on large/busy homes.
+Do **not** use `immutable=1` against a live database: it can ignore committed WAL data.
+
+Snapshots use `TMPDIR`, then `TEMP`, then `TMP`, otherwise `/tmp` (local POSIX
+integration). An unsafe/nonexistent/unwritable location fails rather than silently
+falling back. The path is checked **before** allocation; `tempfile.gettempdir()`
+was itself reproduced writing a probe into a protected directory and is not used.
+Default/configured/selected Hermes homes, source roots and the source DB directory
+are protected. Adapter subprocesses disable Python bytecode writes.
+
+`DiagnosisStore` now also protects this tool's source checkout. For a separately
+installed Hermes source tree, the terminal accepts repeatable
+`--protected-root /path/to/hermes-agent`. Pass those same roots to adapters and
+the store when using the Python API. No heuristic can discover every arbitrary
+source checkout: callers must name additional protected roots. The plugin derives
+the running Hermes installation from its already-loaded `hermes_cli` module.
+
+## Local plugin installation (not a distribution decision)
+
+`plugins/workflow-diagnosis/` is a native Hermes directory plugin: `plugin.yaml`
+plus `register(ctx)`. It registers a slash command and runs the existing terminal
+front door through this checkout's `.venv/bin/python`. It contains no duplicate
+measurement implementation, model calls, dependency installer or config writer.
+
+After the README's local environment setup, **manually** install by symlink:
+
+```bash
+mkdir -p "$HERMES_HOME/plugins"
+ln -s /absolute/path/to/workflow-generator/plugins/workflow-diagnosis \
+  "$HERMES_HOME/plugins/workflow-diagnosis"
+```
+
+Set `HERMES_HOME` explicitly first. Do not overwrite an existing plugin. The
+symlink is important: this is a local-checkout integration, not a relocatable
+copied bundle. No installation was made into the operator's live Hermes home.
+Packaging, distribution and community support remain undecided.
+
+When already enabled by the host, the command is:
+
+```text
+/workflow-diagnose /path/to/hermes-home stillroom-research 2 "/path/to/project/artifacts"
+```
+
+**Activation constraint — needs an operator decision:** the inspected Hermes
+revision `5eb99eb2844b22ebb723711b8e6a0bbb80bb5f04` requires new standalone plugins
+in `plugins.enabled`. Its project-plugin environment switch only enables
+*discovery*, not activation. Installation does not edit config, but normal
+activation of a newly installed plugin cannot currently be promised without
+changing config. We did not enable it, invent an environment override, mislabel it
+as an auto-loaded backend, or bypass this gate in production. The ticket remains
+open pending acceptance of this distinction or a supported config-free activation
+path. The standalone terminal remains usable without this gate.
+
+## Proof and verification
+
+- `tests/test_read_only_boundary.py` digests all entries in a fresh fixture Hermes
+  home, including source/config/auth/profile sentinels and board/profile SQLite
+  files. Diagnosis succeeds without pre-existing tool state. A committed WAL
+  changes the expected calls from 10 to **13**, proving WAL data is not ignored.
+- An active SQLite writer connection remains open during adapter checks. A child
+  process audit guard denies protected write opens/mutations and **all** SQLite
+  connections into Hermes (including read-only ones). Both read operations work;
+  an unknown write operation is refused. Negative controls prove the guard
+  actually denies file writes and live SQLite access. This is a regression guard,
+  not a production OS sandbox.
+- Missing/unstable/journal-bearing sources fail without creating live database
+  files or leaving temporary copies. Separate source-root and unsafe temporary
+  directory guards are covered. Ticket-03 tests continue to exercise store escapes.
+- The offline plugin seam test installs a symlink in a fixture home, registers
+  through a stand-in for the external Hermes SDK, invokes the real diagnosis,
+  and checks protected bytes before/after installation and invocation.
+- `tests/test_hermes_plugin_integration.py` optionally uses the **real Hermes
+  loader** to discover, register and invoke the plugin. Like Hermes Plugin Doctor,
+  it uses isolated registration machinery, **not normal config-gated activation**.
+  It asserts the activation gate refuses an unenabled plugin. Hermes initializes
+  a separate temporary host home before the registration snapshot; the diagnosed
+  home is distinct and remains byte-identical. The production home is never used.
+
+Reproduce:
+
+```bash
+.venv/bin/python -m pytest -q tests/test_read_only_boundary.py tests/test_diagnosis.py
+.venv/bin/python -m mypy agent_lab
+HERMES_PLUGIN_TEST_SOURCE=/path/to/hermes-agent \
+HERMES_PLUGIN_TEST_PYTHON=/path/to/hermes-agent/venv/bin/python \
+  .venv/bin/python -m pytest -q tests/test_hermes_plugin_integration.py
+AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
+```
+
+Targeted boundary tests: **10 passed**; existing diagnosis tests: **20 passed**;
+real-loader check: **1 passed** on the revision above. Mypy retains the same
+**11 inherited errors in 3 files**; the diagnosis code adds none. The plugin
+source also passes mypy when checked as a script (the discovery directory has a
+hyphen, not a Python package name).
+
+Full-suite results and independent two-axis review are recorded below after review.

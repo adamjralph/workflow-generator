@@ -1,0 +1,4 @@
+name: workflow-diagnosis
+version: "0.1.0"
+kind: standalone
+description: Read-only single-run workflow diagnosis from a local checkout

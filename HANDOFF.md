@@ -9,7 +9,11 @@
   Ticket 03 was subsequently authorized by Adam, including its test seams and
   review baseline `02e4f6d`. **Ticket 03 is accepted and closed** at Adam's explicit
   approval. Implementation: `fcfb06c`; review fix and verification: `39a2bd2`;
-  see `docs/diagnosis-ticket03.md`. Do not begin tickets 04–06 without authorization.
+  see `docs/diagnosis-ticket03.md`. Ticket 04 is now authorized, including the
+  diagnosis/adapter/plugin seams and review baseline `c3260ab`. Its read-only
+  proof and local plugin are implemented; normal activation requires Hermes
+  config opt-in and remains an open acceptance issue. See
+  `docs/read-only-ticket04.md`. Do not begin tickets 05–06 without authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
   with read-only SQLite connections. No Hermes code/config/authentication or
@@ -79,8 +83,10 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
 
 Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,
 fresh-process Kanban/Hermes readers, immutable digest-addressed diagnosis JSON,
-and a minimal line-oriented terminal UI. Other units, breakdowns, the full
-read-only proof, plugin/generator/spec/conformance engine remain unimplemented.
+and a minimal line-oriented terminal UI. Other units, breakdowns, and the generator/spec/conformance engine remain
+unimplemented. Ticket 04 replaces live SQLite connections with checked temporary
+DB/WAL copies, adds byte-preservation/admission tests, and provides a local
+symlinked plugin. It does not bypass Hermes' config activation gate.
 Diagnosis JSON does not settle workflow-spec serialization. Budget reservations are
 in-process, not distributed/crash-durable accounting. Parallel callers must
 share the accounting owner and return values rather than mutate a shared holder.
@@ -98,5 +104,5 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 - Whether gated writes to Hermes are ever added.
 
 Tickets 02 and 03 are resolved. The remaining
-diagnosis dependency order is 03 → {04, 05} → 06. Tickets 04–06 still require new
-authorization. Historical baseline paths remain in `CONTEXT.md`.
+diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
+not yet accepted; tickets 05–06 still require new authorization. Historical baseline paths remain in `CONTEXT.md`.

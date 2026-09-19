@@ -13,14 +13,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Diagnose one Kanban run (read-only)")
     parser.add_argument("--hermes-home", type=Path, required=True)
     parser.add_argument("--store", type=Path, required=True, help="artifact directory outside Hermes")
+    parser.add_argument("--protected-root", type=Path, action="append", default=[],
+                        help="additional Hermes source/install root (repeatable)")
     args = parser.parse_args()
     try:
-        store = DiagnosisStore(args.store, protected_roots=(args.hermes_home,))
+        protected = tuple(args.protected_root)
+        store = DiagnosisStore(args.store, protected_roots=(args.hermes_home, *protected))
         print("Single-run diagnosis — Kanban (read-only)")
         board = input("Board: ").strip()
         run_id = input("Run id: ").strip()
-        result = diagnose(run_id, KanbanAdapter(args.hermes_home, board),
-                          HermesUsage(args.hermes_home), store)
+        result = diagnose(run_id, KanbanAdapter(args.hermes_home, board, protected_roots=protected),
+                          HermesUsage(args.hermes_home, protected_roots=protected), store)
         print(f"\nRun: {result.record.attribution.run_id}")
         print(f"Role: {result.record.attribution.role}")
         print(f"Calls/run: {result.record.calls_per_run} (includes auxiliary calls)")

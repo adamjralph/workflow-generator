@@ -12,8 +12,10 @@ Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime 
 Ticket 02 adds run-level budget reservations, atomic event numbering, and a
 return-value findings join; both tickets are accepted. Ticket 03 adds single-run
 Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
-Tickets 04–06 are untouched. Current suite: **95 passed, 2 optional live-Jev skips**.
-See [ticket 03 evidence](docs/diagnosis-ticket03.md).
+Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
+remains constrained by Hermes' config opt-in. Tickets 05–06 are untouched.
+See [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
+and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
 The product spec and ADRs record future work, not this ticket's build target.
 Spec serialization, distribution/packaging, product naming, and the community-plugin
@@ -30,8 +32,8 @@ AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest
 ```
 
 No lab checkout, Hermes installation, API key, or network access is needed to run
-the tests after dependency installation. Credentials tests use temporary fake files;
-the two live tests remain opt-in. Do not point credential files or stores at Hermes.
+the default tests after dependency installation. Credentials tests use temporary fake files;
+the two live tests and the real-Hermes plugin-loader check remain opt-in. Do not point credential files or stores at Hermes.
 
 Import the existing boundary directly (no wrapper or second implementation):
 
@@ -67,6 +69,15 @@ From this checkout, supply a Hermes home to read and an artifact store outside i
 .venv/bin/python -m agent_lab.diagnosis \
   --hermes-home /path/to/hermes-home --store /path/to/project/artifacts
 ```
+
+Use `-B` (or `PYTHONDONTWRITEBYTECODE=1`) if the tool checkout must also remain
+byte-identical. If Hermes source is installed separately, add
+`--protected-root /path/to/hermes-agent`. Stores must be outside Hermes and this
+tool's source checkout. Temporary DB/WAL copies are read outside protected roots;
+a changing database or nonempty rollback journal produces an explicit retry error.
+
+For local plugin installation and its host activation constraint, see
+[ticket 04](docs/read-only-ticket04.md#local-plugin-installation-not-a-distribution-decision).
 
 Enter the board directory name and its `task_runs.id` at the prompts. The terminal
 shows calls/run (including auxiliary calls) and the saved artifact path. It reads

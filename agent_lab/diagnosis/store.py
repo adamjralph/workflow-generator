@@ -11,7 +11,7 @@ from . import DiagnosisError, DiagnosisRecord, StoredDiagnosis
 class DiagnosisStore:
     def __init__(self, root: Path, *, protected_roots: tuple[Path, ...] = ()):
         self.root = root.resolve()
-        protected = (Path.home() / ".hermes", *protected_roots)
+        protected = (Path.home() / ".hermes", Path(__file__).resolve().parents[2], *protected_roots)
         if configured := os.environ.get("HERMES_HOME"):
             protected += (Path(configured),)
         self.protected_roots = tuple(path.resolve() for path in protected)

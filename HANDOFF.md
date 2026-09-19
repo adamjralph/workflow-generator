@@ -16,8 +16,9 @@
   `docs/read-only-ticket04.md`. **Ticket 05 is accepted and closed** at Adam's
   explicit request. Implementation: `3106982`; review and final verification:
   `7abde37`, against approved baseline `35f45fb`. See `docs/measurement-ticket05.md`.
-  Adam requested cleanup ticket 07 for inherited mypy errors; it is recorded,
-  not started. Do not begin tickets 06–07 without authorization.
+  **Ticket 07 is accepted and closed** at Adam's explicit approval.
+  Implementation and review fixes: `2077d7d`, `12db524`.
+  Do not begin ticket 06 without authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
   with read-only SQLite connections. No Hermes code/config/authentication or
@@ -117,7 +118,7 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
 - **Ticket 05 is accepted and closed** at Adam's explicit approval. The inherited
   mypy cleanup was separately tracked in ticket 07 (subsequently authorized; see below).
 
-## Ticket 07 — implemented, awaiting acceptance
+## Ticket 07 — accepted and closed
 
 - Adam authorized implementation and confirmed judgment/driver test seams and
   review baseline `70624c1`.
@@ -154,6 +155,6 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 
 Tickets 02, 03 and 05 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted. Ticket 07 is implemented pending acceptance;
+not yet accepted. Ticket 07 is accepted and closed;
 ticket 06 still requires new implementation authorization. Historical baseline
 paths remain in `CONTEXT.md`.

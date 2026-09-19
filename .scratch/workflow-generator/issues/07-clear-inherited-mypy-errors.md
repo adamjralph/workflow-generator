@@ -8,7 +8,7 @@ and restore a green typechecking baseline without hiding errors.
 **Source:** Adam's ticket-05 acceptance and request for a cleanup ticket;
 `docs/measurement-ticket05.md` → Verification; `CONTEXT.md` §2.6.
 
-**Status:** implemented — awaiting acceptance
+**Status:** resolved — accepted and closed
 
 ## Scope
 
@@ -30,24 +30,24 @@ contracts rather than asserting types through unchecked casts.
 
 ## Acceptance criteria
 
-- [ ] `.venv/bin/python -m mypy agent_lab` passes with zero errors.
-- [ ] No blanket ignores, disabled checks, broad `Any`, unchecked casts, or
+- [x] `.venv/bin/python -m mypy agent_lab` passes with zero errors.
+- [x] No blanket ignores, disabled checks, broad `Any`, unchecked casts, or
       dependency downgrades are used merely to silence diagnostics.
-- [ ] Jev response variants and nullable token counts have explicit handling
+- [x] Jev response variants and nullable token counts have explicit handling
       consistent with the SDK contract; unavailable usage is not silently
       represented as measured zero.
-- [ ] Malformed/missing judgment data fails explicitly and preserves the
+- [x] Malformed/missing judgment data fails explicitly and preserves the
       workflow's recorded failure-terminal behavior rather than leaking an
       accidental attribute error or allowing unsafe continuation.
-- [ ] Normalization forms and judgment-source annotations express the supported
+- [x] Normalization forms and judgment-source annotations express the supported
       values without weakening existing runtime validation.
-- [ ] Routing behavior, budgets, digest-bound approvals, and plain/graph driver
+- [x] Routing behavior, budgets, digest-bound approvals, and plain/graph driver
       equivalence are preserved.
-- [ ] Meaningful runtime weaknesses are reproduced with failing offline tests
+- [x] Meaningful runtime weaknesses are reproduced with failing offline tests
       before fixes, at public seams confirmed with Adam before writing tests.
-- [ ] Targeted tests and the full offline suite pass; optional live calls remain
+- [x] Targeted tests and the full offline suite pass; optional live calls remain
       opt-in and no live Hermes source/configuration/authentication/state is edited.
-- [ ] Independent Standards and Spec reviews are completed and recorded.
+- [x] Independent Standards and Spec reviews are completed and recorded.
 
 ## Boundaries
 
@@ -64,6 +64,9 @@ Independent Standards/Spec reviews completed and recorded; overflow finding
 reproduced test-first and fixed. No Hermes edits or live calls.
 
 ## Comments
+
+Adam explicitly accepted ticket 07 after implementation, verification and independent
+reviews. Closed at that approval. Implementation commits: `2077d7d`, `12db524`.
 
 Adam requested creation of this cleanup ticket while explicitly accepting and
 closing ticket 05. This records future work; it does not authorize starting

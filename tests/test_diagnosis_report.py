@@ -10,10 +10,44 @@ from pathlib import Path
 
 import pytest
 
-from agent_lab.diagnosis import DiagnosisError
-from agent_lab.diagnosis.report import KanbanRun, diagnose_report, load_report
+from agent_lab.diagnosis import DiagnosisError, RunAttribution, TokenCounts, UsageRow
+from agent_lab.diagnosis.report import KanbanRun, RunSelection, diagnose_report, load_report, measure_report
 from agent_lab.diagnosis.store import DiagnosisStore
 from tests.test_diagnosis import make_hermes
+
+
+def test_runtime_neutral_report_uses_the_supplied_attribution_and_usage_contracts(tmp_path):
+    class RecordedRuntime:
+        measurement_method = "recorded-runtime/attributed-usage/four-units-v1"
+
+        @property
+        def usage_source(self):
+            return self
+
+        def adapter(self, selection):
+            return self
+
+        def attribute(self, run_id):
+            return RunAttribution(run_id=run_id, runtime="recorded", role="researcher",
+                                  session_ids=("s1",), workflow_identity="research")
+
+        def usage(self, session_ids):
+            return (UsageRow(session_id="s1", task=None, calls=2, tokens=TokenCounts(
+                input_tokens=40, output_tokens=5, cache_read_tokens=60,
+                cache_write_tokens=0, reasoning_tokens=3)),)
+
+    source = RecordedRuntime()
+    runs = (RunSelection(source="recording", run_id="r1"),)
+    store = DiagnosisStore(tmp_path / "artifacts")
+    before = measure_report(runs, source, "research", store)
+    after = measure_report(runs, source, "research", store, baseline=before.path)
+    report = load_report(after.path, store)
+    assert report.current.runs[0].attribution.runtime == "recorded"
+    assert report.current.roles[0].measurements.context_per_call == 50
+    assert report.comparison.calls_per_run == 0
+    source.measurement_method = "recorded-runtime/different-join/four-units-v1"
+    with pytest.raises(DiagnosisError, match="measurement method"):
+        measure_report(runs, source, "research", store, baseline=before.path)
 
 
 def test_report_exposes_run_role_and_total_measurements(tmp_path):

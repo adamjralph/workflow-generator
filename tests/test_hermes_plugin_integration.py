@@ -63,6 +63,13 @@ assert loaded.enabled and loaded.error is None, loaded.error
 handler = manager._plugin_commands['workflow-diagnose']['handler']
 output = handler(shlex.join([str(home), 'stillroom-research', '2', str(store)]))
 assert 'Calls/run: 10' in output, output
+runs = store.parent / 'runs.json'
+runs.write_text('[{"board":"stillroom-research","run_id":"2"}]')
+report_handler = manager._plugin_commands['workflow-report']['handler']
+report = report_handler(shlex.join([str(home), str(runs), 'team', str(store)]))
+assert 'Role: stillroom-media-analyst' in report, report
+assert 'No measured baseline' in report, report
+assert 'Calls/run: 10' in report, report
 after = host_bytes()
 assert after == before, [key for key in before.keys() | after.keys() if before.get(key) != after.get(key)]
 print(output)

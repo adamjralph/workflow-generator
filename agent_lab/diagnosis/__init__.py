@@ -36,6 +36,14 @@ class TokenCounts(BaseModel):
     cache_write_tokens: int = Field(ge=0, strict=True)
     reasoning_tokens: int = Field(ge=0, strict=True)
 
+    def context_per_call(self, calls: int) -> float | None:
+        return (self.input_tokens + self.cache_read_tokens) / calls if calls else None
+
+    @property
+    def cache_hit_rate(self) -> float | None:
+        context = self.input_tokens + self.cache_read_tokens
+        return self.cache_read_tokens / context if context else None
+
 
 def sum_tokens(counts: Iterable[TokenCounts]) -> TokenCounts:
     totals = dict.fromkeys(TokenCounts.model_fields, 0)
@@ -70,10 +78,9 @@ class Measurements(BaseModel):
     def from_rows(cls, rows: tuple[UsageRow, ...]) -> "Measurements":
         calls = sum(row.calls for row in rows)
         tokens = sum_tokens(row.tokens for row in rows)
-        context = tokens.input_tokens + tokens.cache_read_tokens
         return cls(calls_per_run=calls, tokens_per_run=tokens,
-                   context_per_call=context / calls if calls else None,
-                   cache_hit_rate=tokens.cache_read_tokens / context if context else None)
+                   context_per_call=tokens.context_per_call(calls),
+                   cache_hit_rate=tokens.cache_hit_rate)
 
 
 class TrafficMeasurement(Measurements):

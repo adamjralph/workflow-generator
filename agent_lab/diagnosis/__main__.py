@@ -39,7 +39,7 @@ def print_cohort(cohort: Cohort) -> None:
             print(f"  {traffic.kind} ({traffic.task or 'main loop'}):")
             print_measurements(traffic.measurements, "    ")
     for selection, run in zip(cohort.selections, cohort.runs):
-        print(f"Run: {run.attribution.run_id} (board={selection.board}, role={run.attribution.role})")
+        print(f"Run: {run.attribution.run_id} (source={selection.source}, role={run.attribution.role})")
         print_measurements(run, "  ")
         for task in run.traffic:
             print(f"  {task.kind} ({task.task or 'main loop'}):")

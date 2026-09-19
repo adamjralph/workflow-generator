@@ -40,6 +40,12 @@ plugin forwards the loaded host source location automatically.
 
 Python callers use `diagnose_report(home, selections, workflow_identity, store,
 baseline=path)` and `load_report(path, store)` in `agent_lab.diagnosis.report`.
+The runtime-neutral core is `measure_report(selections, source, workflow_identity,
+store, baseline=path)`. A `ReportSource` supplies the existing attribution adapter
+and usage protocols, plus a stable measurement-method version. Source-qualified
+run selections are runtime-neutral; the Kanban front door interprets the source
+as a board. Future adapters must change their method version whenever their join,
+usage selection or metric semantics change, and configure their protected roots.
 
 ## Measurement and comparison contract
 
@@ -92,6 +98,25 @@ or edits to Hermes were needed; fixture provenance is in `measurement-ticket05.m
 Red/green slices covered the missing report API, measured-before comparison,
 invalid cohort/baseline rejection, persisted role summaries, CLI/plugin rendering,
 and direct-Python read-only protection. Targeted diagnosis/report/baseline tests:
-**57 passed**. Mypy: **zero errors, 15 source files**.
+**57 passed** before review; an additional runtime-neutral source regression now
+passes. Mypy: **zero errors, 15 source files**.
 
-Independent review and final full-suite results are recorded after review.
+## Standards
+
+Independent review of implementation `ea50593` found one documented-standard
+breach: the report boundary was Kanban-specific despite CONTEXT §9.1. A failing
+public-seam test reproduced the absent runtime-neutral interface. Added
+`ReportSource`/`measure_report` using the existing attribution and usage contracts,
+with Kanban retained as the shipped front door. The new test measures and compares
+a non-Kanban recorded runtime and rejects a changed join version.
+
+Two heuristic duplication findings were addressed: the plugin commands now share
+the subprocess/protected-root boundary, and single-run and aggregate measurements
+share the token context/cache formulas.
+
+## Spec
+
+Independent review found **0 spec findings**; the reviewer independently ran all
+57 targeted offline tests. All ticket-06 acceptance criteria were verified.
+
+Follow-up review and final full-suite results are recorded after verification.

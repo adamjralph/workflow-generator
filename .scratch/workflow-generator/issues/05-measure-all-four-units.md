@@ -20,3 +20,6 @@ Adam authorized ticket 05 and confirmed diagnosis/adapter/CLI-plugin test seams
 and review against `35f45fb`. Implemented; acceptance remains Adam's.
 Evidence, formulas, baseline fixture provenance and reproduction command:
 `docs/measurement-ticket05.md`. No ticket-06 work or Hermes writes included.
+Implementation `3106982`; independent Standards and Spec reviews: zero findings
+on either axis. Final full suite: 131 passed, 2 optional live-Jev skips; mypy
+retains the same 11 inherited errors, with no new diagnosis errors.

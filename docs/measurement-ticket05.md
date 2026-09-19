@@ -99,5 +99,35 @@ boundary. Tests use offline fixtures, not live Hermes.
 
 Targeted diagnosis and baseline tests: **45 passed**. Typechecking was run
 repeatedly: **11 inherited errors in 3 files**, no new errors in diagnosis.
-Full-suite results and the independent two-axis review will be recorded after
-final verification.
+Final full suite, including the real Hermes loader in isolated fixture homes:
+**131 passed, 2 optional live-Jev skips**. No live configuration was edited or
+plugin activated. Reproduce from the repository root:
+
+```bash
+AGENT_LAB_JUDGMENT=stub \
+HERMES_PLUGIN_TEST_SOURCE=/home/hermes/.hermes/hermes-agent \
+HERMES_PLUGIN_TEST_PYTHON=/home/hermes/.hermes/hermes-agent/venv/bin/python \
+  .venv/bin/python -m pytest -q
+.venv/bin/python -m mypy agent_lab
+```
+
+Without the optional loader environment, that check also skips. Mypy still
+reports exactly the inherited 11 errors in `encoding.py`, `judgment.py` and
+`workflow.py`; this is not a green typechecking claim.
+
+## Standards
+
+Independent parallel review of `git diff 35f45fb...HEAD` at implementation
+commit `3106982`: **no documented-standard breaches or actionable baseline
+smells identified**. The reviewer made no edits and accessed no live Hermes state.
+
+## Spec
+
+Independent parallel review: **no spec findings**. Verified all four units,
+worker/auxiliary/review separation, separate reasoning counters, exclusion of
+unlinked sessions, and baseline formulas and published figures. No ticket-05
+scope creep identified. The reviewer independently ran the 45 diagnosis/baseline
+tests, all passing, without live Hermes access.
+
+**Review summary:** Standards: 0 findings; Spec: 0 findings. Implementation is
+complete; ticket acceptance/closure remains Adam's decision.

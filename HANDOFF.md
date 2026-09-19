@@ -98,6 +98,23 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
   made. Ticket 04 remains claimed, **not accepted/closed**, pending Adam's decision
   on installation versus activation. Do not bypass the host activation gate.
 
+## Ticket 05 verification
+
+- Implementation: `3106982`; evidence: `docs/measurement-ticket05.md`.
+- All four units, per-task worker/auxiliary/review separation, separate reasoning
+  counters, and schema-1 artifact read compatibility are implemented. The plugin
+  displays the same output through the unchanged terminal front door.
+- Diagnosis and offline baseline tests: **45 passed**. Final full suite with the
+  isolated real-loader opt-in: **131 passed, 2 optional live-Jev skips**.
+- Mypy: the same **11 inherited errors in 3 files**, no new diagnosis errors.
+- Historical baseline reproduced read-only: 23 runs, 214 calls (188 worker + 26
+  auxiliary), 1,132,524 fresh input, 4,608,338 cache-read, 89,103 output; 9.3
+  calls/run, 26,826 context/call, 49,240 fresh input/run, 80% cache hit. Newly
+  exposed reasoning: 19,237. The newer September 19 run is excluded explicitly.
+- Independent parallel review against `35f45fb`: Standards **0 findings**;
+  Spec **0 findings**. No Hermes edits or host activation changes.
+- Ticket 05 remains implemented but **not accepted/closed** pending Adam.
+
 ## Boundaries and remaining work
 
 Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,
@@ -125,5 +142,5 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 
 Tickets 02 and 03 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted; ticket 05 is authorized and implemented, pending review and
-acceptance; ticket 06 still requires new authorization. Historical baseline paths remain in `CONTEXT.md`.
+not yet accepted; ticket 05 is implemented and reviewed, pending acceptance;
+ticket 06 still requires new authorization. Historical baseline paths remain in `CONTEXT.md`.

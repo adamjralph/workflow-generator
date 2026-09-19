@@ -17,7 +17,8 @@ remains constrained by Hermes' config opt-in. Ticket 05 adds all four measuremen
 units, task-separated worker/auxiliary/review traffic and reasoning counters;
 it is accepted and closed. Ticket 07 clears inherited mypy errors and makes
 malformed judgment failures explicit; it is accepted and closed. Ticket 06 adds
-per-role/per-run reports and digest-bound measured baseline comparisons; see
+per-role/per-run reports and digest-bound measured baseline comparisons;
+it is accepted and closed. See
 [ticket 06 usage and evidence](docs/report-ticket06.md).
 Current suite: **172 passed, 2 optional live-Jev skips**, including the real
 Hermes loader in isolated fixture homes (without loader opt-in: 171 passed, 3 skips). See [ticket 05 measurement evidence](docs/measurement-ticket05.md),

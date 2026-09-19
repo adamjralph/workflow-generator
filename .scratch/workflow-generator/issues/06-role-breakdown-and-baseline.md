@@ -6,7 +6,7 @@
 
 **Source:** `spec.md` → "Metrics and improvement"; `CONTEXT.md` §5; `cost-baseline.md`.
 
-**Status:** claimed
+**Status:** resolved — accepted and closed
 
 - [x] The report breaks cost down per role and per run in the four units.
 - [x] It presents a before-number taken through the same join and a comparison against it.
@@ -26,4 +26,6 @@ Independent Standards review found one runtime-neutrality breach and two
 heuristic duplication concerns; all addressed and follow-up review cleared.
 Spec review: zero findings. Final suite: 172 passed, 2 optional live-Jev skips,
 including the real Hermes loader in isolated fixture homes. Mypy: zero errors.
-Implementation is ready for Adam's acceptance; no live Hermes state was modified.
+Adam explicitly accepted ticket 06 after implementation, verification and independent
+review. Implementation: `ea50593`; review fixes: `c4af4d3`; final verification:
+`f6b9c49`. No live Hermes state was modified.

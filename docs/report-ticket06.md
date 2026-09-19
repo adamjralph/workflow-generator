@@ -4,6 +4,9 @@ Authorized by Adam, including report API, artifact store, CLI/plugin and real
 read-only adapter/offline-fixture test seams. Review baseline:
 `9497f53a74f923c01bb448b86fd9509d5c5d483a`.
 
+**Accepted and closed** at Adam's explicit approval. Implementation: `ea50593`;
+review fixes: `c4af4d3`; final verification: `f6b9c49`.
+
 ## Usage
 
 Create a JSON manifest outside Hermes, listing explicit run selections:

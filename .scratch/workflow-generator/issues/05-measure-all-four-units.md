@@ -6,10 +6,17 @@
 
 **Source:** `spec.md` → "Diagnosis"; `CONTEXT.md` §2.8, §5; `cost-baseline.md`.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
-- [ ] The diagnosis reports context/call, tokens/run, and cache hit rate alongside calls/run.
-- [ ] Auxiliary/review traffic is separated from the worker's own loop in the output.
-- [ ] Reasoning tokens are reported separately from output tokens.
-- [ ] A session counts as workflow cost only when a recorded run names it; interactive chat sessions are excluded.
-- [ ] Re-running the 2026-09-18 baseline reproduces its published figures in these units.
+- [x] The diagnosis reports context/call, tokens/run, and cache hit rate alongside calls/run.
+- [x] Auxiliary/review traffic is separated from the worker's own loop in the output.
+- [x] Reasoning tokens are reported separately from output tokens.
+- [x] A session counts as workflow cost only when a recorded run names it; interactive chat sessions are excluded.
+- [x] Re-running the 2026-09-18 baseline reproduces its published figures in these units.
+
+## Comments
+
+Adam authorized ticket 05 and confirmed diagnosis/adapter/CLI-plugin test seams
+and review against `35f45fb`. Implemented; acceptance remains Adam's.
+Evidence, formulas, baseline fixture provenance and reproduction command:
+`docs/measurement-ticket05.md`. No ticket-06 work or Hermes writes included.

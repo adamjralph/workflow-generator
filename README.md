@@ -13,9 +13,10 @@ Ticket 02 adds run-level budget reservations, atomic event numbering, and a
 return-value findings join; both tickets are accepted. Ticket 03 adds single-run
 Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
 Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
-remains constrained by Hermes' config opt-in. Tickets 05–06 are untouched.
-Final suite with the real-loader check opted in: **106 passed, 2 live-Jev skips**.
-See [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
+remains constrained by Hermes' config opt-in. Ticket 05 adds all four measurement
+units, task-separated worker/auxiliary/review traffic and reasoning counters.
+Ticket 06 remains untouched. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
+[ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).
 
 The product spec and ADRs record future work, not this ticket's build target.
@@ -81,10 +82,12 @@ For local plugin installation and its host activation constraint, see
 [ticket 04](docs/read-only-ticket04.md#local-plugin-installation-not-a-distribution-decision).
 
 Enter the board directory name and its `task_runs.id` at the prompts. The terminal
-shows calls/run (including auxiliary calls) and the saved artifact path. It reads
-summed usage rows, never the sessions rollup. Each invocation creates a new
-immutable observation; unavailable data is an error, not zero. Only calls/run is
-implemented; the other units and breakdowns remain ticket 05.
+shows calls/run, context/call, separate token counters/run, cache hit rate, task
+breakdowns and the saved artifact path. Totals include auxiliary/review traffic,
+but only for sessions named by the recorded run. It reads summed usage rows,
+never the sessions rollup. Each invocation creates a new immutable observation;
+unavailable counters are errors, not zero. Undefined rates display as `n/a`.
+See [measurement formulas and baseline reproduction](docs/measurement-ticket05.md).
 
 ## In one line
 

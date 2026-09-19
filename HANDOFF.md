@@ -13,7 +13,10 @@
   diagnosis/adapter/plugin seams and review baseline `c3260ab`. Its read-only
   proof and local plugin are implemented; normal activation requires Hermes
   config opt-in and remains an open acceptance issue. See
-  `docs/read-only-ticket04.md`. Do not begin tickets 05–06 without authorization.
+  `docs/read-only-ticket04.md`. Ticket 05 is now authorized, including diagnosis,
+  adapter and CLI/plugin seams and review baseline `35f45fb`. Its implementation
+  is described in `docs/measurement-ticket05.md`; acceptance remains Adam's.
+  Do not begin ticket 06 without authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
   with read-only SQLite connections. No Hermes code/config/authentication or
@@ -99,8 +102,9 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
 
 Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,
 fresh-process Kanban/Hermes readers, immutable digest-addressed diagnosis JSON,
-and a minimal line-oriented terminal UI. Other units, breakdowns, and the generator/spec/conformance engine remain
-unimplemented. Ticket 04 replaces live SQLite connections with checked temporary
+and a minimal line-oriented terminal UI. Ticket 05 adds context/call, token counters/run, cache hit rate and per-task
+worker/auxiliary/review breakdowns, preserving calls-only artifact readability.
+Role/baseline management and the generator/spec/conformance engine remain unimplemented. Ticket 04 replaces live SQLite connections with checked temporary
 DB/WAL copies, adds byte-preservation/admission tests, and provides a local
 symlinked plugin. It does not bypass Hermes' config activation gate.
 Diagnosis JSON does not settle workflow-spec serialization. Budget reservations are
@@ -121,4 +125,5 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 
 Tickets 02 and 03 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted; tickets 05–06 still require new authorization. Historical baseline paths remain in `CONTEXT.md`.
+not yet accepted; ticket 05 is authorized and implemented, pending review and
+acceptance; ticket 06 still requires new authorization. Historical baseline paths remain in `CONTEXT.md`.

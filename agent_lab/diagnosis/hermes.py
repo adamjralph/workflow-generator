@@ -13,7 +13,7 @@ from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Any
 
-from . import DiagnosisError, RunAttribution, SessionCalls
+from . import DiagnosisError, RunAttribution, UsageRow, TokenCounts
 
 
 def _signature(path: Path) -> tuple[int, int, int, int, int] | None:
@@ -87,22 +87,26 @@ def _attribute(home: Path, board: str, run_id: str, protected: tuple[Path, ...])
                           session_ids=(session,), workflow_identity=identity)
 
 
-def _calls(home: Path, sessions: tuple[str, ...], protected: tuple[Path, ...]) -> tuple[SessionCalls, ...]:
-    totals: dict[str, int] = {}
+def _usage(home: Path, sessions: tuple[str, ...], protected: tuple[Path, ...]) -> tuple[UsageRow, ...]:
+    usage: list[UsageRow] = []
     for path in sorted((home / "profiles").glob("*/state.db")):
         with _read_db(path, home, protected) as db:
             for session in sessions:
                 rows = db.execute(
-                    "SELECT api_call_count FROM session_model_usage WHERE session_id = ?",
+                    """SELECT task, api_call_count, input_tokens, output_tokens, cache_read_tokens,
+                              cache_write_tokens, reasoning_tokens
+                       FROM session_model_usage WHERE session_id = ?""",
                     (session,),
                 ).fetchall()
                 for row in rows:
                     # A missing/null counter is not evidence of zero cost.
-                    count = SessionCalls(session_id=session, calls=row["api_call_count"])
-                    totals[session] = totals.get(session, 0) + count.calls
-    if set(totals) != set(sessions):
+                    usage.append(UsageRow(
+                        session_id=session, task=row["task"], calls=row["api_call_count"],
+                        tokens=TokenCounts(**{name: row[name] for name in TokenCounts.model_fields}),
+                    ))
+    if {row.session_id for row in usage} != set(sessions):
         raise DiagnosisError("No usage rows for one or more attributed sessions")
-    return tuple(SessionCalls(session_id=s, calls=totals[s]) for s in sessions)
+    return tuple(usage)
 
 
 def _bridge(request: dict[str, Any]) -> Any:
@@ -133,10 +137,10 @@ class HermesUsage:
         self.home = hermes_home.resolve()
         self.protected_roots = [str(path.resolve()) for path in protected_roots]
 
-    def calls(self, session_ids: tuple[str, ...]) -> tuple[SessionCalls, ...]:
-        rows = _bridge({"operation": "calls", "home": str(self.home), "sessions": session_ids,
+    def usage(self, session_ids: tuple[str, ...]) -> tuple[UsageRow, ...]:
+        rows = _bridge({"operation": "usage", "home": str(self.home), "sessions": session_ids,
                         "protected_roots": self.protected_roots})
-        return tuple(SessionCalls.model_validate(row) for row in rows)
+        return tuple(UsageRow.model_validate(row) for row in rows)
 
 
 def main() -> None:
@@ -147,8 +151,8 @@ def main() -> None:
         if request["operation"] == "attribute":
             result = _attribute(home, request["board"], request["run_id"], protected)
             print(result.model_dump_json())
-        elif request["operation"] == "calls":
-            print(json.dumps([r.model_dump() for r in _calls(home, tuple(request["sessions"]), protected)]))
+        elif request["operation"] == "usage":
+            print(json.dumps([r.model_dump() for r in _usage(home, tuple(request["sessions"]), protected)]))
         else:
             raise DiagnosisError("Unknown read operation")
     except (ValueError, sqlite3.Error, OSError) as exc:

@@ -5,7 +5,16 @@ import os
 import tempfile
 from pathlib import Path
 
-from . import DiagnosisError, DiagnosisRecord, StoredDiagnosis
+from typing import Annotated
+
+from pydantic import Field, TypeAdapter
+
+from . import DiagnosisError, DiagnosisRecord, LegacyDiagnosisRecord, StoredDiagnosis
+
+
+RECORD_READER: TypeAdapter[DiagnosisRecord | LegacyDiagnosisRecord] = TypeAdapter(Annotated[
+    DiagnosisRecord | LegacyDiagnosisRecord, Field(discriminator="schema_version"),
+])
 
 
 class DiagnosisStore:
@@ -49,11 +58,11 @@ class DiagnosisStore:
             os.unlink(temporary)
         return StoredDiagnosis(record=record, path=path)
 
-    def load(self, path: Path) -> DiagnosisRecord:
+    def load(self, path: Path) -> DiagnosisRecord | LegacyDiagnosisRecord:
         resolved = path.resolve()
         if not resolved.is_relative_to(self.root):
             raise DiagnosisError("Artifact is outside this store")
         raw = resolved.read_bytes()
         if resolved.stem != hashlib.sha256(raw).hexdigest():
             raise DiagnosisError("Artifact digest mismatch")
-        return DiagnosisRecord.model_validate_json(raw)
+        return RECORD_READER.validate_json(raw)

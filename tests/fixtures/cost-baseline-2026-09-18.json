@@ -1,0 +1,915 @@
+{
+  "source": "2026-09-18 cost-baseline.md; recorded runs started before 2026-09-19 UTC; token counters read from checked DB/WAL copies",
+  "runs": [
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "1",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_170605_89ffab"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_a8735027"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_170605_89ffab",
+          "task": "",
+          "calls": 11,
+          "tokens": {
+            "input_tokens": 38327,
+            "output_tokens": 3372,
+            "cache_read_tokens": 275840,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 891
+          }
+        },
+        {
+          "session_id": "20260917_170605_89ffab",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 238,
+            "output_tokens": 69,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_170605_89ffab",
+          "task": "goal_judge",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 1103,
+            "output_tokens": 223,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "2",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260917_170829_7f0e77"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_1ac50de3"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_170829_7f0e77",
+          "task": "",
+          "calls": 8,
+          "tokens": {
+            "input_tokens": 32996,
+            "output_tokens": 2651,
+            "cache_read_tokens": 95360,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 554
+          }
+        },
+        {
+          "session_id": "20260917_170829_7f0e77",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 74,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_170829_7f0e77",
+          "task": "goal_judge",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 1268,
+            "output_tokens": 96,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "3",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_171008_04df42"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_ecef99b8"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_171008_04df42",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 239,
+            "output_tokens": 67,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_171008_04df42",
+          "task": "",
+          "calls": 7,
+          "tokens": {
+            "input_tokens": 27378,
+            "output_tokens": 1603,
+            "cache_read_tokens": 133632,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 380
+          }
+        },
+        {
+          "session_id": "20260917_171008_04df42",
+          "task": "goal_judge",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 1302,
+            "output_tokens": 90,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "4",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_171430_888ec9"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_2114fd7d"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_171430_888ec9",
+          "task": "",
+          "calls": 12,
+          "tokens": {
+            "input_tokens": 33350,
+            "output_tokens": 3035,
+            "cache_read_tokens": 308224,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 548
+          }
+        },
+        {
+          "session_id": "20260917_171430_888ec9",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 80,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "7",
+        "runtime": "kanban",
+        "role": "stillroom-signal-generator",
+        "session_ids": [
+          "20260917_174333_8f3a9e"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_4f75d009"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_174333_8f3a9e",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 19,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_174333_8f3a9e",
+          "task": "",
+          "calls": 9,
+          "tokens": {
+            "input_tokens": 38331,
+            "output_tokens": 2908,
+            "cache_read_tokens": 216960,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 643
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "8",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_174534_0248a4"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_0625a325"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_174534_0248a4",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 239,
+            "output_tokens": 77,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_174534_0248a4",
+          "task": "",
+          "calls": 10,
+          "tokens": {
+            "input_tokens": 51644,
+            "output_tokens": 3864,
+            "cache_read_tokens": 347904,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 778
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "9",
+        "runtime": "kanban",
+        "role": "stillroom-signal-guardian",
+        "session_ids": [
+          "20260917_174734_898e97"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_a8aa3037"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_174734_898e97",
+          "task": "",
+          "calls": 7,
+          "tokens": {
+            "input_tokens": 55796,
+            "output_tokens": 1687,
+            "cache_read_tokens": 106026,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2944
+          }
+        },
+        {
+          "session_id": "20260917_174734_898e97",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 297,
+            "output_tokens": 17,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 559
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "11",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_175535_da4c68"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_a8dae4a6"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_175535_da4c68",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 57,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_175535_da4c68",
+          "task": "",
+          "calls": 7,
+          "tokens": {
+            "input_tokens": 39531,
+            "output_tokens": 4175,
+            "cache_read_tokens": 175104,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 685
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "12",
+        "runtime": "kanban",
+        "role": "stillroom-signal-generator",
+        "session_ids": [
+          "20260917_175736_e75131"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_4499af52"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_175736_e75131",
+          "task": "",
+          "calls": 10,
+          "tokens": {
+            "input_tokens": 52520,
+            "output_tokens": 4690,
+            "cache_read_tokens": 243200,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 635
+          }
+        },
+        {
+          "session_id": "20260917_175736_e75131",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 239,
+            "output_tokens": 103,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "13",
+        "runtime": "kanban",
+        "role": "stillroom-signal-guardian",
+        "session_ids": [
+          "20260917_175936_5e0be5"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_951b47e3"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_175936_5e0be5",
+          "task": "",
+          "calls": 9,
+          "tokens": {
+            "input_tokens": 137050,
+            "output_tokens": 1996,
+            "cache_read_tokens": 105868,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 2033
+          }
+        },
+        {
+          "session_id": "20260917_175936_5e0be5",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 298,
+            "output_tokens": 18,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 362
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "14",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260917_180136_ed69e1"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_572a6c26"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_180136_ed69e1",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 19,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_180136_ed69e1",
+          "task": "",
+          "calls": 8,
+          "tokens": {
+            "input_tokens": 34349,
+            "output_tokens": 3838,
+            "cache_read_tokens": 274048,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 447
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "16",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260918_080537_299c09"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_690e3e70"
+      },
+      "usage": [
+        {
+          "session_id": "20260918_080537_299c09",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 71,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260918_080537_299c09",
+          "task": "",
+          "calls": 14,
+          "tokens": {
+            "input_tokens": 111190,
+            "output_tokens": 8620,
+            "cache_read_tokens": 735872,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 782
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-client-acquisition",
+      "attribution": {
+        "run_id": "17",
+        "runtime": "kanban",
+        "role": "stillroom-signal-generator",
+        "session_ids": [
+          "20260918_081138_a451bd"
+        ],
+        "workflow_identity": "board:stillroom-client-acquisition/task:t_da165542"
+      },
+      "usage": [
+        {
+          "session_id": "20260918_081138_a451bd",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 237,
+            "output_tokens": 40,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260918_081138_a451bd",
+          "task": "",
+          "calls": 8,
+          "tokens": {
+            "input_tokens": 34007,
+            "output_tokens": 6065,
+            "cache_read_tokens": 160640,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1022
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "1",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260914_093544_81d76a"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_d67407e4"
+      },
+      "usage": [
+        {
+          "session_id": "20260914_093544_81d76a",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 239,
+            "output_tokens": 66,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260914_093544_81d76a",
+          "task": "",
+          "calls": 6,
+          "tokens": {
+            "input_tokens": 40486,
+            "output_tokens": 1672,
+            "cache_read_tokens": 56960,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 315
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "2",
+        "runtime": "kanban",
+        "role": "stillroom-media-analyst",
+        "session_ids": [
+          "20260914_093544_993097"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_fb59e5d1"
+      },
+      "usage": [
+        {
+          "session_id": "20260914_093544_993097",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 52,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260914_093544_993097",
+          "task": "",
+          "calls": 9,
+          "tokens": {
+            "input_tokens": 38863,
+            "output_tokens": 3539,
+            "cache_read_tokens": 137728,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 656
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "3",
+        "runtime": "kanban",
+        "role": "stillroom-chief-of-staff",
+        "session_ids": [
+          "20260914_093715_4b3e43"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_e2da0552"
+      },
+      "usage": [
+        {
+          "session_id": "20260914_093715_4b3e43",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 239,
+            "output_tokens": 59,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260914_093715_4b3e43",
+          "task": "",
+          "calls": 5,
+          "tokens": {
+            "input_tokens": 37112,
+            "output_tokens": 3686,
+            "cache_read_tokens": 96128,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 929
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "4",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260917_101154_8ebf1b"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_812f32b1"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_101154_8ebf1b",
+          "task": "",
+          "calls": 8,
+          "tokens": {
+            "input_tokens": 79047,
+            "output_tokens": 7327,
+            "cache_read_tokens": 269184,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1454
+          }
+        },
+        {
+          "session_id": "20260917_101154_8ebf1b",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 69,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "5",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260917_101154_ab009c"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_a8ba98b1"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_101154_ab009c",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 240,
+            "output_tokens": 80,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260917_101154_ab009c",
+          "task": "",
+          "calls": 8,
+          "tokens": {
+            "input_tokens": 77542,
+            "output_tokens": 8006,
+            "cache_read_tokens": 263680,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1531
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-research",
+      "attribution": {
+        "run_id": "6",
+        "runtime": "kanban",
+        "role": "stillroom-research-assistant",
+        "session_ids": [
+          "20260917_101154_5c83a1"
+        ],
+        "workflow_identity": "board:stillroom-research/task:t_92562317"
+      },
+      "usage": [
+        {
+          "session_id": "20260917_101154_5c83a1",
+          "task": "",
+          "calls": 9,
+          "tokens": {
+            "input_tokens": 73094,
+            "output_tokens": 6799,
+            "cache_read_tokens": 281472,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 1089
+          }
+        },
+        {
+          "session_id": "20260917_101154_5c83a1",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 238,
+            "output_tokens": 50,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-agent-team",
+      "attribution": {
+        "run_id": "1",
+        "runtime": "kanban",
+        "role": "life-agent",
+        "session_ids": [
+          "20260915_121709_1465cc"
+        ],
+        "workflow_identity": "board:stillroom-agent-team/task:t_7e1af190"
+      },
+      "usage": [
+        {
+          "session_id": "20260915_121709_1465cc",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 244,
+            "output_tokens": 17,
+            "cache_read_tokens": 0,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260915_121709_1465cc",
+          "task": "",
+          "calls": 6,
+          "tokens": {
+            "input_tokens": 19351,
+            "output_tokens": 986,
+            "cache_read_tokens": 81920,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-agent-team",
+      "attribution": {
+        "run_id": "2",
+        "runtime": "kanban",
+        "role": "life-agent",
+        "session_ids": [
+          "20260915_123244_ab9664"
+        ],
+        "workflow_identity": "board:stillroom-agent-team/task:t_ecfedc67"
+      },
+      "usage": [
+        {
+          "session_id": "20260915_123244_ab9664",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 115,
+            "output_tokens": 16,
+            "cache_read_tokens": 128,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260915_123244_ab9664",
+          "task": "",
+          "calls": 5,
+          "tokens": {
+            "input_tokens": 20778,
+            "output_tokens": 2596,
+            "cache_read_tokens": 70582,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-agent-team",
+      "attribution": {
+        "run_id": "3",
+        "runtime": "kanban",
+        "role": "life-agent",
+        "session_ids": [
+          "20260915_124712_746a8f"
+        ],
+        "workflow_identity": "board:stillroom-agent-team/task:t_062a1709"
+      },
+      "usage": [
+        {
+          "session_id": "20260915_124712_746a8f",
+          "task": "",
+          "calls": 6,
+          "tokens": {
+            "input_tokens": 25803,
+            "output_tokens": 2197,
+            "cache_read_tokens": 87552,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260915_124712_746a8f",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 141,
+            "output_tokens": 16,
+            "cache_read_tokens": 102,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    },
+    {
+      "board": "stillroom-agent-team",
+      "attribution": {
+        "run_id": "4",
+        "runtime": "kanban",
+        "role": "life-agent",
+        "session_ids": [
+          "20260915_131333_12b789"
+        ],
+        "workflow_identity": "board:stillroom-agent-team/task:t_851dd278"
+      },
+      "usage": [
+        {
+          "session_id": "20260915_131333_12b789",
+          "task": "title_generation",
+          "calls": 1,
+          "tokens": {
+            "input_tokens": 114,
+            "output_tokens": 15,
+            "cache_read_tokens": 128,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        },
+        {
+          "session_id": "20260915_131333_12b789",
+          "task": "",
+          "calls": 6,
+          "tokens": {
+            "input_tokens": 25029,
+            "output_tokens": 2231,
+            "cache_read_tokens": 84096,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 0
+          }
+        }
+      ]
+    }
+  ]
+}

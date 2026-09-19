@@ -65,7 +65,7 @@ def test_fresh_home_diagnosis_preserves_every_byte_including_uncheckpointed_wal(
         assert tree_digest(home) == before
 
 
-@pytest.mark.parametrize("operation", ["attribute", "calls", "write"])
+@pytest.mark.parametrize("operation", ["attribute", "usage", "write"])
 def test_adapter_has_no_live_write_path_with_open_wal_databases(tmp_path, operation):
     home = make_hermes(tmp_path)
     protect_fixture(home)
@@ -92,8 +92,10 @@ def test_adapter_has_no_live_write_path_with_open_wal_databases(tmp_path, operat
         else:
             assert result.returncode == 0, result.stderr
             record = json.loads(result.stdout)
-            if operation == "calls":
-                assert record == [{"session_id": "20260914_093544_993097", "calls": 13}]
+            if operation == "usage":
+                assert {row["session_id"] for row in record} == {"20260914_093544_993097"}
+                assert sum(row["calls"] for row in record) == 13
+                assert sum(row["tokens"]["input_tokens"] for row in record) == 39103
             else:
                 assert record["run_id"] == "2"
         assert tree_digest(home) == before
@@ -141,6 +143,10 @@ def test_local_plugin_install_registration_and_invocation_leave_protected_tree_u
         str(home), "stillroom-research", "2", str(store),
     ]))
     assert "Calls/run: 10" in output
+    assert "Context/call: 17683.1" in output
+    assert "reasoning=656" in output
+    assert "auxiliary (title_generation)" in output
+    assert "Cache hit rate: 77.9%" in output
     assert len(list(store.rglob("*.json"))) == 1
     assert tree_digest(home) == before_run
     assert {k: v for k, v in tree_digest(home).items() if not k.startswith("plugins")} == before_install

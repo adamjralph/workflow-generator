@@ -4,9 +4,9 @@
 
 - Working branch: `main`. Ticket 01 was closed by Adam at `a158632`; foundation
   promotion is `cddadc6` (from source lab `ce34093`).
-- **Ticket 02 only** is implemented in this session and remains **claimed**.
-  Acceptance boxes and closure belong to Adam. Do not advance the frontier or
-  begin tickets 03–06 without new authorization.
+- **Ticket 02 is accepted and closed** at Adam's explicit request. Implementation
+  is `7e1d517`; independent review and final verification are `c492e93`.
+  Do not begin tickets 03–06 without new authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - No Hermes source, configuration, authentication, or live-state access occurred.
   All new execution evidence uses synthetic offline data and temporary stores.
@@ -70,11 +70,10 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 
 ## Decisions still owned by Adam
 
-- Ticket 02 acceptance and closure.
 - Community vs internal use (deferred); blocks spec format and packaging.
 - Product naming and distribution.
 - Whether gated writes to Hermes are ever added.
 
-The diagnosis ticket dependency order remains 02 → 03 → {04, 05} → 06, but this
-session does not advance it. The historical measurement baseline and its paths
+Ticket 02 is resolved. The remaining diagnosis dependency order is
+03 → {04, 05} → 06; none is authorized by this closure request. The historical measurement baseline and its paths
 remain in `CONTEXT.md`; do not access live data to remeasure during ticket 02.

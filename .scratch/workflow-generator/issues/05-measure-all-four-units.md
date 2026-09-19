@@ -6,7 +6,7 @@
 
 **Source:** `spec.md` → "Diagnosis"; `CONTEXT.md` §2.8, §5; `cost-baseline.md`.
 
-**Status:** claimed
+**Status:** resolved
 
 - [x] The diagnosis reports context/call, tokens/run, and cache hit rate alongside calls/run.
 - [x] Auxiliary/review traffic is separated from the worker's own loop in the output.
@@ -23,3 +23,10 @@ Evidence, formulas, baseline fixture provenance and reproduction command:
 Implementation `3106982`; independent Standards and Spec reviews: zero findings
 on either axis. Final full suite: 131 passed, 2 optional live-Jev skips; mypy
 retains the same 11 inherited errors, with no new diagnosis errors.
+
+## Answer
+
+Adam explicitly approved and closed ticket 05. Implementation: `3106982`;
+review and final verification: `7abde37`. All acceptance criteria are complete.
+The inherited typechecking cleanup is tracked separately in
+`07-clear-inherited-mypy-errors.md`; its implementation has not been authorized.

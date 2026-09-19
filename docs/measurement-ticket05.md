@@ -129,5 +129,6 @@ unlinked sessions, and baseline formulas and published figures. No ticket-05
 scope creep identified. The reviewer independently ran the 45 diagnosis/baseline
 tests, all passing, without live Hermes access.
 
-**Review summary:** Standards: 0 findings; Spec: 0 findings. Implementation is
-complete; ticket acceptance/closure remains Adam's decision.
+**Review summary:** Standards: 0 findings; Spec: 0 findings. Adam explicitly
+accepted and closed ticket 05. Implementation: `3106982`; review and verification:
+`7abde37`. The inherited mypy issues are tracked separately in cleanup ticket 07.

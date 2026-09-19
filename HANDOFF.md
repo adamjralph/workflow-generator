@@ -13,10 +13,11 @@
   diagnosis/adapter/plugin seams and review baseline `c3260ab`. Its read-only
   proof and local plugin are implemented; normal activation requires Hermes
   config opt-in and remains an open acceptance issue. See
-  `docs/read-only-ticket04.md`. Ticket 05 is now authorized, including diagnosis,
-  adapter and CLI/plugin seams and review baseline `35f45fb`. Its implementation
-  is described in `docs/measurement-ticket05.md`; acceptance remains Adam's.
-  Do not begin ticket 06 without authorization.
+  `docs/read-only-ticket04.md`. **Ticket 05 is accepted and closed** at Adam's
+  explicit request. Implementation: `3106982`; review and final verification:
+  `7abde37`, against approved baseline `35f45fb`. See `docs/measurement-ticket05.md`.
+  Adam requested cleanup ticket 07 for inherited mypy errors; it is recorded,
+  not started. Do not begin tickets 06–07 without authorization.
 - `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
 - Ticket 03 read the historical baseline documents and pilot board/profile usage
   with read-only SQLite connections. No Hermes code/config/authentication or
@@ -113,7 +114,8 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
   exposed reasoning: 19,237. The newer September 19 run is excluded explicitly.
 - Independent parallel review against `35f45fb`: Standards **0 findings**;
   Spec **0 findings**. No Hermes edits or host activation changes.
-- Ticket 05 remains implemented but **not accepted/closed** pending Adam.
+- **Ticket 05 is accepted and closed** at Adam's explicit approval. The inherited
+  mypy cleanup is separately tracked in ticket 07, not yet authorized to begin.
 
 ## Boundaries and remaining work
 
@@ -140,7 +142,8 @@ is made. Preserve the plain-reference rule and the read-only Hermes boundary.
 - Product naming and distribution.
 - Whether gated writes to Hermes are ever added.
 
-Tickets 02 and 03 are resolved. The remaining
+Tickets 02, 03 and 05 are resolved. The remaining
 diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted; ticket 05 is implemented and reviewed, pending acceptance;
-ticket 06 still requires new authorization. Historical baseline paths remain in `CONTEXT.md`.
+not yet accepted. Ticket 07 records the requested inherited-mypy cleanup;
+tickets 06–07 still require new implementation authorization. Historical baseline
+paths remain in `CONTEXT.md`.

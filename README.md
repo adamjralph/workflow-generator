@@ -14,8 +14,9 @@ return-value findings join; both tickets are accepted. Ticket 03 adds single-run
 Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
 Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
 remains constrained by Hermes' config opt-in. Ticket 05 adds all four measurement
-units, task-separated worker/auxiliary/review traffic and reasoning counters.
-Ticket 06 remains untouched. Final suite with the real-loader check opted in:
+units, task-separated worker/auxiliary/review traffic and reasoning counters;
+it is accepted and closed. Ticket 07 tracks inherited mypy cleanup.
+Tickets 06–07 are not started. Final suite with the real-loader check opted in:
 **131 passed, 2 live-Jev skips**. See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
 [ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
 and [ticket 03 evidence](docs/diagnosis-ticket03.md).

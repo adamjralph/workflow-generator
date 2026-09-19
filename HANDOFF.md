@@ -50,8 +50,10 @@ unticketed; do not invent a spec format, packaging, naming, or community decisio
   `docs/foundation/parallel_red.py`, runnable against an isolated archive of
   `cddadc6`; they demonstrate colliding sequences, lost spend, exceeded cap,
   and one of three findings surviving the unsafe shared-holder write.
-- Review is against `cddadc6`, independently for Standards and ticket-02 Spec.
-  Final outcome is recorded in the implementation report.
+- Two independent parallel worker reviews against `cddadc6`: Standards found
+  zero violations/actionable smells (one non-blocking log-scan performance
+  observation); ticket-02 Spec found zero actionable findings. Details and the
+  findings-data-channel qualification are in `docs/foundation/parallel-accounting.md`.
 
 ## Boundaries and remaining work
 

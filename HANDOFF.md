@@ -1,10 +1,10 @@
 # Workflow Generator handoff
 
-Updated: after ticket 01 implementation (awaiting Adam's acceptance/closure).
-Next objective: **Adam reviews ticket 01 evidence and closes it; no later ticket is authorised here.**
+Updated: ticket 01 closed at Adam's explicit request.
+Next objective: **Start ticket 02 only in a fresh session using Adam's supplied prompt.**
 Final-answer owner: Adam. No coordinating profile is assigned.
-Authorization: **ticket 01 only was explicitly authorised.** Its code is promoted on `main`;
-acceptance boxes and closure remain Adam's responsibility. Tickets 02–06 were not started.
+Authorization: ticket 01 closure is complete; implementation landed as `cddadc6` on `main`.
+Adam authorised ticket 02 only for the next session. Tickets 02–06 were not started here.
 
 ## Start here
 
@@ -41,7 +41,7 @@ Suggested skills: `handoff`, `plan`, `pydantic-graph-workflows`,
 - `docs/adr/0001`–`0009` — nine ADRs (see below for subjects).
 - `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md` — tracker conventions.
 - `.scratch/workflow-generator/spec.md` — the product spec, `Status: ready-for-agent`.
-- `.scratch/workflow-generator/issues/01`–`06` — ticket 01 is `claimed`; 02–06 remain
+- `.scratch/workflow-generator/issues/01`–`06` — ticket 01 is `resolved`; 02–06 remain
   `ready-for-agent`, subject to their blockers.
 - **A git repository on `main`**, with docs-only baseline `e03a19d` and ticket 01 foundation
   promotion. The existing `agent_lab` namespace is the one local runtime core; no sibling checkout
@@ -104,7 +104,7 @@ Suggested skills: `handoff`, `plan`, `pydantic-graph-workflows`,
 
 **Tickets** (dependency order): 01 promote the foundation; 02 fix parallel accounting; 03 diagnose
 one Kanban run end to end; 04 prove the read-only boundary; 05 measure in all four units; 06
-per-role breakdown and baseline. **Frontier: ticket 01 only.**
+per-role breakdown and baseline. **Next frontier: ticket 02 only, in a fresh session.**
 
 ## In progress and pending
 
@@ -135,7 +135,7 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 **Boundaries that still hold**
 
-- Do not build beyond ticket 01 without Adam's explicit decision.
+- Ticket 02 is authorised only in a fresh session; do not start 03–06.
 - Do not modify Hermes source, configuration, or authentication.
 - Diagnose-only. Writing to profiles, `model_route`, prompts or board config is not authorised.
 - No real client data in this project.
@@ -143,7 +143,7 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 ## Open decisions still owned by Adam
 
-1. **Accept and close ticket 01, or request changes.** Only then can the frontier advance.
+1. **Ticket 01 is accepted and closed at Adam's request.** Ticket 02 is next, in a fresh session.
 2. **For us only, or a community plugin?** Deferred ~2 months. **Blocks** the spec serialization
    format, packaging, and product naming — which must not be decided ahead of it.
 3. **Gated writes to Hermes beyond the read-only boundary.**
@@ -157,8 +157,7 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 - **The lab is "a teaching lab".** Promoting it is real, unestimated work inside ticket 01.
 - **The core cannot be ticketed until the spec format is unblocked.** Do not invent a format; it is
   parked behind open decision 2.
-- **Ticket 01 remains claimed until Adam closes it.** Do not treat implementation as closure
-  or start ticket 02 in the same session.
+- **Ticket 01 is resolved at Adam's explicit request.** Do not start ticket 02 in the closure session.
 - **`sessions.api_call_count` is a rollup** (188) that disagrees with the summed usage rows (214).
   Ticket 03 must use the summed figure.
 - **Bare `except:` swallows schema errors.** Verify column names before trusting an empty result.
@@ -168,12 +167,12 @@ The full record is `CONTEXT.md` §2 and §9–§11. The shape a fresh agent most
 
 ## Next actions
 
-1. Adam checks ticket 01's acceptance criteria against the implementation evidence and closes it.
-2. Only after closure and authorisation, start a **fresh session** for ticket 02. The subsequent
+1. Ticket 01 is closed; closure verification again reported **65 passed, 2 live-Jev skips**.
+2. Start a **fresh session** for ticket 02 using Adam's supplied prompt. The subsequent
    dependency order remains 02 → 03 → {04, 05} → 06. `/implement` takes one ticket per session;
    do not point it at the product spec.
-3. Do not start any ticket before its blockers are resolved. README and this handoff are refreshed;
-   the ticket's acceptance boxes are deliberately untouched.
+3. Do not start any ticket before its blockers are resolved. Ticket 02's acceptance boxes and
+   closure remain Adam's responsibility. Do not start tickets 03–06.
 
 ## Definition of done
 

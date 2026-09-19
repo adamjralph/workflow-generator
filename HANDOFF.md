@@ -163,7 +163,7 @@ not yet accepted. Ticket 07 is accepted and closed;
 ticket 06 is accepted and closed.
 Historical baseline paths remain in `CONTEXT.md`.
 
-## Ticket 08 — implemented, pending acceptance
+## Ticket 08 — accepted and closed
 
 - Adam authorized the in-memory spec/validation scope and public validation test
   seam, and confirmed review baseline `b90ea2e9154eb1503cd20ce314be6c7be57dd630`.
@@ -175,6 +175,7 @@ Historical baseline paths remain in `CONTEXT.md`.
   mypy: **16 files, zero errors**. Independent parallel review: Standards **0
   violations**, one optional finding-code typing improvement addressed; Spec **0
   findings**. See `docs/spec-ticket08.md` for declaration rules and evidence.
-- Ticket remains claimed, not accepted/closed. Compilation and conformance require
+- Adam explicitly accepted and closed ticket 08. Final verification: `abfe1e8`.
+  Compilation and conformance require
   later, separately authorized tickets. Deferred format/packaging decisions remain
   deferred. The existing Deps runtime seam and both drivers are unchanged.

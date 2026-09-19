@@ -21,7 +21,7 @@ per-role/per-run reports and digest-bound measured baseline comparisons;
 it is accepted and closed. See
 [ticket 06 usage and evidence](docs/report-ticket06.md).
 Ticket 08 adds the in-memory workflow spec and structural validation boundary;
-implementation is complete, pending acceptance. It does not compile or execute
+it is accepted and closed. It does not compile or execute
 specs or claim conformance. See [ticket 08 API and evidence](docs/spec-ticket08.md).
 Current offline suite: **238 passed, 3 optional skips** (two live Jev tests and
 the real Hermes loader check). See [ticket 05 measurement evidence](docs/measurement-ticket05.md),

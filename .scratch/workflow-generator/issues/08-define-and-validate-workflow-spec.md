@@ -1,7 +1,7 @@
 # 08: Define and validate the in-memory workflow spec
 
 **Type:** task
-**Status:** claimed
+**Status:** accepted and closed (Adam's explicit approval)
 **Blocked by:** none (tickets 01–07 are accepted and closed).
 **Authorization:** Adam authorized implementation and confirmed the scope, public
 validation seam and review baseline `b90ea2e9154eb1503cd20ce314be6c7be57dd630`.
@@ -89,7 +89,7 @@ introduced indirectly through snapshots, golden JSON or digest fixtures.
 
 Adam authorized ticket 08 and confirmed scope, the public validation test seam
 and review baseline `b90ea2e9154eb1503cd20ce314be6c7be57dd630`. Implementation
-is claimed; acceptance/closure remains a separate user decision.
+was completed and subsequently accepted and closed at Adam's explicit approval.
 
 ## Comments
 
@@ -106,5 +106,5 @@ changed. Implementation commit: `98f555a`.
 Final verification: **67 focused tests passed**, **238 full-suite tests passed,
 3 optional skips**, and **16 files mypy-clean**. Independent parallel review:
 Standards **0 violations**, one optional finding-code typing improvement addressed;
-Spec **0 findings**. Implementation is complete; ticket remains claimed pending
-Adam's acceptance/closure.
+Spec **0 findings**. Implementation and verification commits: `98f555a`,
+`abfe1e8`. Adam explicitly approved acceptance; ticket 08 is accepted and closed.

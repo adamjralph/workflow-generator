@@ -123,4 +123,4 @@ Independent follow-up review confirmed resolution with no remaining substantive
 finding in scope; 55 focused tests and mypy passed there as well.
 
 Summary: Standards 0 hard findings, 2 optional heuristics retained; Spec 1 defect
-fixed and independently confirmed. Ticket awaits human acceptance.
+fixed and independently confirmed. Adam explicitly accepted ticket 11; it is closed.

@@ -4,11 +4,12 @@
 
 Working branch: `main`.
 
-Tickets **01–10 are accepted and closed**. Adam explicitly accepted ticket 10
-following implementation and independent review. Commits: `568ad14` (implementation),
-`0855f25` (review fix), `03f1af3` (follow-up review evidence).
+Tickets **01–11 are accepted and closed**. Adam explicitly accepted ticket 11
+following implementation and independent review. Commits: `2e9848e` (implementation),
+`cfa2151` (strict-validation review fix), `c3664b1` (review evidence).
 
-The smallest generation/checking loop now works for Transform/Decision + Route.
+The generation/checking loop now supports Transform/Decision and restricted
+Intervention Judgment nodes with Route edges.
 Its artifact is in-memory, with independently supplied candidates and
 same-ID/separate-fresh-log exact trace/byte/digest comparison. Persistent spec
 serialization remains deferred. Later milestones remain outlines, not authorized
@@ -26,10 +27,10 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
 
 ### Next session's job
 
-1. Read `ROADMAP.md`, `docs/generation-ticket10.md` and the closed ticket 10.
+1. Read `ROADMAP.md`, `docs/judgment-ticket11.md` and the closed ticket 11.
 2. Read `docs/reference-ticket09.md`, `docs/spec-ticket08.md`, `CONTEXT.md` and
    relevant ADRs. Use the repo's Graft graph before opening source.
-3. Tickets 01–10 are accepted; do not reimplement or reopen them without cause.
+3. Tickets 01–11 are accepted; do not reimplement or reopen them without cause.
 4. Run `/to-tickets` on the remaining roadmap, starting with M2. Define the next
    smallest complete vertical slice across reference, generation and checking.
 5. Surface decisions needing approval, including contract, public test seam and
@@ -53,8 +54,10 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
 - `agent_lab.spec.validate_spec`: typed in-memory declarations for all five node
   types, Route/Fork edges, complete routing, joins and bounded-cycle validation.
   Admission is not execution or conformance.
-- `agent_lab.reference.compile_reference`: Transform/Decision + Route execution
-  with explicit caller bindings and frozen Pydantic state. All unsupported/unbound
+- `agent_lab.reference.compile_reference`: Transform/Decision/Intervention Judgment
+  + Route execution with explicit caller bindings and frozen Pydantic state.
+  Judgment uses node-ID bindings with an assessment adapter and source; checking
+  requires independent offline sources and compares full judgment/input evidence. All unsupported/unbound
   declarations, including unreachable ones, are rejected before execution.
   State snapshots are validated/detached; binding failures and budget exhaustion
   are recorded. Arbitrary node identities work, not just business Stage values.
@@ -67,7 +70,17 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
   and supplied-case behavior against its independently compiled plain reference.
   Passing is restricted, case-scoped evidence, not universal conformance.
 
-## Verification at the end of ticket 10
+## Verification at the end of ticket 11
+
+- Judgment public-seam tests: **55 passed**.
+- Full offline suite: **391 passed, 3 optional skips**.
+- Mypy: **19 source files, zero errors**; diff checks clean; Graft refreshed.
+- Standards: no hard violations, two optional heuristics retained.
+- Spec: one coercion defect fixed with seven red→green cases; independent follow-up
+  confirmed resolution. No live calls or Hermes changes.
+- Evidence and public APIs: `docs/judgment-ticket11.md`.
+
+## Historical verification at the end of ticket 10
 
 - Focused generation/conformance/reference tests: **98 passed**.
 - Full offline suite: **336 passed, 3 optional skips**.
@@ -101,7 +114,8 @@ AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
 
 See `ROADMAP.md` for ordered milestones and their completion evidence. Most of the
 full generator and user-facing product remains: expansion beyond restricted
-generation/conformance, Judgment/Gate/Loop and generated parallel/resume support, spec/bundle approvals,
+generation/conformance, arbitrary Judgment vocabularies, Gate/Loop and generated
+parallel/resume support, spec/bundle approvals,
 regeneration, roles/data/skills, questionnaire/visual surface, second runtime
 and end-to-end dogfooding. There is no credible completion percentage or delivery
 estimate yet; later milestones are not sized implementation tickets.

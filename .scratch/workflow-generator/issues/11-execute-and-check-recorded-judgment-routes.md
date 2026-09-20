@@ -5,9 +5,9 @@
 
 **Blocked by:** None (can start immediately). Tickets 09–10 are accepted and closed; Adam approved this ticket's granularity, contract, public test seam and review baseline.
 
-**Status:** ready-for-human
+**Status:** resolved
 
-**Implementation:** complete; awaiting Adam's acceptance. Verification and independent
+**Implementation:** complete; accepted and closed by Adam. Verification and independent
 Standards/Spec review: [`docs/judgment-ticket11.md`](../../../docs/judgment-ticket11.md).
 **Review baseline:** `467f1b2f7e76f8288892650c0bdf70462df0598b`
 
@@ -28,16 +28,16 @@ Standards/Spec review: [`docs/judgment-ticket11.md`](../../../docs/judgment-tick
 
 ## Acceptance criteria
 
-- [ ] A hand-authored Judgment workflow generates and executes through distinct declared Intervention routes and passes checking against the independent plain reference using recorded/stub sources offline.
-- [ ] Explicit node-identity Judgment bindings and deterministic assessment adapters work through the public APIs; compilation invokes neither. Missing or unsupported declarations/bindings, including unreachable ones, produce no runnable artifact or passing report.
-- [ ] Full validated judgment evidence is persisted and compared; Judgment does not modify retained workflow state or the caller's input.
-- [ ] Malformed or unchecked-invalid judgments, undeclared returned choices, ordinary source/adapter failures and recording/input mismatches produce recorded FAILED_VALIDATION outcomes with agreement between drivers.
-- [ ] Short/exact budgets, refusal before source invocation and immediate terminal stopping agree between drivers without extra calls or overspend.
-- [ ] Changed Judgment options or routing produce located structural findings before execution; matching structure with altered judgment choice, confidence/probability evidence or other behavior cannot silently pass.
-- [ ] Paired executions have independent replay progress and equivalent explicit offline inputs. Repeated checks reproduce exact evidence under the existing same-ID/separate-fresh-log contract.
-- [ ] Real filesystem failures prove audit stopping, no later work and no passing report after incomplete persistence. Existing evidence-location protection and freshness behavior remain intact.
-- [ ] Existing admission, Transform/Decision reference/generation/conformance, diagnosis and business judgment-source/driver behavior remains green.
-- [ ] Focused public-seam tests and mypy run during implementation; final verification includes the full offline suite, diff checks and independent Standards/Spec review against the approved baseline. Use scoped commits, preserve unrelated user changes and refresh Graft after substantial code changes.
+- [x] A hand-authored Judgment workflow generates and executes through distinct declared Intervention routes and passes checking against the independent plain reference using recorded/stub sources offline.
+- [x] Explicit node-identity Judgment bindings and deterministic assessment adapters work through the public APIs; compilation invokes neither. Missing or unsupported declarations/bindings, including unreachable ones, produce no runnable artifact or passing report.
+- [x] Full validated judgment evidence is persisted and compared; Judgment does not modify retained workflow state or the caller's input.
+- [x] Malformed or unchecked-invalid judgments, undeclared returned choices, ordinary source/adapter failures and recording/input mismatches produce recorded FAILED_VALIDATION outcomes with agreement between drivers.
+- [x] Short/exact budgets, refusal before source invocation and immediate terminal stopping agree between drivers without extra calls or overspend.
+- [x] Changed Judgment options or routing produce located structural findings before execution; matching structure with altered judgment choice, confidence/probability evidence or other behavior cannot silently pass.
+- [x] Paired executions have independent replay progress and equivalent explicit offline inputs. Repeated checks reproduce exact evidence under the existing same-ID/separate-fresh-log contract.
+- [x] Real filesystem failures prove audit stopping, no later work and no passing report after incomplete persistence. Existing evidence-location protection and freshness behavior remain intact.
+- [x] Existing admission, Transform/Decision reference/generation/conformance, diagnosis and business judgment-source/driver behavior remains green.
+- [x] Focused public-seam tests and mypy run during implementation; final verification includes the full offline suite, diff checks and independent Standards/Spec review against the approved baseline. Use scoped commits, preserve unrelated user changes and refresh Graft after substantial code changes.
 
 ## Approved public test seam
 
@@ -60,6 +60,11 @@ mypy: **zero errors** across 19 source files. Graft refreshed and diff checks cl
 Independent Standards review: no hard violations, two optional heuristics retained.
 Independent Spec review: one coercion defect reproduced and fixed; follow-up
 confirmed resolution. No live calls, Hermes writes, or unrelated user changes committed.
+
+## Acceptance
+
+Adam explicitly accepted the completed implementation and review results: “accept”.
+Ticket 11 is accepted and closed. This does not authorize later roadmap work.
 
 ## Comments
 

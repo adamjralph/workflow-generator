@@ -9,7 +9,7 @@ from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from agent_lab.conformance import check_conformance
+from agent_lab.conformance import ConformanceReport, check_conformance
 from agent_lab.generation import generate_graph
 from agent_lab.reference import TransformResult
 from agent_lab.spec import DecisionNode, Route, TransformNode, WorkflowSpec
@@ -267,8 +267,13 @@ def check_design(raw: object, *, evidence_dir: Path,
     report = check_conformance(design.spec, candidate, state_type=design.state_type,
                                bindings=design.bindings, cases=design.cases,
                                evidence_dir=destination, protected_roots=protected_roots)
+    return report_view(report, tuple(design.cases))
+
+
+def report_view(report: ConformanceReport, cases: tuple[str, ...]) -> dict[str, Any]:
+    """Shared supplied-case evidence presentation; never a custom-run claim."""
     return {
-        "passed": report.passed, "cases": list(design.cases),
+        "passed": report.passed, "cases": list(cases),
         "outputs": [{"name": item.case, "state": item.state.model_dump(mode="json"),
                      "terminal": item.terminal, "used_steps": item.used_steps,
                      "route": [list(edge) for edge in item.route]} for item in report.outputs],

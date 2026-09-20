@@ -12,7 +12,7 @@
 <h1>Route a request</h1>
 <p>Design a deterministic offline workflow using trusted operations. No model calls or external actions.</p>
 <label for="mode">Workflow mode</label>
-<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline fixtures)</option></select>
+<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline)</option></select>
 <p>Changing mode starts its default design and clears previous results.</p>
 <form id="questions">
 <p id="limits"></p>
@@ -46,6 +46,15 @@
 <section id="custom" aria-labelledby="custom-heading" hidden>
 <h2 id="custom-heading">Try a custom support request</h2>
 <p>This is one offline run of the current workflow, not a conformance check. It does not extend the supplied-case evidence. Descriptions are text, never instructions.</p>
+<section id="role-source" hidden>
+<label for="role-input">Role input</label>
+<select id="role-input"><option value="fixture">Synthetic fixtures</option><option value="source">Local writing brief</option></select>
+<p id="source-availability" role="status">Loading source availability…</p>
+<div id="source-controls" hidden>
+<p>Read-only local writing brief. Capture and inspect before running. Source edits require explicit recapture; runs and checks replay the snapshot, never reread the source. Text and labels are inert, not instructions. Mechanical results are not a real review.</p>
+<button id="capture" type="button" disabled>Capture / recapture</button>
+<p id="source-status" role="status">No captured input.</p><pre id="source-preview"></pre>
+</div></section>
 <form id="custom-request" novalidate>
 <div id="role-fixtures" hidden>
 <p>Two fixed synthetic briefs only. Labels are inert text, never fetched URLs or paths. Mechanical fixture results, not approval or a real review.</p>

@@ -34,6 +34,15 @@ def run_request(raw: object, request: object, *, evidence_dir: Path,
         design = author_triage(raw)
         submitted = TriageRequest.model_validate(request)
         initial = TriageState.model_validate(submitted.model_dump())
+    return execute_request(design, submitted, initial, evidence_dir=evidence_dir,
+                           candidate_factory=candidate_factory, protected_roots=protected_roots)
+
+
+def execute_request(design: Design, submitted: BaseModel, initial: BaseModel, *,
+                    evidence_dir: Path,
+                    candidate_factory: Callable[[Design], object] = generate_candidate,
+                    protected_roots: tuple[Path, ...] = ()) -> dict[str, Any]:
+    """Execute an admitted input through the graph with complete run evidence."""
     destination = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
     candidate = candidate_factory(design)
     if type(candidate) is not GraphCandidate:

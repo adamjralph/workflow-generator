@@ -3,6 +3,10 @@ const byId = (id) => document.getElementById(id);
 const token = document.querySelector('meta[name="request-token"]').content;
 let revision = 0;
 let runRevision = 0;
+let checkRevision = 0;
+let captureRevision = 0;
+let snapshot = null;
+let sourceAvailable = false;
 let designReady = false;
 let nextId = 1;
 const scoreDefault = {nodes: [
@@ -26,6 +30,22 @@ let suppliedCases = [];
 const isTriage = () => draft.mode === "triage";
 const isRoles = () => draft.mode === "roles";
 const canRun = () => isTriage() || isRoles();
+const usesSource = () => isRoles() && byId("role-input").value === "source";
+const inputReady = () => !usesSource() || snapshot !== null;
+function executionButtons() {
+  byId("run").disabled = !designReady || !canRun() || !inputReady();
+  byId("check").disabled = !designReady || !inputReady();
+}
+function clearSource() {
+  ++captureRevision;
+  ++checkRevision;
+  snapshot = null;
+  byId("source-preview").replaceChildren();
+  byId("source-status").textContent = "No captured input; previous capture invalidated.";
+  byId("result").replaceChildren();
+  invalidateRun();
+  executionButtons();
+}
 const terminals = () => isTriage() ? ["COMPLETED"] : ["ACCEPTED", "REVIEW"];
 const routeLabels = n => n.operation === "compare" ? ["below", "at_or_above"]
   : n.operation === "category" ? ["billing", "technical", "general"]
@@ -37,10 +57,15 @@ function editNodes() {
   container.replaceChildren();
   byId("custom").hidden = !canRun();
   byId("role-choices").hidden = !isRoles();
-  byId("role-fixtures").hidden = !isRoles();
+  byId("role-fixtures").hidden = !isRoles() || usesSource();
+  byId("role-source").hidden = !isRoles();
+  byId("source-controls").hidden = !usesSource();
   byId("triage-fields").hidden = !isTriage();
-  byId("custom-heading").textContent = isRoles() ? "Try a synthetic role fixture" : "Try a custom support request";
-  byId("run").textContent = isRoles() ? "Run fixture" : "Run request";
+  byId("custom-heading").textContent = usesSource() ? "Try captured role input" : isRoles() ? "Try a synthetic role fixture" : "Try a custom support request";
+  byId("run").textContent = usesSource() ? "Run captured input" : isRoles() ? "Run fixture" : "Run request";
+  byId("check").textContent = usesSource() ? "Check captured input" : "Generate / check";
+  byId("cases-heading").textContent = usesSource()
+    ? "Built-in fixture scope (not used by captured-input check)" : "Case scope";
   byId("triage-entry").hidden = !isTriage();
   byId("triage-catalog").hidden = !isTriage();
   byId("add-adjust").hidden = isTriage() || isRoles();
@@ -233,7 +258,8 @@ function graph(view) {
 function renderResult(result) {
   const container = byId("result");
   container.replaceChildren();
-  text(container, "h3", result.passed ? "PASS — listed cases only" : "FAIL — conformance not established");
+  text(container, "h3", result.passed ? (result.snapshot ? "PASS — captured input only" : "PASS — listed cases only") : "FAIL — conformance not established");
+  if (result.snapshot) text(container, "p", `${result.source} · Snapshot: ${result.snapshot}`);
   text(container, "p", `Cases: ${result.cases.join(", ")}. Completed: ${result.completed_cases.join(", ") || "none"}.`);
   const findings = text(container, "ul", "");
   result.findings.forEach(f => text(findings, "li", `${f.code} · ${f.path}: ${f.message}`));
@@ -259,7 +285,7 @@ function renderResult(result) {
 async function refresh() {
   const current = ++revision;
   designReady = false;
-  invalidateRun();
+  clearSource();
   byId("check").disabled = true;
   byId("result").replaceChildren();
   graph(draftView());
@@ -277,8 +303,7 @@ async function refresh() {
     }
     graph(view);
     designReady = true;
-    byId("run").disabled = !canRun();
-    byId("check").disabled = false;
+    executionButtons();
     byId("status").textContent = "Current design ready; not checked.";
   } catch (error) {
     if (current === revision) byId("status").textContent = `Design failed: ${error.message}`;
@@ -288,8 +313,39 @@ function invalidateRun() {
   ++runRevision;
   byId("run-result").replaceChildren();
   byId("run-status").textContent = "Not run for current workflow and input; previous run invalidated.";
-  byId("run").disabled = !designReady || !canRun();
+  byId("run").disabled = !designReady || !canRun() || !inputReady();
 }
+byId("role-input").addEventListener("change", () => {
+  editNodes();
+  refresh();
+});
+byId("capture").addEventListener("click", async () => {
+  if (!usesSource() || !sourceAvailable) return;
+  clearSource();
+  const current = captureRevision;
+  byId("status").textContent = "Captured-input check invalidated; not checked.";
+  byId("source-status").textContent = "Capturing…";
+  try {
+    const result = await api("/api/source/capture", {});
+    if (current !== captureRevision) return;
+    snapshot = result.snapshot;
+    byId("source-preview").textContent = `${result.source}\nSnapshot: ${snapshot}\n${JSON.stringify(result.input, null, 2)}`;
+    byId("source-status").textContent = "Captured input ready to inspect; changes require recapture.";
+    executionButtons();
+  } catch (error) {
+    if (current !== captureRevision) return;
+    byId("source-status").textContent = `Capture failed — ${error.message}`;
+  }
+});
+fetch("/api/source").then(async response => {
+  if (!response.ok) throw new Error("Source availability failed");
+  const result = await response.json();
+  sourceAvailable = result.available;
+  byId("source-availability").textContent = sourceAvailable ? `${result.source} available (read-only).` : "Source not configured. Synthetic fixtures remain available.";
+  byId("capture").disabled = !sourceAvailable;
+}).catch(() => {
+  byId("source-availability").textContent = "Source availability failed. Synthetic fixtures remain available.";
+});
 byId("custom-request").addEventListener("input", invalidateRun);
 byId("custom-request").addEventListener("change", invalidateRun);
 byId("custom-request").addEventListener("submit", async event => {
@@ -303,16 +359,18 @@ byId("custom-request").addEventListener("submit", async event => {
   byId("run-result").replaceChildren();
   byId("run-status").textContent = "Running offline…";
   try {
-    const result = await api("/api/run", {design: answers(), request});
+    const result = await api(usesSource() ? "/api/source/run" : "/api/run",
+      usesSource() ? {design: answers(), snapshot} : {design: answers(), request});
     if (current !== runRevision) return;
     const container = byId("run-result"), output = result.output;
     text(container, "h3", result.succeeded ? "Run completed" : "Run failed");
+    if (result.snapshot) text(container, "p", `${result.source} · Snapshot: ${result.snapshot}. Successful execution is not conformance.`);
     text(container, "h4", "Submitted input");
     text(container, "pre", JSON.stringify(result.input, null, 2));
     text(container, "p", [...output.route.map(edge => edge[0]), output.terminal].join(" → "));
     text(container, "pre", output.route.map(edge => `${edge[0]} — ${edge[1]} → ${edge[2]}`).join("\n"));
     if (isRoles()) {
-      text(container, "h4", "Fixture handoff and mechanical result — not a real review");
+      text(container, "h4", "Offline handoff and mechanical result — not a real review");
       text(container, "pre", JSON.stringify(output.state, null, 2));
     } else {
       text(container, "p", `Team: ${output.state.team ?? "unassigned"}; priority: ${output.state.priority ?? "unassigned"}`);
@@ -327,7 +385,7 @@ byId("custom-request").addEventListener("submit", async event => {
     text(byId("run-result"), "h3", `Run failed — ${error.message}`);
     byId("run-status").textContent = "Run failed; no successful run established.";
   } finally {
-    if (current === runRevision) byId("run").disabled = !designReady || !canRun();
+    if (current === runRevision) byId("run").disabled = !designReady || !canRun() || !inputReady();
   }
 });
 ["producer", "output", "consumer"].forEach(key => byId(`role-${key}`).addEventListener("change", () => {
@@ -352,22 +410,23 @@ editNodes();
 byId("questions").addEventListener("submit", async event => {
   event.preventDefault();
   if (!designReady || byId("check").disabled) return;
-  const current = revision;
+  const current = ++checkRevision;
   byId("check").disabled = true;
   byId("result").replaceChildren();
   byId("status").textContent = "Generating and checking offline…";
   try {
-    const result = await api("/api/check", answers());
-    if (current !== revision) return;
+    const result = await api(usesSource() ? "/api/source/check" : "/api/check",
+      usesSource() ? {design: answers(), snapshot} : answers());
+    if (current !== checkRevision) return;
     renderResult(result);
     byId("status").textContent = "Check finished for current design.";
   } catch (error) {
-    if (current === revision) {
+    if (current === checkRevision) {
       text(byId("result"), "h3", `FAIL — ${error.message}`);
       byId("status").textContent = "Check failed; no passing evidence.";
     }
   } finally {
-    if (current === revision) byId("check").disabled = false;
+    if (current === checkRevision) byId("check").disabled = !designReady || !inputReady();
   }
 });
 refresh();

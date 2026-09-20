@@ -10,6 +10,7 @@ from typing import Any
 
 from agent_lab.designer import Design, author_design, check_design, validate_evidence_root
 from agent_lab.designer.custom import run_request
+from agent_lab.designer.source import ControlledSource
 from agent_lab.designer.triage import TriageRequest, author_triage
 from agent_lab.designer.roles import FixtureRequest, author_roles
 
@@ -17,14 +18,29 @@ _STATIC = Path(__file__).with_name("static")
 _MAX_BODY = 4096
 
 
+def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON keys are not allowed")
+        result[key] = value
+    return result
+
+
+def _invalid_constant(value: str) -> Any:
+    raise ValueError("Non-finite JSON values are not allowed")
+
+
 def create_server(
     evidence_dir: Path,
     port: int = 0,
     candidate_factory: Callable[[Design], object] | None = None,
-    *, protected_roots: tuple[Path, ...] = (),
+    *, protected_roots: tuple[Path, ...] = (), source_file: Path | None = None,
 ) -> HTTPServer:
     """Create a local server with an operator-selected, validated evidence root."""
     root = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
+    source = (ControlledSource(source_file, root, protected_roots=protected_roots)
+              if source_file is not None else None)
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -50,7 +66,7 @@ def create_server(
             self.respond(status, json.dumps(data, allow_nan=False).encode(), "application/json")
 
         def error(self, status: int, message: str) -> None:
-            self.json(status, {("succeeded" if self.path == "/api/run" else "passed"): False, "findings": [
+            self.json(status, {("succeeded" if self.path in ("/api/run", "/api/source/run", "/api/source/capture") else "passed"): False, "findings": [
                 {"code": "request_error", "path": "request", "message": message}],
                 "cases": [], "completed_cases": [], "evidence": []})
 
@@ -60,6 +76,9 @@ def create_server(
         def do_GET(self) -> None:
             if not self.same_host():
                 self.error(403, "Exact loopback Host required")
+                return
+            if self.path == "/api/source":
+                self.json(200, {"available": source is not None, "source": "Local writing brief"})
                 return
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -79,7 +98,8 @@ def create_server(
                     or self.headers.get_all("X-Designer-Token") != [token]):
                 self.error(403, "Same-origin request and page token required")
                 return
-            if self.path not in ("/api/design", "/api/check", "/api/run"):
+            if self.path not in ("/api/design", "/api/check", "/api/run", "/api/source/capture",
+                                 "/api/source/run", "/api/source/check"):
                 self.error(404, "Unknown path")
                 return
             if self.headers.get_all("Content-Type") != ["application/json"]:
@@ -92,10 +112,21 @@ def create_server(
                 return
             self.connection.settimeout(5)
             try:
-                raw = json.loads(self.rfile.read(int(lengths[0])))
+                raw = json.loads(self.rfile.read(int(lengths[0])),
+                                 object_pairs_hook=_unique_object, parse_constant=_invalid_constant)
                 design: Design
                 # Validate before any endpoint can execute anything.
-                if self.path == "/api/run":
+                if self.path.startswith("/api/source/"):
+                    if source is None:
+                        raise ValueError("No local writing brief configured")
+                    keys = set() if self.path == "/api/source/capture" else {"design", "snapshot"}
+                    if not isinstance(raw, dict) or raw.keys() != keys:
+                        raise ValueError("Invalid controlled-source request fields")
+                    if keys:
+                        design = author_roles(raw["design"])
+                        if not isinstance(raw["snapshot"], str):
+                            raise ValueError("Invalid snapshot digest")
+                elif self.path == "/api/run":
                     if not isinstance(raw, dict) or raw.keys() != {"design", "request"}:
                         raise ValueError("Custom run requires only design and request")
                     if isinstance(raw["design"], dict) and raw["design"].get("mode") == "roles":
@@ -110,7 +141,16 @@ def create_server(
                 self.error(400, str(exc))
                 return
             try:
-                if self.path == "/api/run":
+                if self.path.startswith("/api/source/"):
+                    assert source is not None
+                    if self.path == "/api/source/capture":
+                        result = source.capture()
+                    else:
+                        operation = source.run if self.path == "/api/source/run" else source.check
+                        result = operation(raw["design"], raw["snapshot"],
+                                           **({"candidate_factory": candidate_factory}
+                                              if candidate_factory is not None else {}))
+                elif self.path == "/api/run":
                     result = run_request(raw["design"], raw["request"], evidence_dir=root,
                                          protected_roots=protected_roots,
                                          **({"candidate_factory": candidate_factory}
@@ -125,6 +165,9 @@ def create_server(
                 self.json(200, result)
             except Exception as exc:
                 # Generation, checking and audit errors must never resemble a pass.
-                self.error(500, f"Operation failed: {exc}")
+                message = ("Local source or snapshot operation failed"
+                           if self.path.startswith("/api/source/") and isinstance(exc, OSError)
+                           else f"Operation failed: {exc}")
+                self.error(500, message)
 
     return ThreadingHTTPServer(("127.0.0.1", port), Handler)

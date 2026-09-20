@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from agent_lab.designer import Design, author_design, check_design, validate_evidence_root
+from agent_lab.designer.custom import run_request
+from agent_lab.designer.triage import TriageRequest, author_triage
 
 _STATIC = Path(__file__).with_name("static")
 _MAX_BODY = 4096
@@ -47,7 +49,7 @@ def create_server(
             self.respond(status, json.dumps(data, allow_nan=False).encode(), "application/json")
 
         def error(self, status: int, message: str) -> None:
-            self.json(status, {"passed": False, "findings": [
+            self.json(status, {("succeeded" if self.path == "/api/run" else "passed"): False, "findings": [
                 {"code": "request_error", "path": "request", "message": message}],
                 "cases": [], "completed_cases": [], "evidence": []})
 
@@ -76,7 +78,7 @@ def create_server(
                     or self.headers.get_all("X-Designer-Token") != [token]):
                 self.error(403, "Same-origin request and page token required")
                 return
-            if self.path not in ("/api/design", "/api/check"):
+            if self.path not in ("/api/design", "/api/check", "/api/run"):
                 self.error(404, "Unknown path")
                 return
             if self.headers.get_all("Content-Type") != ["application/json"]:
@@ -90,13 +92,25 @@ def create_server(
             self.connection.settimeout(5)
             try:
                 raw = json.loads(self.rfile.read(int(lengths[0])))
-                # Validate before either endpoint can execute anything.
-                design = author_design(raw)
+                design: Design
+                # Validate before any endpoint can execute anything.
+                if self.path == "/api/run":
+                    if not isinstance(raw, dict) or raw.keys() != {"design", "request"}:
+                        raise ValueError("Custom run requires only design and request")
+                    design = author_triage(raw["design"])
+                    TriageRequest.model_validate(raw["request"])
+                else:
+                    design = author_design(raw)
             except (ValueError, OSError, RecursionError) as exc:
                 self.error(400, str(exc))
                 return
             try:
-                if self.path == "/api/design":
+                if self.path == "/api/run":
+                    result = run_request(raw["design"], raw["request"], evidence_dir=root,
+                                         protected_roots=protected_roots,
+                                         **({"candidate_factory": candidate_factory}
+                                            if candidate_factory is not None else {}))
+                elif self.path == "/api/design":
                     result = design.view()
                 elif candidate_factory is None:
                     result = check_design(raw, evidence_dir=root, protected_roots=protected_roots)

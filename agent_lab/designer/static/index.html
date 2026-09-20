@@ -36,4 +36,23 @@
 <section aria-labelledby="result-heading"><h2 id="result-heading">Conformance result</h2>
 <p>Structural and behavioural agreement for the listed cases only. Not semantic correctness or universal conformance.</p>
 <div id="result" aria-live="polite"></div></section>
+<section id="custom" aria-labelledby="custom-heading" hidden>
+<h2 id="custom-heading">Try a custom support request</h2>
+<p>This is one offline run of the current workflow, not a conformance check. It does not extend the supplied-case evidence. Descriptions are text, never instructions.</p>
+<form id="custom-request" novalidate>
+<label for="request-id">Request ID</label>
+<input id="request-id" type="text" maxlength="64" aria-describedby="request-rules">
+<p id="request-rules">1–64 characters: start with an ASCII letter, then letters, digits, hyphens or underscores.</p>
+<label for="request-category">Request category</label>
+<select id="request-category"><option>billing</option><option>technical</option><option>general</option></select>
+<label for="request-urgency">Request urgency</label>
+<select id="request-urgency"><option>normal</option><option>urgent</option></select>
+<label for="request-description">Short description</label>
+<textarea id="request-description" aria-describedby="description-rules"></textarea>
+<p id="description-rules">1–240 characters, including at least one non-whitespace character.</p>
+<button id="run" type="submit" disabled>Run request</button>
+</form>
+<p id="run-status" role="status" aria-live="polite">Not run.</p>
+<div id="run-result" aria-live="polite"></div>
+</section>
 </main></body></html>

@@ -2,6 +2,7 @@
 const byId = (id) => document.getElementById(id);
 const token = document.querySelector('meta[name="request-token"]').content;
 let revision = 0;
+let runRevision = 0;
 let designReady = false;
 let nextId = 1;
 const scoreDefault = {nodes: [
@@ -31,12 +32,13 @@ function editNodes() {
   const container = byId("nodes");
   container.replaceChildren();
   const destinations = [...draft.nodes.map(n => n.id), ...terminals()];
+  byId("custom").hidden = !isTriage();
   byId("triage-entry").hidden = !isTriage();
   byId("triage-catalog").hidden = !isTriage();
   byId("add-adjust").hidden = isTriage();
   byId("add-compare").hidden = isTriage();
   byId("limits").textContent = isTriage()
-    ? "Compose up to 12 nodes and three Decisions. Every path must assign team and priority before summary. Choose destinations; removed nodes leave routes to repair. No cycles. Supplied requests only."
+    ? "Compose up to 12 nodes and three Decisions. Every path must assign team and priority before summary. Choose destinations; removed nodes leave routes to repair. No cycles. Check supplied cases or run a custom request."
     : "Compose 1–6 nodes, including one receive entry and at most two Decisions. Choose destinations to connect nodes; removing a node leaves incoming routes for you to repair.";
   if (isTriage()) {
     byId("entry").replaceChildren();
@@ -214,6 +216,7 @@ function renderResult(result) {
 async function refresh() {
   const current = ++revision;
   designReady = false;
+  invalidateRun();
   byId("check").disabled = true;
   byId("result").replaceChildren();
   graph(draftView());
@@ -224,12 +227,54 @@ async function refresh() {
     if (isTriage()) suppliedCases = view.cases;
     graph(view);
     designReady = true;
+    byId("run").disabled = !isTriage();
     byId("check").disabled = false;
     byId("status").textContent = "Current design ready; not checked.";
   } catch (error) {
     if (current === revision) byId("status").textContent = `Design failed: ${error.message}`;
   }
 }
+function invalidateRun() {
+  ++runRevision;
+  byId("run-result").replaceChildren();
+  byId("run-status").textContent = "Not run for current workflow and input; previous run invalidated.";
+  byId("run").disabled = !designReady || !isTriage();
+}
+byId("custom-request").addEventListener("input", invalidateRun);
+byId("custom-request").addEventListener("change", invalidateRun);
+byId("custom-request").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!designReady || !isTriage() || byId("run").disabled) return;
+  const current = ++runRevision;
+  const request = {request_id: byId("request-id").value,
+    category: byId("request-category").value, urgency: byId("request-urgency").value,
+    description: byId("request-description").value};
+  byId("run").disabled = true;
+  byId("run-result").replaceChildren();
+  byId("run-status").textContent = "Running offline…";
+  try {
+    const result = await api("/api/run", {design: answers(), request});
+    if (current !== runRevision) return;
+    const container = byId("run-result"), output = result.output;
+    text(container, "h3", result.succeeded ? "Run completed" : "Run failed");
+    text(container, "h4", "Submitted input");
+    text(container, "pre", JSON.stringify(result.input, null, 2));
+    text(container, "p", [...output.route.map(edge => edge[0]), output.terminal].join(" → "));
+    text(container, "pre", output.route.map(edge => `${edge[0]} — ${edge[1]} → ${edge[2]}`).join("\n"));
+    text(container, "p", `Team: ${output.state.team ?? "unassigned"}; priority: ${output.state.priority ?? "unassigned"}`);
+    text(container, "p", output.state.summary || "No handling summary produced");
+    text(container, "p", `Terminal: ${output.terminal}; steps spent: ${output.used_steps}`);
+    text(container, "pre", `Run evidence: ${result.evidence}`);
+    byId("run-status").textContent = result.succeeded
+      ? "Run finished; supplied-case conformance evidence unchanged." : "Run failed; no successful run established.";
+  } catch (error) {
+    if (current !== runRevision) return;
+    text(byId("run-result"), "h3", `Run failed — ${error.message}`);
+    byId("run-status").textContent = "Run failed; no successful run established.";
+  } finally {
+    if (current === runRevision) byId("run").disabled = !designReady || !isTriage();
+  }
+});
 byId("mode").addEventListener("change", () => {
   draft = structuredClone(byId("mode").value === "triage" ? triageDefault : scoreDefault);
   suppliedCases = [];

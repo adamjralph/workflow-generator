@@ -14,11 +14,14 @@ Category = Literal["billing", "technical", "general"]
 Priority = Literal["normal", "high"]
 
 
-class TriageState(StrictAnswer):
+class TriageRequest(StrictAnswer):
     request_id: Identity
     category: Category
     urgency: Literal["normal", "urgent"]
     description: str = Field(min_length=1, max_length=240, pattern=r"\S")
+
+
+class TriageState(TriageRequest):
     team: Category | None = None
     priority: Priority | None = None
     summary: str = Field(default="", max_length=360)

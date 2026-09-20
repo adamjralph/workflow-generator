@@ -413,3 +413,43 @@ def test_empty_source_is_not_success(operator: tuple[Path, Path, Path]) -> None:
     assert result["succeeded"] is False
     assert result["findings"][0]["code"] == "no_eligible_draft"
     assert not evidence.exists()
+
+
+def test_unsupported_inventory_filename_cannot_publish_unloadable_capture(operator) -> None:
+    config, folder, evidence = operator
+    draft(folder, "valid.md")
+    fd = os.open(os.fsencode(folder) + b"/invalid-\xff.txt", os.O_CREAT | os.O_WRONLY, 0o600)
+    os.close(fd)
+    with pytest.raises(ValueError, match="UTF-8"):
+        DraftSource(config, evidence).capture()
+    assert not evidence.exists()
+
+
+def test_identical_capture_and_load_during_atomic_publication(operator, monkeypatch) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    config, folder, evidence = operator
+    draft(folder, "valid.md")
+    published, release = Event(), Event()
+    link = os.link
+
+    # Filesystem-boundary scheduling: hold the publisher after the complete
+    # record becomes visible but before its private temporary name is removed.
+    def pause_after_publication(source, destination):
+        link(source, destination)
+        published.set()
+        assert release.wait(10), "test publisher was not released"
+
+    monkeypatch.setattr(os, "link", pause_after_publication)
+    capture = DraftSource(config, evidence)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        pending = executor.submit(capture.capture)
+        try:
+            assert published.wait(5)
+            result = DraftSource(config, evidence).capture()
+            assert result["succeeded"] is True
+            assert capture.load(result["snapshot"]) == result
+        finally:
+            release.set()
+        assert pending.result(timeout=5) == result

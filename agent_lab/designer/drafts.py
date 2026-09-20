@@ -46,7 +46,9 @@ def _read(path: Path, limit: int, *, private: bool = False) -> bytes:
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
         with os.fdopen(fd, "rb") as handle:
             info = os.fstat(handle.fileno())
-            if private and (info.st_mode & 0o077 or info.st_uid != os.getuid() or info.st_nlink != 1):
+            # Atomic publication temporarily gives the same private inode two
+            # names. Ownership and permissions, not link count, define privacy.
+            if private and (info.st_mode & 0o077 or info.st_uid != os.getuid()):
                 raise ValueError("Capture bundle must be private and owned by this user")
             if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
                 raise ValueError("Expected a bounded regular file")
@@ -153,8 +155,11 @@ def _shape(value: Any, keys: str) -> None:
 
 
 def _bounded_string(value: Any, limit: int) -> None:
-    if not isinstance(value, str) or not value or len(value.encode("utf-8")) > limit:
-        raise ValueError("Invalid bounded bundle string")
+    try:
+        if not isinstance(value, str) or not value or len(value.encode("utf-8")) > limit:
+            raise ValueError("Invalid bounded bundle string")
+    except UnicodeError:
+        raise ValueError("Capture paths and text must be valid UTF-8") from None
 
 
 def _verify_bundle(bundle: Any) -> None:
@@ -392,6 +397,9 @@ class DraftSource:
                   "provenance": {"config": str(self._config), "drafts_dir": str(self._drafts),
                                  "source_digests": source_digests,
                                  "profiles": profile_paths}}
+        # A successful capture must always satisfy the public load contract,
+        # including inventory names and provenance, before publishing anything.
+        _verify_bundle(bundle)
         data = _canonical(bundle)
         snapshot = _digest(data)
         self._check_overlap()

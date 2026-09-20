@@ -1,5 +1,6 @@
 # 20: Capture and preview the oldest eligible draft
 
+**Type:** task
 **Parent:** 19: Refine and review the oldest unprocessed LinkedIn draft
 
 **What to build:** From the browser, capture the oldest eligible unprocessed article or post and preview its exact source, creation date, approved role guidance and configured role models. Explain exclusions and invalid inputs without changing any source. This is the first vertical slice of the approved ticket-19 breakdown, not a substitute for the model-backed workflow.

@@ -7,6 +7,8 @@ import sys
 import tempfile
 from typing import Literal
 
+from pydantic import BaseModel
+
 from .generation import GraphCandidate, UnsupportedCandidate
 from .judgment import JevSource
 from .reference import S, AuditError, CompileFinding, JudgmentBinding, compile_reference
@@ -72,11 +74,22 @@ class CaseEvidence:
 
 
 @dataclass(frozen=True)
+class CaseOutput:
+    """Observed candidate result from the checked run, not a second execution."""
+    case: str
+    state: BaseModel
+    terminal: str
+    used_steps: int
+    route: tuple[tuple[str, str | None, str], ...]
+
+
+@dataclass(frozen=True)
 class ConformanceReport:
     attempted: tuple[str, ...] = ()
     completed: tuple[str, ...] = ()
     evidence: tuple[CaseEvidence, ...] = ()
     findings: tuple[Finding | CompileFinding | ConformanceFinding, ...] = ()
+    outputs: tuple[CaseOutput, ...] = ()
 
     @property
     def passed(self) -> bool:
@@ -151,6 +164,7 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
     evidence = []
     attempted = []
     completed: list[str] = []
+    outputs: list[CaseOutput] = []
     findings: list[Finding | CompileFinding | ConformanceFinding] = []
     for index, (name, initial) in enumerate(named_cases):
         run_id = f"case-{index}"
@@ -182,5 +196,9 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
             if not agrees:
                 findings.append(ConformanceFinding("behavioral_mismatch", ("cases", name, field),
                                                    "Candidate differs from plain reference"))
+        outputs.append(CaseOutput(name, actual.state, actual.terminal, actual.used_steps,
+                                  tuple((event.node, event.transition, event.detail["target"])
+                                        for event in graph.read())))
         completed.append(name)
-    return ConformanceReport(tuple(attempted), tuple(completed), tuple(evidence), tuple(findings))
+    return ConformanceReport(tuple(attempted), tuple(completed), tuple(evidence), tuple(findings),
+                             tuple(outputs))

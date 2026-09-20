@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -83,16 +83,20 @@ class CasePath:
         return self.lower is None or self.upper is None or self.lower <= self.upper
 
 
+S = TypeVar("S", bound=BaseModel)
+
+
 @dataclass(frozen=True)
-class Design:
-    answers: Answers
+class Design(Generic[S]):
+    answers: BaseModel
     spec: WorkflowSpec
-    bindings: Mapping[str, Callable[[RequestState], object]]
-    cases: Mapping[str, RequestState]
+    bindings: Mapping[str, Callable[[S], object]]
+    cases: Mapping[str, S]
     paths: tuple[CasePath, ...]
-    state_type: type[RequestState] = RequestState
+    state_type: type[S]
 
     def view(self) -> dict[str, Any]:
+        assert isinstance(self.answers, Answers)
         labels = {node.id: ("Receive request" if isinstance(node, ReceiveAnswer) else
                            f"Score {node.adjustment:+d}" if isinstance(node, AdjustmentAnswer)
                            else f"Score >= {node.threshold}?") for node in self.answers.nodes}
@@ -103,7 +107,7 @@ class Design:
             "edges": [{"source": edge.source, "outcome": edge.outcome, "target": edge.target}
                       for edge in self.spec.edges if isinstance(edge, Route)],
             "terminals": list(self.spec.terminals), "budget": self.spec.budget,
-            "cases": [{"name": name, "score": state.score} for name, state in self.cases.items()],
+            "cases": [{"name": name, **state.model_dump()} for name, state in self.cases.items()],
             "scope": (f"{len(self.cases)} deterministic offline inputs from "
                       f"{sum(path.feasible for path in self.paths)} feasible / {len(self.paths)} "
                       "syntactic paths. Finite interval endpoints and representatives only; "
@@ -203,7 +207,10 @@ def _compare(threshold: int) -> Callable[[RequestState], object]:
     return lambda state: "at_or_above" if state.score >= threshold else "below"
 
 
-def author_design(raw: object) -> Design:
+def author_design(raw: object) -> Design[Any]:
+    if isinstance(raw, dict) and raw.get("mode") == "triage":
+        from .triage import author_triage
+        return author_triage(raw)
     answers = Answers.model_validate(raw)
     entry, paths = _paths(answers)
     nodes: list[TransformNode | DecisionNode] = []
@@ -224,7 +231,7 @@ def author_design(raw: object) -> Design:
                         nodes=tuple(nodes), edges=tuple(edges),
                         terminals=("ACCEPTED", "REVIEW", "FAILED_VALIDATION", "FAILED_BUDGET"))
     cases = {f"score_{score}": RequestState(score=score) for score in _case_inputs(paths)}
-    return Design(answers, spec, MappingProxyType(bindings), MappingProxyType(cases), paths)
+    return Design(answers, spec, MappingProxyType(bindings), MappingProxyType(cases), paths, RequestState)
 
 
 def validate_evidence_root(path: Path, *, protected_roots: tuple[Path, ...] = ()) -> Path:
@@ -259,6 +266,9 @@ def check_design(raw: object, *, evidence_dir: Path,
                                evidence_dir=destination, protected_roots=protected_roots)
     return {
         "passed": report.passed, "cases": list(design.cases),
+        "outputs": [{"name": item.case, "state": item.state.model_dump(mode="json"),
+                     "terminal": item.terminal, "used_steps": item.used_steps,
+                     "route": [list(edge) for edge in item.route]} for item in report.outputs],
         "completed_cases": list(report.completed),
         "findings": [{"code": item.code, "path": list(item.path), "message": item.message}
                      for item in report.findings],

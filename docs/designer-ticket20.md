@@ -120,6 +120,44 @@ Actual HTTP/CLI tests cover auth/body boundaries, strict request/config schemas,
 no capture on availability, error sanitation and concurrent captures. Real Chromium
 tests cover preview, invalid/missing sources, inert rendering and stale responses.
 
-Final full-suite, typechecking and independent Standards/Spec review results are
-recorded after verification. No live smoke, credential-content reads, authentication
-traffic, model calls or protected writes are part of this implementation evidence.
+- Full offline suite: **1,139 passed, 3 expected skips**, including **114 real
+  Chromium tests** (none skipped). Console: `/tmp/workflow-ticket20-full-suite.txt`.
+- The skips are two opt-in live Jev tests and the optional real Hermes loader check.
+- Ticket-20 capture, HTTP/CLI and Chromium seams add **135 tests**, including two
+  review regressions; the initial focused run was 133 passed before those additions.
+- Mypy: **27 source files, no issues**. Diff whitespace checks passed; Graft refreshed.
+- Implementation: `e000f8a`; review fixes: `3b6224a`. Full suite ran once after
+  review fixes, with `AGENT_LAB_JUDGMENT=stub`. No runtime edits after that run.
+- Read-only configuration inspection confirmed the profile defaults still resolve
+  to Generator `openai-codex / gpt-5.6-sol` and Guardian
+  `vertex / google/gemini-3.1-pro-preview`. The public copy bank no longer has
+  frontmatter. This is not live authentication/model or production-capture evidence.
+
+No live smoke, credential-content reads, authentication traffic, model calls or
+protected writes occurred. Private production text was not copied into fixtures
+or evidence. Actual-input capture remains an operator action with a named output
+root; acceptance remains Adam's decision.
+
+### Standards
+
+Initial independent review found one low-severity documented violation: missing
+`Type: task` in the local ticket. Fixed. One optional duplicated-eligibility-predicate
+heuristic remains intentionally deferred. Follow-up review confirmed **0 outstanding
+hard findings and 0 new heuristic findings**.
+
+### Spec
+
+Initial independent review found two correctness defects: successful publication of
+an unloadable bundle when an excluded filesystem name is not UTF-8, and false
+rejection of valid evidence while atomic publication temporarily gives its inode
+two hard links. Both were reproduced red-first and fixed. Capture now validates
+the complete bundle before writing; privacy is checked through ownership and
+permissions, not transient link count. A deterministic filesystem-boundary test
+exercises public capture/load during the publication window. Independent follow-up
+confirmed both fixes, **0 outstanding actionable findings**, and reran all 78
+capture/load tests successfully. The reviewer described the HTTP concurrency test
+as single-threaded; the server actually uses ThreadingHTTPServer, but the identified
+interleaving was real and is now exercised deterministically.
+
+**Review summary:** Standards 0 outstanding hard findings (1 optional heuristic);
+Spec 0 outstanding actionable findings.

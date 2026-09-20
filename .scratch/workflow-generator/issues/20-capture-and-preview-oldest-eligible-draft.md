@@ -7,7 +7,7 @@
 
 **Blocked by:** 18: Run role workflow with controlled data source (accepted and closed; dependency satisfied).
 
-**Status:** claimed
+**Status:** ready-for-human
 
 ## Readiness
 
@@ -21,16 +21,36 @@ The operator supplies a local manifest; HTTP cannot select paths, credentials, m
 
 ## Acceptance criteria
 
-- [ ] Agreed metadata rules select the oldest eligible article/post with boolean `processed: false` and a valid `date_created`; no inferred dates or silently skipped ambiguities while claiming oldest.
-- [ ] Invalid metadata, reference/published files, date ties, empty sources, unsafe files and exceeded limits produce the agreed visible outcomes. No source metadata is repaired.
-- [ ] Capture binds exact source and approved guidance bytes, instruction versions and non-secret configured model selections in an immutable digest-bound input bundle. No credentials are captured.
-- [ ] Browser preview identifies the selection, exclusions, guidance provenance, both configured defaults and the eventual two-generation-call ceiling. Capture and page load perform no model calls.
-- [ ] Explicit recapture is required for source/config changes; recapture invalidates stale results and late responses without silently rereading captured inputs.
-- [ ] Actual HTTP tests retain loopback Host/Origin/token/body protections and reject browser-selected paths, providers, credentials, code and output roots.
-- [ ] Temporary-source tests and real Chromium tests exercise capture/preview and failures without committing production content; existing ticket-18 behavior remains covered.
-- [ ] Sources and Hermes files remain unchanged; capture artifacts stay in the caller-selected protected output root. A receipt never changes eligibility.
-- [ ] Agreed offline checks, typechecking and independent review pass; acceptance remains Adam's decision.
+- [x] Agreed metadata rules select the oldest eligible article/post with boolean `processed: false` and a valid `date_created`; no inferred dates or silently skipped ambiguities while claiming oldest.
+- [x] Invalid metadata, reference/published files, date ties, empty sources, unsafe files and exceeded limits produce the agreed visible outcomes. No source metadata is repaired.
+- [x] Capture binds exact source and approved guidance bytes, instruction versions and non-secret configured model selections in an immutable digest-bound input bundle. No credentials are captured.
+- [x] Browser preview identifies the selection, exclusions, guidance provenance, both configured defaults and the eventual two-generation-call ceiling. Capture and page load perform no model calls.
+- [x] Explicit recapture is required for source/config changes; recapture invalidates stale results and late responses without silently rereading captured inputs.
+- [x] Actual HTTP tests retain loopback Host/Origin/token/body protections and reject browser-selected paths, providers, credentials, code and output roots.
+- [x] Temporary-source tests and real Chromium tests exercise capture/preview and failures without committing production content; existing ticket-18 behavior remains covered.
+- [x] Sources and Hermes files remain unchanged; capture artifacts stay in the caller-selected protected output root. A receipt never changes eligibility.
+- [x] Agreed offline checks, typechecking and independent review pass; acceptance remains Adam's decision.
 
 ## Scope boundary
 
 No model execution, publication, archival, processing-flag edits or autonomous Hermes sessions. Downstream run/review/replay actions are not represented as delivered by this slice.
+
+## Answer
+
+Implemented in `e000f8a`, with independently reviewed follow-up fixes in `3b6224a`.
+Evidence and operator manifest/startup instructions: `docs/designer-ticket20.md`.
+Full offline suite: **1,139 passed, 3 expected skips**, including **114 Chromium tests**;
+mypy **27 files clean**. Independent follow-up: Standards no outstanding hard
+findings (one optional duplication heuristic), Spec no outstanding actionable findings.
+No model calls, authentication traffic, credential-content reads or protected writes.
+
+Ready for Adam's inspection and acceptance; not accepted/closed automatically.
+Parent ticket 19 and tickets 21–23 remain unchanged.
+
+## Comments
+
+Adam approved folder-based classification, populated creation dates, the proposed
+limits and remaining ticket-20 capture decisions; then explicitly excluded the
+public copy bank and removed its frontmatter. Runtime code retains the observed
+`date_created` spelling. The complete guidance set is an explicit operator manifest,
+not recursive authority discovery or a request to implement model operations.

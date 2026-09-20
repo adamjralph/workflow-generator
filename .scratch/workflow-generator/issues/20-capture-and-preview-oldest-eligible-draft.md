@@ -7,7 +7,7 @@
 
 **Blocked by:** 18: Run role workflow with controlled data source (accepted and closed; dependency satisfied).
 
-**Status:** ready-for-human
+**Status:** resolved
 
 ## Readiness
 
@@ -44,8 +44,9 @@ mypy **27 files clean**. Independent follow-up: Standards no outstanding hard
 findings (one optional duplication heuristic), Spec no outstanding actionable findings.
 No model calls, authentication traffic, credential-content reads or protected writes.
 
-Ready for Adam's inspection and acceptance; not accepted/closed automatically.
-Parent ticket 19 and tickets 21–23 remain unchanged.
+Adam explicitly accepted ticket 20 ("accept"). Accepted and closed.
+Parent ticket 19 and tickets 21–23 remain unchanged. Ticket 21's dependency on
+20 is satisfied; its remaining readiness decisions are not approved by this acceptance.
 
 ## Comments
 

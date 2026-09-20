@@ -1,5 +1,7 @@
 # Ticket 20 — capture and preview the oldest eligible draft
 
+**Accepted and closed:** Adam explicitly accepted ticket 20 ("accept").
+
 Ticket 20 delivers capture only, not Generator/Guardian execution or conformance.
 Implementation review baseline approved by Adam:
 `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`.
@@ -136,7 +138,7 @@ tests cover preview, invalid/missing sources, inert rendering and stale response
 No live smoke, credential-content reads, authentication traffic, model calls or
 protected writes occurred. Private production text was not copied into fixtures
 or evidence. Actual-input capture remains an operator action with a named output
-root; acceptance remains Adam's decision.
+root. Adam has accepted this delivered capture-only slice.
 
 ### Standards
 

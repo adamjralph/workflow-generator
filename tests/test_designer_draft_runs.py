@@ -215,6 +215,29 @@ def test_real_codex_adapter_and_graph_with_injected_transport(operator):
     assert len(calls) == 1 and auth.read_bytes() == original
 
 
+@pytest.mark.parametrize("code,status,http_status", [
+    ("credentials_unavailable", "failed", None), ("provider_rejected", "failed", 403),
+    ("invalid_response", "failed", None), ("deadline_exceeded", "uncertain", None)])
+def test_typed_sanitized_source_failure_survives_evidence_and_duplicate(operator, code, status, http_status):
+    from agent_lab.designer.codex import CodexError, CodexUncertain
+    class FailedSource(Source):
+        def invoke(self, request):
+            self.requests.append(request)
+            error = CodexUncertain if status == "uncertain" else CodexError
+            raise error("SECRET_PROVIDER_TEXT", code=code, provider_status=http_status)
+    runs, snapshot, source = setup(operator, FailedSource())
+    identity = runs.create_request(snapshot)
+    view = runs.run(snapshot, identity["run_request"])
+    assert view["status"] == status
+    assert view["failure"] == {"status": status, "code": code, "provider_status": http_status}
+    exchange = next(Path(p) for p in view["evidence"] if len(Path(p).name) == 69)
+    record = json.loads(exchange.read_bytes())
+    assert record["failure"] == view["failure"]
+    assert "SECRET_PROVIDER_TEXT" not in exchange.read_text() + json.dumps(view)
+    assert runs.run(snapshot, identity["run_request"]) == view
+    assert len(source.requests) == 1
+
+
 def test_failed_receipt_directory_sync_never_leaves_success_for_duplicate(operator, monkeypatch):
     runs, snapshot, source = setup(operator)
     identity = runs.create_request(snapshot)

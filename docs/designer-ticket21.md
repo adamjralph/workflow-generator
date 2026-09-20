@@ -18,7 +18,7 @@ server with an evidence directory outside Hermes, project and source inputs:
 ```
 
 The auth-file option is operator-only; its explicit default is `~/.hermes/auth.json`.
-It is not an OpenAI API key: the dedicated adapter reads the existing valid Codex
+The token file must be an owned regular file, not a symlink. It is not an OpenAI API key: the dedicated adapter reads the existing valid Codex
 subscription access token from `providers.openai-codex.tokens.access_token`. The
 JWT expiry must be in the future and its account claim supplies the account header.
 There is no credential discovery, refresh, lock, repair, quota probe, Hermes import,
@@ -99,7 +99,29 @@ reservation/exchange/audit/receipt storage failures, literal structured outcomes
 exact-request offline replay, and real Chromium rendering/stale/network failures.
 Full completed-pair replay UI remains ticket 23, not a claim of this ticket.
 
-Validation and independent review results are recorded below when complete.
+Validation: **1,331 passed, 3 expected skips** in the complete offline suite,
+including real Chromium. Skips are two opt-in live Jev checks and the optional
+real Hermes loader check. Console: `/tmp/workflow-ticket21-full-suite.txt`.
+Mypy: **31 source files, no issues**. Focused ticket-21 checks: **192 passed**.
+Diff whitespace checks passed; Graft refreshed. No runtime changes after the full run.
+
+## Standards
+
+Independent review found **0 hard violations** and one optional naming heuristic
+(`Source`/`setup`/`RESULT` in temporary-fixture tests). It remains intentionally
+deferred; these local fixture names match surrounding tests. The duplicated driver
+execution logic is explicitly required by ADR 0010, not an outstanding finding.
+
+## Spec
+
+Independent review identified missing typed failure detail, blanket browser
+uncertainty on HTTP rejection, and missing final-symlink protection in auth reads.
+Red-first regressions now cover each: whitelisted typed failure code/status in
+exchange and receipt, explicit pre-execution HTTP failure versus uncertain missing
+response/evidence, and `O_NOFOLLOW` plus current-user ownership on token reads.
+Storage that cannot establish whether an earlier request ran remains uncertain;
+that is deliberately not mislabeled as known remote failure. Follow-up review pending.
+
 No production source text, real credential content, authentication traffic or live
 model invocation is part of the offline evidence. Live availability and post quality
 remain unverified; live smoke needs separate approval and a named destination.

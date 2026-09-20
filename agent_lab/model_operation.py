@@ -47,6 +47,16 @@ class ModelResponse(BaseModel):
     resolved_model: str | None = None
 
 
+class ModelFailure(BaseModel):
+    """Sanitized replayable failure identity; never arbitrary exception text."""
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
+    status: Literal["failed", "uncertain"]
+    code: Literal["credentials_unavailable", "provider_rejected", "invalid_response",
+                  "response_limit", "transport_incomplete", "deadline_exceeded",
+                  "source_failure", "invalid_output", "evidence_failure", "preflight_failed"]
+    provider_status: int | None = Field(default=None, ge=100, le=599)
+
+
 class ModelSource(Protocol):
     @property
     def mode(self) -> Literal["live", "fixture", "recorded"]: ...

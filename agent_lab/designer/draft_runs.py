@@ -14,10 +14,11 @@ import time
 from typing import Any, Literal
 
 from agent_lab.designer import validate_evidence_root
+from agent_lab.designer.codex import CodexError, CodexUncertain
 from agent_lab.designer.drafts import DraftSource
 from agent_lab.designer.linkedin import DraftState, SPEC, canonical, operation
 from agent_lab.generation import generate_graph
-from agent_lab.model_operation import ModelRequest, ModelResponse, ModelSource, validate_response
+from agent_lab.model_operation import ModelFailure, ModelRequest, ModelResponse, ModelSource, validate_response
 from agent_lab.runlog import RunLog
 
 _LIMIT = 8 * 1024 * 1024
@@ -100,7 +101,7 @@ class AttemptSource:
         self.source, self.evidence, self.identity = source, evidence, identity
         self.response: ModelResponse | None = None
         self.exchange: Path | None = None
-        self.failure: str | None = None
+        self.failure: ModelFailure | None = None
         self.used = False
 
     @property
@@ -123,9 +124,15 @@ class AttemptSource:
             if len(response.body.encode("utf-8")) > 65536:
                 raise ValueError("Oversized response")
         except Exception as exc:
-            self.failure = "uncertain" if isinstance(exc, TimeoutError) else "failed"
+            status = "uncertain" if isinstance(exc, TimeoutError) else "failed"
+            code = "deadline_exceeded" if isinstance(exc, TimeoutError) else "source_failure"
+            provider_status = None
+            if isinstance(exc, (CodexError, CodexUncertain)):
+                code, provider_status = exc.code, exc.provider_status
+            self.failure = ModelFailure.model_validate({"status": status, "code": code,
+                                                        "provider_status": provider_status})
             self.exchange = self.evidence.record({**attempt, "response": None,
-                "failure": self.failure, "elapsed_seconds": time.monotonic() - start})
+                "failure": self.failure.model_dump(), "elapsed_seconds": time.monotonic() - start})
             raise ValueError("Generator source failed") from None
         # Keep provenance separate from the semantic request/response, for exact replay.
         self.exchange = self.evidence.record({**attempt, "response": response.model_dump(),
@@ -173,7 +180,9 @@ class DraftRuns:
                     "not_reviewed": "Not reviewed. No Guardian review or publication permission."}
         return {"snapshot": snapshot, "run_request": run_request, "status": status,
                 "succeeded": status == "not_reviewed", "result": None,
-                "usage": dict.fromkeys(_USAGE), "evidence": [], "message": messages[status]}
+                "usage": dict.fromkeys(_USAGE), "evidence": [], "message": messages[status],
+                "failure": (ModelFailure(status="uncertain", code="evidence_failure").model_dump()
+                            if status == "uncertain" else None)}
 
     def run(self, snapshot: str, run_request: str) -> dict[str, Any]:
         _identifier(snapshot)
@@ -228,11 +237,16 @@ class DraftRuns:
             log_bytes = store.read("run.jsonl")
             log_path = store.publish(digest(log_bytes) + ".jsonl", log_bytes)
             status = ({"NOT_REVIEWED": "not_reviewed", "BLOCKED": "blocked"}.get(result.terminal)
-                      or attempt.failure or "failed")
+                      or (attempt.failure.status if attempt.failure else "failed"))
             # Evidence failure after reservation is uncertain, not successful application.
             if attempt.used and attempt.exchange is None:
                 status = "uncertain"
             view = self._view(snapshot, run_request, status)
+            if attempt.failure is not None:
+                view["failure"] = attempt.failure.model_dump()
+                view["message"] += " Failure code: " + attempt.failure.code
+            elif status == "failed":
+                view["failure"] = ModelFailure(status="failed", code="invalid_output").model_dump()
             if result.state.result is not None and status in ("not_reviewed", "blocked"):
                 view["result"] = result.state.result.model_dump(mode="json")
             if attempt.response is not None:
@@ -242,6 +256,8 @@ class DraftRuns:
                 view["evidence"].append(str(attempt.exchange))
         except Exception:
             view = self._view(snapshot, run_request, "uncertain" if attempt.used else "failed")
+            if not attempt.used:
+                view["failure"] = ModelFailure(status="failed", code="preflight_failed").model_dump()
         try:
             names = ["request.json", "claimed.json"]
             if (store.directory / "attempt.json").exists():

@@ -37,8 +37,24 @@ AUTH_LIMIT = 1048576
 Transport = Callable[[bytes, dict[str, str], float], AsyncIterator[bytes]]
 
 
+_FAILURE_MESSAGES = {
+    "credentials_unavailable": "Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.",
+    "provider_rejected": "Codex request rejected; check subscription login and model selection.",
+    "invalid_response": "Codex request failed or returned invalid output; check login/model and retry explicitly.",
+    "response_limit": "Codex response exceeded the bounded envelope limit.",
+    "transport_incomplete": "Codex exchange incomplete; remote completion is unknown. Retry only explicitly.",
+    "deadline_exceeded": "Codex deadline exceeded; remote completion is unknown. Retry only explicitly.",
+}
+
+
 class CodexError(ValueError):
     """Sanitized operator-facing failure, never provider text or credentials."""
+
+    def __init__(self, message: str = "Codex returned invalid output.", *,
+                 code: str = "invalid_response", provider_status: int | None = None) -> None:
+        super().__init__(message)
+        self.code = code if code in _FAILURE_MESSAGES else "invalid_response"
+        self.provider_status = provider_status if type(provider_status) is int else None
 
 
 class _CredentialError(CodexError):
@@ -47,6 +63,12 @@ class _CredentialError(CodexError):
 
 class CodexUncertain(TimeoutError):
     """The remote exchange did not finish; cancellation is not guaranteed."""
+
+    def __init__(self, message: str = "Codex exchange incomplete.", *,
+                 code: str = "transport_incomplete", provider_status: int | None = None) -> None:
+        super().__init__(message)
+        self.code = code if code in _FAILURE_MESSAGES else "transport_incomplete"
+        self.provider_status = provider_status if type(provider_status) is int else None
 
 
 def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -67,10 +89,11 @@ def _json(data: str | bytes) -> Any:
 def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
     try:
         # Nonblocking open plus fstat avoids FIFO hangs and path-swap races.
-        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
         with os.fdopen(fd, "rb") as stream:
             info = os.fstat(stream.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_size > AUTH_LIMIT:
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                    or info.st_size > AUTH_LIMIT):
                 raise ValueError
             raw = stream.read(AUTH_LIMIT + 1)
             if len(raw) > AUTH_LIMIT:
@@ -94,7 +117,7 @@ def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
         return token, account, secrets
     except Exception:
         pass
-    raise _CredentialError("Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.")
+    raise _CredentialError(_FAILURE_MESSAGES["credentials_unavailable"], code="credentials_unavailable")
 
 
 async def _https(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
@@ -107,11 +130,13 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         await writer.drain()
         raw = await reader.readuntil(b"\r\n\r\n")
         lines = raw.decode("ascii").split("\r\n")
-        status = lines[0].split()[1]
-        if status in ("408", "504"):
-            raise CodexUncertain
-        if status != "200":
-            raise CodexError("Codex request rejected; check subscription login and model selection.")
+        status = int(lines[0].split()[1])
+        if not 100 <= status <= 599:
+            raise ValueError
+        if status in (408, 504):
+            raise CodexUncertain(code="deadline_exceeded", provider_status=status)
+        if status != 200:
+            raise CodexError(code="provider_rejected", provider_status=status)
         response_headers: dict[str, str] = {}
         for line in lines[1:]:
             if line:
@@ -134,17 +159,19 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                 line_bytes = await reader.readuntil(b"\r\n")
                 framing += len(line_bytes)
                 if framing > STREAM_LIMIT:
-                    raise ValueError
+                    raise CodexError(code="response_limit")
                 size = int(line_bytes.split(b";", 1)[0], 16)
-                if size < 0 or size > STREAM_LIMIT:
+                if size < 0:
                     raise ValueError
+                if size > STREAM_LIMIT:
+                    raise CodexError(code="response_limit")
                 if not size:
                     # Trailer fields are not needed, but must be consumed and bounded.
                     while True:
                         trailer = await reader.readuntil(b"\r\n")
                         framing += len(trailer)
                         if framing > STREAM_LIMIT:
-                            raise ValueError
+                            raise CodexError(code="response_limit")
                         if trailer == b"\r\n":
                             return
                 yield await reader.readexactly(size)
@@ -152,8 +179,10 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                     raise ValueError
         elif length is not None:
             remaining = int(length)
-            if not 0 <= remaining <= STREAM_LIMIT:
+            if remaining < 0:
                 raise ValueError
+            if remaining > STREAM_LIMIT:
+                raise CodexError(code="response_limit")
             while remaining:
                 chunk = await reader.readexactly(min(4096, remaining))
                 remaining -= len(chunk)
@@ -402,14 +431,14 @@ class CodexSource:
                 raise ValueError
         except Exception:
             raise CodexError("Codex requires a tool-free text request with store false and stream true.") from None
-        results: queue.Queue[ModelResponse | Literal["failed", "uncertain", "credentials"]] = queue.Queue(maxsize=1)
+        results: queue.Queue[ModelResponse | CodexError | CodexUncertain] = queue.Queue(maxsize=1)
 
         async def run() -> ModelResponse:
             token, account, secrets = _credentials(self._auth_file)
             # Reading a regular file can still be slow (for example on NFS).
             # The caller's queue deadline bounds that wait; never send late.
             if time.monotonic() >= deadline:
-                raise CodexUncertain
+                raise CodexUncertain(code="deadline_exceeded")
             headers = {"Authorization": "Bearer " + token, "ChatGPT-Account-ID": account,
                        "Content-Type": "application/json", "Accept": "text/event-stream",
                        "Accept-Encoding": "identity", "User-Agent": "WorkflowGenerator/1",
@@ -418,9 +447,9 @@ class CodexSource:
                 data = bytearray()
                 async for chunk in self._transport(request.request_json.encode("utf-8"), headers, deadline):
                     if time.monotonic() >= deadline:
-                        raise CodexUncertain
+                        raise CodexUncertain(code="deadline_exceeded")
                     if len(data) + len(chunk) > STREAM_LIMIT:
-                        raise ValueError
+                        raise CodexError(code="response_limit")
                     data.extend(chunk)
                 try:
                     return _parse(bytes(data), secrets)
@@ -432,12 +461,20 @@ class CodexSource:
         def worker() -> None:
             try:
                 result = asyncio.run(run())
-            except CodexError as exc:
-                results.put("credentials" if isinstance(exc, _CredentialError) else "failed")
+            except (CodexError, CodexUncertain) as exc:
+                # Only safe classification data crosses the thread boundary, never
+                # provider text, traceback, or chained exceptions.
+                kind = CodexUncertain if isinstance(exc, CodexUncertain) else CodexError
+                results.put(kind(_FAILURE_MESSAGES[exc.code], code=exc.code,
+                                 provider_status=exc.provider_status))
+            except asyncio.LimitOverrunError:
+                results.put(CodexError(_FAILURE_MESSAGES["response_limit"], code="response_limit"))
+            except TimeoutError:
+                results.put(CodexUncertain(_FAILURE_MESSAGES["deadline_exceeded"], code="deadline_exceeded"))
             except ValueError:
-                results.put("failed")
+                results.put(CodexError(_FAILURE_MESSAGES["invalid_response"]))
             except Exception:
-                results.put("uncertain")
+                results.put(CodexUncertain(_FAILURE_MESSAGES["transport_incomplete"]))
             else:
                 results.put(result)
 
@@ -446,11 +483,7 @@ class CodexSource:
         try:
             result = results.get(timeout=max(0, deadline - time.monotonic()))
         except queue.Empty:
-            result = "uncertain"
-        if result == "uncertain":
-            raise CodexUncertain("Codex exchange incomplete; remote completion is unknown. Retry only explicitly.")
-        if result == "credentials":
-            raise CodexError("Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.")
-        if result == "failed":
-            raise CodexError("Codex request failed or returned invalid output; check login/model and retry explicitly.")
+            result = CodexUncertain(_FAILURE_MESSAGES["deadline_exceeded"], code="deadline_exceeded")
+        if isinstance(result, (CodexError, CodexUncertain)):
+            raise result from None
         return result

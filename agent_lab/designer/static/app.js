@@ -206,7 +206,9 @@ async function api(path, value) {
   const response = await fetch(path, {method: "POST", headers: {
     "Content-Type": "application/json", "X-Designer-Token": token}, body: JSON.stringify(value)});
   const result = await response.json();
-  if (!response.ok) throw new Error((result.findings || []).map(f => f.message).join("; ") || "Request failed");
+  if (!response.ok && !(path === "/api/drafts/run" && ["failed", "uncertain"].includes(result.status))) {
+    throw new Error((result.findings || []).map(f => f.message).join("; ") || "Request failed");
+  }
   return result;
 }
 function graph(view) {
@@ -435,6 +437,7 @@ byId("draft-run").addEventListener("click", async () => {
       }
     }
     text(container, "p", result.message || "");
+    if (result.failure) text(container, "pre", JSON.stringify(result.failure, null, 2));
     text(container, "h3", "Usage (unknown is not zero)");
     text(container, "pre", JSON.stringify(result.usage, null, 2));
     text(container, "pre", `Private evidence: ${JSON.stringify(result.evidence, null, 2)}`);

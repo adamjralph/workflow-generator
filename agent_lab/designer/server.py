@@ -79,6 +79,16 @@ def create_server(
             self.respond(status, json.dumps(data, allow_nan=False).encode(), "application/json")
 
         def error(self, status: int, message: str) -> None:
+            if self.path == "/api/drafts/run":
+                # Rejected HTTP requests never entered execution. A storage/server
+                # error may conceal an earlier attempt; do not guess that it failed.
+                self.json(status, {"succeeded": False, "status": "failed" if status < 500 else "uncertain",
+                    "result": None, "usage": dict.fromkeys(("input_tokens", "output_tokens",
+                    "reasoning_tokens", "cache_read_tokens")), "evidence": [],
+                    "message": ("Request rejected before execution. " + message if status < 500 else
+                                "Run evidence unavailable; previous completion and usage may be unknown. No automatic retry."),
+                    "findings": [{"code": "request_error", "path": "request", "message": message}]})
+                return
             self.json(status, {("succeeded" if self.path in ("/api/run", "/api/source/run", "/api/source/capture", "/api/drafts/capture", "/api/drafts/request", "/api/drafts/run") else "passed"): False, "findings": [
                 {"code": "request_error", "path": "request", "message": message}],
                 "cases": [], "completed_cases": [], "evidence": []})

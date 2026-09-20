@@ -8,6 +8,24 @@ from tests.test_designer_drafts_browser import capture_draft, open_drafts
 from tests.test_designer_draft_run_server import FixtureSource, POST
 
 
+def test_server_rejection_before_execution_is_failed_not_remote_uncertainty(page, tmp_path, operator):
+    config, folder, evidence = operator
+    draft(folder, "old.md")
+    source = FixtureSource()
+    with app(tmp_path, draft_config=config, draft_model_source=source) as url:
+        open_drafts(page, url)
+        capture_draft(page)
+        def wrong_token(route):
+            headers = dict(route.request.headers)
+            headers["x-designer-token"] = "invalid"
+            route.continue_(headers=headers)
+        page.route("**/api/drafts/run", wrong_token)
+        page.locator("#draft-run").click()
+        expect(page.locator("#draft-run-status")).to_contain_text("Failed")
+        expect(page.locator("#draft-run-result")).to_contain_text("before execution")
+        assert source.requests == []
+
+
 def test_explicit_generator_run_inert_output_usage_and_warned_new_run(page, tmp_path, operator):
     config, folder, evidence = operator
     selected = draft(folder, "old.md")

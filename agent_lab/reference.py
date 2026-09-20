@@ -1,6 +1,6 @@
 """Offline, in-memory Transform/Decision reference target; not conformance."""
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from copy import deepcopy
 from types import MappingProxyType
 from typing import Generic, Literal, TypeVar
@@ -47,26 +47,84 @@ class Compilation(Generic[S]):
     findings: tuple[Finding | CompileFinding, ...] = ()
 
 
+def _snapshot(state_type: type[S], value: object) -> S:
+    if type(value) is not state_type:
+        raise ValueError("State must be an instance of the declared type")
+    assert isinstance(value, BaseModel)
+    return state_type.model_validate(
+        deepcopy(value.model_dump(mode="python", round_trip=True, warnings="error")), strict=True,
+    )
+
+
+def _initial_snapshot(state_type: type[S], value: object) -> S:
+    try:
+        return _snapshot(state_type, value)
+    except Exception as exc:
+        raise ValueError("Invalid initial state") from exc
+
+
+@dataclass
+class _Execution(Generic[S]):
+    """Shared invocation/audit mechanics, deliberately no scheduling loop."""
+
+    state: S
+    state_type: type[S]
+    budget: Budget
+    run_id: str
+    log: RunLog
+    accounting: RunAccounting = field(default_factory=RunAccounting)
+
+    def invoke(self, node: TransformNode | DecisionNode,
+               binding: Callable[[S], object], routes: Mapping[str, str],
+               terminals: tuple[str, ...]) -> str:
+        selected: str | None = None
+        failure = None
+        try:
+            self.budget = self.accounting.reserve(self.run_id, self.budget)
+        except BudgetExceeded:
+            target, failure = "FAILED_BUDGET", "budget_exhausted"
+        else:
+            try:
+                snapshot = _snapshot(self.state_type, self.state)
+                next_state = self.state
+                label: object
+                result = binding(snapshot)
+                if isinstance(node, TransformNode):
+                    if not isinstance(result, TransformResult):
+                        raise ValueError("Expected TransformResult")
+                    next_state, label = _snapshot(self.state_type, result.state), result.outcome
+                else:
+                    label = result
+                if type(label) is not str or label not in node.route_labels:
+                    raise ValueError("Expected declared route label")
+                target = routes[label]
+                self.state, selected = next_state, label
+            except Exception:
+                # Binding-raised BudgetExceeded is not reservation refusal.
+                # Audit I/O remains outside this boundary.
+                target, failure = "FAILED_VALIDATION", "invalid_binding_result"
+        self.log.append_next(RunEvent(
+            self.run_id, 0, node.id, node.kind, selected,
+            target if target in terminals else None,
+            {"target": target, "failure": failure,
+             "used_steps": self.budget.used_steps, "max_steps": self.budget.max_steps},
+        ))
+        return target
+
+    def result(self, terminal: str) -> ReferenceResult[S]:
+        return ReferenceResult(self.state, terminal, self.budget.used_steps,
+                               tuple(event for event in self.log.read() if event.run_id == self.run_id))
+
+
 @dataclass(frozen=True)
 class ReferencePlan(Generic[S]):
     spec: WorkflowSpec
     state_type: type[S]
     bindings: Mapping[str, Callable[[S], object]]
 
-    def _snapshot(self, value: object) -> S:
-        if type(value) is not self.state_type:
-            raise ValueError("State must be an instance of the declared type")
-        assert isinstance(value, BaseModel)
-        return self.state_type.model_validate(
-            deepcopy(value.model_dump(mode="python", round_trip=True, warnings="error")), strict=True,
-        )
-
     def run(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
         """Fresh single-pass execution; each invocation reserves one step."""
-        try:
-            state = self._snapshot(initial)
-        except Exception as exc:
-            raise ValueError("Invalid initial state") from exc
+        state = _initial_snapshot(self.state_type, initial)
         try:
             with log.fresh_run(run_id):
                 return self._execute(state, run_id=run_id, log=log)
@@ -74,52 +132,21 @@ class ReferencePlan(Generic[S]):
             raise AuditError("Reference audit I/O failed; execution stopped") from exc
 
     def _execute(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
-        state = initial
-        budget = Budget(max_steps=self.spec.budget)
-        accounting = RunAccounting()
+        execution = _Execution(initial, self.state_type, Budget(max_steps=self.spec.budget), run_id, log)
         nodes = {node.id: node for node in self.spec.nodes}
         routes = {(edge.source, edge.outcome): edge.target for edge in self.spec.edges
                   if isinstance(edge, Route)}
         current = self.spec.entry
         while current not in self.spec.terminals:
             node = nodes[current]
-            selected: str | None = None
-            failure = None
-            try:
-                budget = accounting.reserve(run_id, budget)
-            except BudgetExceeded:
-                target, failure = "FAILED_BUDGET", "budget_exhausted"
-            else:
-                try:
-                    snapshot = self._snapshot(state)
-                    next_state = state
-                    label: object
-                    if isinstance(node, TransformNode):
-                        result = self.bindings[node.operation](snapshot)
-                        if not isinstance(result, TransformResult):
-                            raise ValueError("Expected TransformResult")
-                        next_state, label = self._snapshot(result.state), result.outcome
-                    elif isinstance(node, DecisionNode):
-                        label = self.bindings[node.value](snapshot)
-                    else:
-                        raise ValueError("Unsupported node")
-                    if type(label) is not str or label not in node.route_labels:
-                        raise ValueError("Expected declared route label")
-                    target = routes[(current, label)]
-                    state, selected = next_state, label
-                except Exception:
-                    # Includes binding-raised BudgetExceeded, not reservation
-                    # refusal. Audit I/O stays outside the binding boundary.
-                    target, failure = "FAILED_VALIDATION", "invalid_binding_result"
-            log.append_next(RunEvent(
-                run_id, 0, current, node.kind, selected,
-                target if target in self.spec.terminals else None,
-                {"target": target, "failure": failure,
-                 "used_steps": budget.used_steps, "max_steps": budget.max_steps},
-            ))
-            current = target
-        return ReferenceResult(state, current, budget.used_steps,
-                               tuple(event for event in log.read() if event.run_id == run_id))
+            assert isinstance(node, (TransformNode, DecisionNode))
+            key = node.operation if isinstance(node, TransformNode) else node.value
+            current = execution.invoke(
+                node, self.bindings[key],
+                {label: routes[(current, label)] for label in node.route_labels},
+                self.spec.terminals,
+            )
+        return execution.result(current)
 
 
 def compile_reference(candidate: object, *, state_type: type[S],

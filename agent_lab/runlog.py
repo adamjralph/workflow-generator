@@ -111,6 +111,10 @@ class RunLog:
                 events.append(RunEvent(**json.loads(line)))
         return events
 
+    def read_bytes(self) -> bytes:
+        """Read exact persisted evidence. Missing logs raise, never imply success."""
+        return self.path.read_bytes()
+
     def digest(self) -> str:
         """Digest of the exact recorded bytes — evidence, not interpretation."""
         import hashlib

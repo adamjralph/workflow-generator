@@ -3,8 +3,8 @@
 Implementation baseline: `76a08fa11d0cb42d4d13c297a8fb5a59ad059796`.
 Scope: ticket 15 only; no custom-request entry (ticket 16), live calls, external
 support tickets, Hermes writes, activation, persistent Spec format, or packaging.
-Ticket acceptance/closure remains with Adam. Unrelated handoff/roadmap edits are
-outside this delivery.
+Adam explicitly accepted ticket 15 ("accept") after implementation and review.
+The local ticket is resolved; implementation commit: `178f3e0`.
 
 ## Try it
 
@@ -157,4 +157,4 @@ excluding unrelated working-tree changes.
 
 No code changes were required after review; the final verification above applies.
 Unrelated dirty files were preserved. No known ticket-15 implementation gaps.
-Acceptance and ticket closure remain with Adam.
+Adam has accepted and closed ticket 15.

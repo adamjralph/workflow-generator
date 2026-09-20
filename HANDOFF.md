@@ -1,6 +1,20 @@
 # Workflow Generator — next-session handoff
 
-## Latest update — ticket 14 accepted
+## Latest update — ticket 15 accepted
+
+Adam explicitly accepted ticket 15 ("accept"). Offline support-request triage is
+implemented in `178f3e0`, accepted and closed. Evidence: `docs/designer-ticket15.md`
+(720 passed, 3 expected skips, 19 Chromium tests; mypy clean; independent review
+found no blocking Standards or Spec findings). Do not reimplement it.
+
+Ticket 16, custom support-request entry/execution, is the next unblocked ticket.
+Its approved contract is in the local issue file; acceptance of ticket 15 does not
+itself request implementation of ticket 16. Preserve unrelated working-tree changes.
+Hermes remains read-only; no live calls are authorized.
+
+Older next-step instructions below are historical and superseded by this update.
+
+## Previous update — ticket 14 accepted
 
 Adam explicitly accepted and closed ticket 14: “sounds good. Accept ticket 14.”
 The local issue is now resolved. Browser composition is delivered; do not reimplement

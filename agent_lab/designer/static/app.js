@@ -3,8 +3,75 @@ const byId = (id) => document.getElementById(id);
 const token = document.querySelector('meta[name="request-token"]').content;
 let revision = 0;
 let designReady = false;
-const answers = () => ({threshold: Number(byId("threshold").value),
-  below: byId("below").value, at_or_above: byId("at_or_above").value});
+let nextId = 1;
+const draft = {nodes: [
+  {id: "receive", operation: "receive", done: "threshold"},
+  {id: "threshold", operation: "compare", threshold: 50, below: "ACCEPTED", at_or_above: "REVIEW"}
+]};
+const answers = () => structuredClone(draft);
+function editNodes() {
+  const container = byId("nodes");
+  container.replaceChildren();
+  const destinations = [...draft.nodes.map(n => n.id), "ACCEPTED", "REVIEW"];
+  draft.nodes.forEach(node => {
+    const group = text(container, "fieldset", "");
+    group.dataset.node = node.id;
+    text(group, "legend", `${node.id} · ${node.operation}`);
+    function choice(key, label, values, numeric = false) {
+      const id = `${node.id}-${key}`;
+      text(group, "label", label).htmlFor = id;
+      const select = text(group, "select", "");
+      select.id = id;
+      if (!values.includes(node[key])) {
+        const missing = text(select, "option", `Missing destination: ${node[key]}`);
+        missing.value = node[key];
+      }
+      values.forEach(value => {
+        const option = text(select, "option", value);
+        option.value = value;
+      });
+      select.value = node[key];
+      select.addEventListener("change", () => {
+        node[key] = numeric ? Number(select.value) : select.value;
+        refresh();
+      });
+    }
+    if (node.operation === "compare") {
+      choice("threshold", "Threshold", [10, 50, 100], true);
+      choice("below", "Below threshold", destinations);
+      choice("at_or_above", "At or above threshold", destinations);
+    } else {
+      if (node.operation === "adjust") choice("adjustment", "Score adjustment", [-10, 10], true);
+      choice("done", "Done destination", destinations);
+    }
+    if (node.operation !== "receive") {
+      const remove = text(group, "button", `Remove ${node.id}`);
+      remove.type = "button";
+      remove.addEventListener("click", () => {
+        draft.nodes.splice(draft.nodes.indexOf(node), 1);
+        editNodes();
+        refresh();
+      });
+    }
+  });
+  byId("add-adjust").disabled = draft.nodes.length >= 6;
+  byId("add-compare").disabled = draft.nodes.length >= 6 || draft.nodes.filter(n => n.operation === "compare").length >= 2;
+}
+function addNode(operation) {
+  const id = `${operation}_${nextId++}`;
+  draft.nodes.push(operation === "adjust"
+    ? {id, operation, adjustment: 10, done: "ACCEPTED"}
+    : {id, operation, threshold: 50, below: "ACCEPTED", at_or_above: "REVIEW"});
+  editNodes();
+  refresh();
+}
+function draftView() {
+  const edges = draft.nodes.flatMap(n => (n.operation === "compare" ? ["below", "at_or_above"] : ["done"])
+    .map(outcome => ({source: n.id, outcome, target: n[outcome]})));
+  const missing = edges.map(e => e.target).filter(id => !draft.nodes.some(n => n.id === id) && !["ACCEPTED", "REVIEW"].includes(id));
+  return {nodes: draft.nodes.map(n => ({...n, kind: n.operation === "compare" ? "Decision" : "Transform", label: n.operation})),
+    edges, terminals: ["ACCEPTED", "REVIEW", ...new Set(missing)], missing, cases: [], budget: "unvalidated"};
+}
 function text(parent, tag, value) {
   const element = document.createElement(tag);
   element.textContent = value;
@@ -24,7 +91,8 @@ function graph(view) {
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", "Authored workflow nodes, routes and terminals");
   const height = Math.max(view.nodes.length, view.terminals.length) * 105 + 80;
-  svg.setAttribute("viewBox", `0 0 1050 ${height}`);
+  const terminalX = Math.max(790, view.nodes.length * 260);
+  svg.setAttribute("viewBox", `0 0 ${terminalX + 270} ${height}`);
   function shape(tag, attrs, content, parent = svg) {
     const el = document.createElementNS(ns, tag);
     for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
@@ -37,7 +105,7 @@ function graph(view) {
   shape("path", {d: "M 0 0 L 10 5 L 0 10 z", fill: "#456"}, undefined, marker);
   const positions = new Map();
   view.nodes.forEach((node, i) => positions.set(node.id, {x: 20 + i * 260, y: 40 + i * 105}));
-  view.terminals.forEach((terminal, i) => positions.set(terminal, {x: 790, y: 40 + i * 105}));
+  view.terminals.forEach((terminal, i) => positions.set(terminal, {x: terminalX, y: 40 + i * 105}));
   view.edges.forEach((edge, i) => {
     const source = positions.get(edge.source), target = positions.get(edge.target);
     if (!source || !target) return;
@@ -53,13 +121,17 @@ function graph(view) {
   });
   view.terminals.forEach(terminal => {
     const p = positions.get(terminal);
-    shape("rect", {x: p.x, y: p.y, width: 245, height: 60, rx: 25, class: "terminal"});
-    shape("text", {x: p.x+10, y: p.y+35}, terminal);
+    const missing = (view.missing || []).includes(terminal);
+    shape("rect", {x: p.x, y: p.y, width: 245, height: 60, rx: 25, class: missing ? "missing" : "terminal"});
+    shape("text", {x: p.x+10, y: p.y+35}, missing ? `Missing: ${terminal}` : terminal);
   });
   byId("graph").replaceChildren(svg);
-  byId("budget").textContent = `Step budget: ${view.budget}. All declared terminals are shown, including safety terminals.`;
+  byId("budget").textContent = `Step budget: ${view.budget} — longest executable path, counting nodes and excluding terminals.`;
   byId("cases").replaceChildren();
-  view.cases.forEach(c => text(byId("cases"), "li", `${c.name}: score ${c.score} → ${c.expected_terminal}`));
+  view.cases.forEach(c => text(byId("cases"), "li", `${c.name}: score ${c.score}`));
+  byId("scope").textContent = typeof view.scope === "string" ? view.scope : JSON.stringify(view.scope || "Unvalidated draft; no case scope yet.");
+  byId("infeasible").replaceChildren();
+  (view.infeasible_routes || []).forEach(route => text(byId("infeasible"), "li", typeof route === "string" ? route : JSON.stringify(route)));
 }
 function renderResult(result) {
   const container = byId("result");
@@ -79,9 +151,7 @@ async function refresh() {
   designReady = false;
   byId("check").disabled = true;
   byId("result").replaceChildren();
-  byId("graph").replaceChildren();
-  byId("cases").replaceChildren();
-  byId("budget").textContent = "";
+  graph(draftView());
   byId("status").textContent = "Design changed; previous check invalidated. Loading design…";
   try {
     const view = await api("/api/design", answers());
@@ -94,7 +164,9 @@ async function refresh() {
     if (current === revision) byId("status").textContent = `Design failed: ${error.message}`;
   }
 }
-byId("questions").addEventListener("change", refresh);
+byId("add-adjust").addEventListener("click", () => addNode("adjust"));
+byId("add-compare").addEventListener("click", () => addNode("compare"));
+editNodes();
 byId("questions").addEventListener("submit", async event => {
   event.preventDefault();
   if (!designReady || byId("check").disabled) return;

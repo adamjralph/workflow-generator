@@ -1,6 +1,22 @@
 # Workflow Generator — next-session handoff
 
-## Start here: current state and approved direction
+## Latest update — ticket 14 accepted
+
+Adam explicitly accepted and closed ticket 14: “sounds good. Accept ticket 14.”
+The local issue is now resolved. Browser composition is delivered; do not reimplement
+or re-scope it. Evidence: `docs/designer-ticket14.md` (614 passed, 3 expected skips;
+mypy clean; independent review findings resolved). Implementation and acceptance
+records are included in the ticket-14 commit; preserve unrelated working-tree changes.
+
+Next direction discussed: choose and scope one useful offline request-triage workflow
+with meaningful operations, sample inputs and visible outputs. No concrete next-ticket
+contract or implementation is approved yet. Parallel and Gates need not block that
+scope discussion. Hermes remains read-only; no live calls are authorized.
+
+The prior session notes below are historical: statements that ticket 14 awaits scope
+or implementation are superseded by this update.
+
+## Start here: previous state and approved direction
 
 Working branch: `main`.
 

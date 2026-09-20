@@ -7,6 +7,8 @@ let checkRevision = 0;
 let captureRevision = 0;
 let snapshot = null;
 let sourceAvailable = false;
+let draftCaptureRevision = 0;
+let draftsAvailable = false;
 let designReady = false;
 let nextId = 1;
 const scoreDefault = {nodes: [
@@ -27,6 +29,7 @@ const roleDefault = {mode: "roles", producer: "signal_generator", output: "evide
 let roleCatalog = null;
 let draft = structuredClone(scoreDefault);
 let suppliedCases = [];
+const isDraftCapture = () => byId("mode").value === "drafts";
 const isTriage = () => draft.mode === "triage";
 const isRoles = () => draft.mode === "roles";
 const canRun = () => isTriage() || isRoles();
@@ -53,6 +56,8 @@ const routeLabels = n => n.operation === "compare" ? ["below", "at_or_above"]
 const isDecision = n => ["compare", "category", "urgency"].includes(n.operation);
 const answers = () => structuredClone(draft);
 function editNodes() {
+  byId("offline-workflow").hidden = isDraftCapture();
+  byId("draft-capture").hidden = !isDraftCapture();
   const container = byId("nodes");
   container.replaceChildren();
   byId("custom").hidden = !canRun();
@@ -286,7 +291,9 @@ async function refresh() {
   const current = ++revision;
   designReady = false;
   clearSource();
+  clearDraftCapture();
   byId("check").disabled = true;
+  if (isDraftCapture()) return;
   byId("result").replaceChildren();
   graph(draftView());
   byId("status").textContent = "Design changed; previous check invalidated. Loading design…";
@@ -345,6 +352,60 @@ fetch("/api/source").then(async response => {
   byId("capture").disabled = !sourceAvailable;
 }).catch(() => {
   byId("source-availability").textContent = "Source availability failed. Synthetic fixtures remain available.";
+});
+function clearDraftCapture() {
+  ++draftCaptureRevision;
+  byId("draft-preview").replaceChildren();
+  byId("draft-status").textContent = "No captured input; previous capture invalidated.";
+}
+byId("draft-capture-button").addEventListener("click", async () => {
+  if (!isDraftCapture() || !draftsAvailable) return;
+  clearDraftCapture();
+  const current = draftCaptureRevision;
+  byId("draft-status").textContent = "Capturing…";
+  try {
+    const result = await api("/api/drafts/capture", {});
+    if (current !== draftCaptureRevision) return;
+    const container = byId("draft-preview");
+    text(container, "h3", "Selection inventory");
+    for (const entry of result.entries) {
+      text(container, "p", `${entry.name}: ${entry.status} — ${entry.reason}${entry.date_created ? ` (${entry.date_created})` : ""}`);
+    }
+    if (!result.succeeded) {
+      for (const finding of result.findings) text(container, "p", `${finding.path}: ${finding.message}`);
+      byId("draft-status").textContent = "Capture blocked; no input selected or saved.";
+      return;
+    }
+    text(container, "h3", `${result.selected.name} · ${result.selected.date_created}`);
+    text(container, "p", `Snapshot: ${result.snapshot} · Source digest: ${result.selected.digest}`);
+    text(container, "pre", result.selected.text);
+    text(container, "h3", "Captured role defaults (not authenticated or executed)");
+    for (const model of result.models) text(container, "p", `${model.role}: ${model.provider} / ${model.model}`);
+    text(container, "h3", "Captured authority — explicit files only, links are not followed");
+    for (const item of result.guidance) {
+      const details = text(container, "details", "");
+      text(details, "summary", item.name);
+      text(details, "p", `${item.path} · ${item.digest}`);
+      text(details, "pre", item.text);
+    }
+    text(container, "p", `Instruction version: ${result.instruction_version}`);
+    text(container, "pre", `Private capture evidence: ${result.evidence.join("\n")}`);
+    byId("draft-status").textContent = "Captured input ready to inspect. Source, guidance or model changes require explicit recapture. Not run or reviewed.";
+  } catch (error) {
+    if (current !== draftCaptureRevision) return;
+    byId("draft-status").textContent = `Capture failed — ${error.message}`;
+  }
+});
+fetch("/api/drafts").then(async response => {
+  if (!response.ok) throw new Error("Draft availability failed");
+  const result = await response.json();
+  draftsAvailable = result.available;
+  byId("draft-availability").textContent = draftsAvailable
+    ? "LinkedIn draft capture available (read-only)."
+    : "Draft capture not configured. Start with an operator --draft-config manifest.";
+  byId("draft-capture-button").disabled = !draftsAvailable;
+}).catch(() => {
+  byId("draft-availability").textContent = "Draft availability failed. Capture is unavailable.";
 });
 byId("custom-request").addEventListener("input", invalidateRun);
 byId("custom-request").addEventListener("change", invalidateRun);

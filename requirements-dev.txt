@@ -4,3 +4,5 @@ pydantic==2.13.5
 pydantic-graph==2.44.0
 typesafe-sdk==0.6.0
 pytest==9.1.1
+PyYAML==6.0.3
+types-PyYAML==6.0.12.20250915

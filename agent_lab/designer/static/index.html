@@ -10,10 +10,20 @@
 </head>
 <body><main>
 <h1>Route a request</h1>
-<p>Design a deterministic offline workflow using trusted operations. No model calls or external actions.</p>
+<p>Design a deterministic offline workflow or capture a LinkedIn draft for inspection. No model calls or external actions.</p>
 <label for="mode">Workflow mode</label>
-<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline)</option></select>
+<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline)</option><option value="drafts">LinkedIn draft capture (no execution)</option></select>
 <p>Changing mode starts its default design and clears previous results.</p>
+<section id="draft-capture" aria-labelledby="draft-heading" hidden>
+<h2 id="draft-heading">Capture the oldest unprocessed draft</h2>
+<p id="draft-policy">Capture only. No model calls, review, conformance check or publication. The eventual workflow allows at most two generation calls, one per role, without retries. Capturing does not authorize public use of private material.</p>
+<p>Top-level Markdown drafts only, ordered by date_created then exact filename. Public copy bank is excluded. Invalid required metadata blocks selection. Inbox and published folders are not scanned. Sources, processing flags and Hermes remain unchanged.</p>
+<p id="draft-availability" role="status">Loading draft availability…</p>
+<button id="draft-capture-button" type="button" disabled>Capture / recapture draft</button>
+<p id="draft-status" role="status" aria-live="polite">No captured input.</p>
+<div id="draft-preview"></div>
+</section>
+<div id="offline-workflow">
 <form id="questions">
 <p id="limits"></p>
 <div id="triage-entry" hidden><label for="entry">Entry node</label><select id="entry"></select></div>
@@ -78,4 +88,5 @@
 <p id="run-status" role="status" aria-live="polite">Not run.</p>
 <div id="run-result" aria-live="polite"></div>
 </section>
+</div>
 </main></body></html>

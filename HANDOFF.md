@@ -1,6 +1,74 @@
 # Workflow Generator — next-session handoff
 
-## Latest update — ticket 15 accepted
+## Latest update — ticket 16 implemented; awaiting acceptance
+
+Adam requested implementation of ticket 16, then requested this handoff.
+Implementation is committed on `main` as `0b87473`:
+**custom support requests execute offline against the currently authored triage
+workflow**. Do not reimplement it. Adam has not explicitly accepted/closed ticket
+16 yet; the untracked local issue still says `ready-for-agent` and its checklist
+has not been updated. Do not mistake that stale bookkeeping for missing code.
+
+### Next session
+
+1. Read `docs/designer-ticket16.md` and the approved contract at
+   `.scratch/workflow-generator/issues/16-try-custom-support-requests.md`.
+2. Help Adam try/review the delivered slice and obtain acceptance or concrete
+   follow-up changes. Only update issue closure when acceptance is explicit.
+3. No ticket 17 or next implementation scope has been agreed. Discuss the next
+   frontier with Adam rather than starting a provisional planning item.
+4. Inspect `git status` and use Graft before source exploration. Preserve the
+   unrelated changes listed below. Hermes remains read-only; no live calls.
+
+### Delivered behavior and verification
+
+- `agent_lab/designer/custom.py::run_request` validates the current triage design
+  and strict request fields, generates and executes the actual graph once, and
+  returns submitted input, observed route, team, priority, deterministic summary,
+  terminal, steps and fresh evidence path. Shared `TriageRequest` input rules feed
+  the existing `TriageState`; no second triage runtime or model.
+- Protected `POST /api/run` accepts only `{design, request}`. Exact loopback
+  Host/Origin/token, JSON/body limits and caller-selected protected evidence root
+  remain in force. No browser-supplied code, paths or output roots.
+- Browser **Run request** results are separate from **Generate / check** supplied-
+  case conformance. Custom input edits do not replace or expand conformance
+  evidence. Workflow/request edits clear stale custom results and invalidate late
+  success/error responses. Descriptions and rendered outputs remain inert text.
+- Full offline suite after review fixes: **808 passed, 3 expected skips**, including
+  **44 real Chromium tests** (none skipped). Mypy: **24 files, no issues**.
+  Skips are two opt-in live Jev tests and the optional real Hermes loader check.
+  Console evidence: `/tmp/workflow-ticket16-full-suite.txt` (temporary local file).
+- Parallel independent review against starting HEAD `eabde12`: Standards found no
+  violations/material smells; Spec found two gaps. Both were reproduced red-first
+  and fixed: silent audit-event loss now fails event-count/accounting/route checks;
+  description entry no longer truncates emoji using UTF-16 `maxlength` semantics.
+  Regression tests and the full suite passed after fixes. The reviewers did not
+  independently re-review those final fixes. Details: `docs/designer-ticket16.md`.
+- Graft refreshed; diff checks clean. Ticket 15 and score composition still work.
+
+### Try it
+
+```bash
+.venv/bin/python -m agent_lab.designer --evidence-dir /tmp/workflow-ticket16-evidence
+```
+
+Open the printed exact `http://127.0.0.1:PORT/` URL. Select **Support-request
+triage**, fill the four fields under **Try a custom support request**, and click
+**Run request**. **Generate / check** still checks only the six supplied cases.
+
+### Working-tree caution
+
+Ticket-16 implementation committed only its nine implementation/test/evidence
+files. Existing modified files remain: `.gitignore`, `ROADMAP.md`, tickets 04/09,
+`docs/read-only-ticket04.md`. Existing untracked files remain: `.ignore`,
+`AGENTS.md`, `opencode.json`, local tickets 12/13/16 and
+`.scratch/workflow-generator/map.md`. Do not stage them incidentally or discard
+user changes. This handoff does not authorize expanding the runtime, persistent
+Spec format, packaging, live integrations or Hermes writes/activation.
+
+All older next-step instructions below are historical and superseded.
+
+## Previous update — ticket 15 accepted
 
 Adam explicitly accepted ticket 15 ("accept"). Offline support-request triage is
 implemented in `178f3e0`, accepted and closed. Evidence: `docs/designer-ticket15.md`

@@ -9,6 +9,9 @@ let snapshot = null;
 let sourceAvailable = false;
 let draftCaptureRevision = 0;
 let draftsAvailable = false;
+let draftSnapshot = null;
+let draftRunRequest = null;
+let draftRunRevision = 0;
 let designReady = false;
 let nextId = 1;
 const scoreDefault = {nodes: [
@@ -353,8 +356,17 @@ fetch("/api/source").then(async response => {
 }).catch(() => {
   byId("source-availability").textContent = "Source availability failed. Synthetic fixtures remain available.";
 });
+// Keep attempted captures across mode changes/recaptures, including lost responses.
+const attemptedDraftSnapshots = new Set();
 function clearDraftCapture() {
   ++draftCaptureRevision;
+  ++draftRunRevision;
+  draftSnapshot = null;
+  draftRunRequest = null;
+  byId("draft-run").disabled = true;
+  byId("draft-new-request").disabled = true;
+  byId("draft-run-result").replaceChildren();
+  byId("draft-run-status").textContent = "Not run; previous display invalidated, not cancelled.";
   byId("draft-preview").replaceChildren();
   byId("draft-status").textContent = "No captured input; previous capture invalidated.";
 }
@@ -376,6 +388,9 @@ byId("draft-capture-button").addEventListener("click", async () => {
       byId("draft-status").textContent = "Capture blocked; no input selected or saved.";
       return;
     }
+    draftSnapshot = result.snapshot;
+    draftRunRequest = result.run_request;
+    byId("draft-run").disabled = !draftRunRequest;
     text(container, "h3", `${result.selected.name} · ${result.selected.date_created}`);
     text(container, "p", `Snapshot: ${result.snapshot} · Source digest: ${result.selected.digest}`);
     text(container, "pre", result.selected.text);
@@ -390,10 +405,66 @@ byId("draft-capture-button").addEventListener("click", async () => {
     }
     text(container, "p", `Instruction version: ${result.instruction_version}`);
     text(container, "pre", `Private capture evidence: ${result.evidence.join("\n")}`);
-    byId("draft-status").textContent = "Captured input ready to inspect. Source, guidance or model changes require explicit recapture. Not run or reviewed.";
+    byId("draft-status").textContent = "Captured input ready to inspect. Source, guidance or model changes require explicit recapture. " +
+      (attemptedDraftSnapshots.has(draftSnapshot)
+        ? "Warning: this capture was already run or attempted in this page. This new request may incur another model call; previous work is not cancelled. Explicit Run required. Not reviewed."
+        : "Not run or reviewed.");
   } catch (error) {
     if (current !== draftCaptureRevision) return;
     byId("draft-status").textContent = `Capture failed — ${error.message}`;
+  }
+});
+byId("draft-run").addEventListener("click", async () => {
+  if (!isDraftCapture() || !draftSnapshot || !draftRunRequest || byId("draft-run").disabled) return;
+  const current = ++draftRunRevision;
+  attemptedDraftSnapshots.add(draftSnapshot);
+  byId("draft-run").disabled = true;
+  byId("draft-new-request").disabled = true;
+  byId("draft-run-result").replaceChildren();
+  byId("draft-run-status").textContent = "Running — at most one Generator call; not reviewed.";
+  try {
+    const result = await api("/api/drafts/run", {snapshot: draftSnapshot, run_request: draftRunRequest});
+    if (current !== draftRunRevision) return;
+    const labels = {not_reviewed: "Not reviewed", blocked: "Blocked", failed: "Failed", uncertain: "Uncertain", running: "Running"};
+    byId("draft-run-status").textContent = `${labels[result.status] || "Failed"} — no Guardian review or publication permission.`;
+    const container = byId("draft-run-result");
+    if (result.result) {
+      for (const key of ["post", "reader", "one_point", "support", "limitations", "blocked_reason"]) {
+        text(container, "h3", key);
+        text(container, "pre", typeof result.result[key] === "string" ? result.result[key] : JSON.stringify(result.result[key], null, 2));
+      }
+    }
+    text(container, "p", result.message || "");
+    text(container, "h3", "Usage (unknown is not zero)");
+    text(container, "pre", JSON.stringify(result.usage, null, 2));
+    text(container, "pre", `Private evidence: ${JSON.stringify(result.evidence, null, 2)}`);
+    // Re-submit this identity only to inspect an active result, never to create a new call.
+    byId("draft-run").disabled = result.status !== "running";
+    byId("draft-new-request").disabled = result.status === "running";
+  } catch (error) {
+    if (current !== draftRunRevision) return;
+    byId("draft-run-status").textContent = "Uncertain — response unavailable. Inspect evidence; the call may have completed. No automatic retry.";
+    byId("draft-run").disabled = false;
+    byId("draft-new-request").disabled = false;
+  }
+});
+byId("draft-new-request").addEventListener("click", async () => {
+  if (!isDraftCapture() || !draftSnapshot || byId("draft-new-request").disabled) return;
+  if (!window.confirm("Request another run on the same capture? This may incur another model call. Previous uncertain work is not cancelled.")) return;
+  const current = ++draftRunRevision;
+  byId("draft-run").disabled = true;
+  byId("draft-new-request").disabled = true;
+  try {
+    const result = await api("/api/drafts/request", {snapshot: draftSnapshot});
+    if (current !== draftRunRevision) return;
+    draftRunRequest = result.run_request;
+    byId("draft-run-result").replaceChildren();
+    byId("draft-run-status").textContent = "New request ready on the same capture; explicit Run required.";
+    byId("draft-run").disabled = false;
+  } catch (error) {
+    if (current !== draftRunRevision) return;
+    byId("draft-run-status").textContent = "Failed to create a new request; no run started.";
+    byId("draft-new-request").disabled = false;
   }
 });
 fetch("/api/drafts").then(async response => {

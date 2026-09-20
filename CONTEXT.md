@@ -116,7 +116,7 @@ letting a model invent node types works against it.
 | **Judgment** | pick one of N typed options + confidence | Jev |
 | **Decision** | code routing on a value | none |
 | **Gate** | pause for a human, bound to an exact artifact digest | none |
-| **Transform** | deterministic work | none |
+| **Transform** | deterministic work, or an explicitly declared model operation (ADR 0010) | none for ordinary bindings; declared source for model operations |
 | **Loop** | bounded retry with an exit predicate | none |
 
 ### 2.8 Measurement units are fixed up front
@@ -475,6 +475,10 @@ _Avoid_: limit, quota
 **Judgment**:
 A narrow typed decision — one of N options with a confidence — produced by a judgment source.
 _Avoid_: classification, answer
+
+**Model operation**:
+An explicitly declared Transform contract: deterministic request preparation, a live/fixture/recorded source, and deterministic response application. Live execution is not deterministic; exact-request offline replay is distinct from editorial review.
+_Avoid_: hidden model call, prose Judgment
 
 **Judgment source**:
 Where a judgment comes from: Jev (live), recorded (offline replay), or stub (tests).

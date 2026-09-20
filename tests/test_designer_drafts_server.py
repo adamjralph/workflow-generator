@@ -59,7 +59,8 @@ def test_availability_is_configuration_only_without_input_reads(operator, config
         folder.rmdir()
         status, headers, body = request(server, "/api/drafts")
         assert status == 200
-        assert json.loads(body) == {"available": configured, "source": "LinkedIn draft capture"}
+        assert json.loads(body) == {"available": configured, "run_available": configured,
+                                    "source": "LinkedIn draft capture"}
         assert headers["Cache-Control"] == "no-store"
         assert request(server, "/api/drafts", headers={"Host": "evil.invalid"})[0] == 403
     assert not evidence.exists()
@@ -187,12 +188,16 @@ def test_recapture_uses_current_readonly_inputs_and_pinned_manifest(operator) ->
         first = capture()
         assert first["succeeded"] is True
         saved = Path(first["evidence"][0]).read_bytes()
-        assert capture() == first
+        repeated = capture()
+        assert repeated.pop("run_request") != first["run_request"]
+        assert repeated == {key: value for key, value in first.items() if key != "run_request"}
         for path, original in originals.items():
             assert (path.read_bytes(), path.stat().st_mode, path.stat().st_mtime_ns) == original
         config.chmod(0o600)
         config.write_text('{"drafts_dir":"/untrusted-new-location"}')
-        assert capture() == first
+        pinned = capture()
+        assert pinned.pop("run_request") != first["run_request"]
+        assert pinned == repeated
         selected.chmod(0o600)
         selected.write_bytes(selected.read_bytes() + b"Changed body.\n")
         second = capture()
@@ -200,7 +205,8 @@ def test_recapture_uses_current_readonly_inputs_and_pinned_manifest(operator) ->
         assert second["snapshot"] != first["snapshot"]
         assert second["selected"]["text"].endswith("Changed body.\n")
         assert Path(first["evidence"][0]).read_bytes() == saved
-    assert {path.name for path in evidence.iterdir()} == {"draft-snapshots"}
+    assert {path.name for path in evidence.iterdir()} == {"draft-snapshots", "draft-runs"}
+    assert not list((evidence / "draft-runs").glob("*/claimed.json"))
 
 
 def test_concurrent_identical_http_captures_publish_one_immutable_bundle(operator) -> None:
@@ -218,10 +224,15 @@ def test_concurrent_identical_http_captures_publish_one_immutable_bundle(operato
         with ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(capture, range(16)))
         assert results[0]["succeeded"] is True
-        assert all(result == results[0] for result in results)
+        assert len({result["run_request"] for result in results}) == len(results)
+        captured = {key: value for key, value in results[0].items() if key != "run_request"}
+        assert all({key: value for key, value in result.items() if key != "run_request"}
+                   == captured for result in results)
         bundle = Path(results[0]["evidence"][0])
         before = (bundle.read_bytes(), bundle.stat().st_mtime_ns)
-        assert capture(None) == results[0]
+        repeated = capture(None)
+        assert repeated.pop("run_request") not in {result["run_request"] for result in results}
+        assert repeated == captured
         assert (bundle.read_bytes(), bundle.stat().st_mtime_ns) == before
     assert list(bundle.parent.iterdir()) == [bundle]
     assert bundle.stat().st_mode & 0o077 == 0
@@ -246,7 +257,7 @@ def test_cli_starts_capture_mode_and_reports_availability(operator) -> None:
             response = connection.getresponse()
             assert response.status == 200
             assert json.loads(response.read()) == {
-                "available": True, "source": "LinkedIn draft capture"}
+                "available": True, "run_available": True, "source": "LinkedIn draft capture"}
         finally:
             connection.close()
         assert not evidence.exists()
@@ -280,12 +291,14 @@ def test_cli_rejects_invalid_operator_configuration_before_listening(operator, k
     assert not (evidence / "draft-snapshots").exists()
 
 
-def test_draft_mode_exposes_no_execution_routes(operator) -> None:
+def test_draft_mode_requires_run_identity_and_exposes_no_review_routes(operator) -> None:
     config, folder, evidence = operator
     draft(folder, "old.md")
     with running_server(evidence, draft_config=config) as server:
         headers = credentials(server)
-        for path in ("/api/drafts/run", "/api/drafts/check", "/api/drafts/load"):
+        for path in ("/api/drafts/run", "/api/drafts/request"):
+            assert request(server, path, method="POST", headers=headers, body="{}")[0] == 400
+        for path in ("/api/drafts/check", "/api/drafts/load"):
             assert request(server, path, method="POST", headers=headers, body="{}")[0] == 404
     assert not evidence.exists()
 

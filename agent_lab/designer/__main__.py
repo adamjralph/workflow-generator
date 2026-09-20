@@ -12,14 +12,17 @@ def main() -> None:
     parser.add_argument("--source-file", type=Path,
                         help="Optional read-only local JSON writing brief")
     parser.add_argument("--draft-config", type=Path,
-                        help="Operator manifest for capture-only LinkedIn draft previews")
+                        help="Operator manifest for LinkedIn draft capture and explicit Generator runs")
+    parser.add_argument("--codex-auth-file", type=Path,
+                        help="Read-only Codex credentials (default: ~/.hermes/auth.json; read only on Run)")
     parser.add_argument("--protected-root", type=Path, action="append", default=[],
                         help="Additional Hermes installation/source root to protect (repeatable)")
     args = parser.parse_args()
     try:
         server = create_server(args.evidence_dir, port=args.port,
                                protected_roots=tuple(args.protected_root),
-                               source_file=args.source_file, draft_config=args.draft_config)
+                               source_file=args.source_file, draft_config=args.draft_config,
+                               codex_auth_file=args.codex_auth_file)
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     print(f"Open http://127.0.0.1:{server.server_port}/", flush=True)

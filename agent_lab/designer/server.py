@@ -11,6 +11,9 @@ from typing import Any
 from agent_lab.designer import Design, author_design, check_design, validate_evidence_root
 from agent_lab.designer.custom import run_request
 from agent_lab.designer.drafts import DraftSource
+from agent_lab.designer.draft_runs import DraftRuns
+from agent_lab.designer.codex import CodexSource
+from agent_lab.model_operation import ModelSource
 from agent_lab.designer.source import ControlledSource
 from agent_lab.designer.triage import TriageRequest, author_triage
 from agent_lab.designer.roles import FixtureRequest, author_roles
@@ -38,6 +41,7 @@ def create_server(
     candidate_factory: Callable[[Design], object] | None = None,
     *, protected_roots: tuple[Path, ...] = (), source_file: Path | None = None,
     draft_config: Path | None = None,
+    codex_auth_file: Path | None = None, draft_model_source: ModelSource | None = None,
 ) -> HTTPServer:
     """Create a local server with operator-selected sources and evidence root."""
     root = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
@@ -45,6 +49,11 @@ def create_server(
               if source_file is not None else None)
     drafts = (DraftSource(draft_config, root, protected_roots=protected_roots)
               if draft_config is not None else None)
+    runs = (DraftRuns(drafts, root,
+                      draft_model_source if draft_model_source is not None else
+                      CodexSource(codex_auth_file if codex_auth_file is not None else
+                                  Path.home() / ".hermes" / "auth.json"),
+                      protected_roots=protected_roots) if drafts is not None else None)
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -70,7 +79,7 @@ def create_server(
             self.respond(status, json.dumps(data, allow_nan=False).encode(), "application/json")
 
         def error(self, status: int, message: str) -> None:
-            self.json(status, {("succeeded" if self.path in ("/api/run", "/api/source/run", "/api/source/capture", "/api/drafts/capture") else "passed"): False, "findings": [
+            self.json(status, {("succeeded" if self.path in ("/api/run", "/api/source/run", "/api/source/capture", "/api/drafts/capture", "/api/drafts/request", "/api/drafts/run") else "passed"): False, "findings": [
                 {"code": "request_error", "path": "request", "message": message}],
                 "cases": [], "completed_cases": [], "evidence": []})
 
@@ -82,7 +91,8 @@ def create_server(
                 self.error(403, "Exact loopback Host required")
                 return
             if self.path == "/api/drafts":
-                self.json(200, {"available": drafts is not None, "source": "LinkedIn draft capture"})
+                self.json(200, {"available": drafts is not None, "run_available": runs is not None,
+                                "source": "LinkedIn draft capture"})
                 return
             if self.path == "/api/source":
                 self.json(200, {"available": source is not None, "source": "Local writing brief"})
@@ -106,7 +116,8 @@ def create_server(
                 self.error(403, "Same-origin request and page token required")
                 return
             if self.path not in ("/api/design", "/api/check", "/api/run", "/api/source/capture",
-                                 "/api/source/run", "/api/source/check", "/api/drafts/capture"):
+                                 "/api/source/run", "/api/source/check", "/api/drafts/capture",
+                                 "/api/drafts/request", "/api/drafts/run"):
                 self.error(404, "Unknown path")
                 return
             if self.headers.get_all("Content-Type") != ["application/json"]:
@@ -128,6 +139,14 @@ def create_server(
                         raise ValueError("No draft capture configured")
                     if not isinstance(raw, dict) or raw:
                         raise ValueError("Draft capture requires an empty object")
+                elif self.path in ("/api/drafts/request", "/api/drafts/run"):
+                    keys = ({"snapshot"} if self.path == "/api/drafts/request" else
+                            {"snapshot", "run_request"})
+                    if runs is None or not isinstance(raw, dict) or raw.keys() != keys:
+                        raise ValueError("Invalid draft request")
+                    if any(not isinstance(raw[key], str) or len(raw[key]) != 64 or
+                           any(c not in "0123456789abcdef" for c in raw[key]) for key in keys):
+                        raise ValueError("Invalid draft identity")
                 elif self.path.startswith("/api/source/"):
                     if source is None:
                         raise ValueError("No local writing brief configured")
@@ -150,12 +169,22 @@ def create_server(
                 else:
                     design = author_design(raw)
             except (ValueError, OSError, RecursionError) as exc:
-                self.error(400, str(exc))
+                self.error(400, "Invalid draft request" if self.path.startswith("/api/drafts/") else str(exc))
                 return
             try:
                 if self.path == "/api/drafts/capture":
                     assert drafts is not None
                     result = drafts.capture()
+                    if result.get("succeeded"):
+                        assert runs is not None
+                        issued = runs.create_request(result["snapshot"])
+                        result.update({key: issued[key] for key in ("run_request", "status")})
+                elif self.path == "/api/drafts/request":
+                    assert runs is not None
+                    result = runs.create_request(raw["snapshot"])
+                elif self.path == "/api/drafts/run":
+                    assert runs is not None
+                    result = runs.run(raw["snapshot"], raw["run_request"])
                 elif self.path.startswith("/api/source/"):
                     assert source is not None
                     if self.path == "/api/source/capture":
@@ -180,8 +209,8 @@ def create_server(
                 self.json(200, result)
             except Exception as exc:
                 # Generation, checking and audit errors must never resemble a pass.
-                message = ("Draft capture operation failed"
-                           if self.path == "/api/drafts/capture" and isinstance(exc, OSError)
+                message = ("Draft operation failed; inspect private evidence before requesting another run"
+                           if self.path.startswith("/api/drafts/")
                            else "Local source or snapshot operation failed"
                            if self.path.startswith("/api/source/") and isinstance(exc, OSError)
                            else f"Operation failed: {exc}")

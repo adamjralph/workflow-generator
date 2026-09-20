@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from .generation import GraphCandidate, UnsupportedCandidate
 from .judgment import JevSource
+from .model_operation import ModelOperation
 from .reference import S, AuditError, CompileFinding, JudgmentBinding, compile_reference
 from .runlog import RunLog
 from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
@@ -48,6 +49,9 @@ def _structure(spec: WorkflowSpec) -> dict[tuple[str | int, ...], object]:
         reference = (node.operation if isinstance(node, TransformNode) else
                      node.value if isinstance(node, DecisionNode) else
                      node.exit_predicate if isinstance(node, LoopNode) else node.id)
+        if isinstance(node, TransformNode):
+            fields[("nodes", node.id, "model_operation")] = (
+                node.model_operation, node.operation_version, node.schema_version)
         if isinstance(node, LoopNode):
             fields[("nodes", node.id, "max_iterations")] = node.max_iterations
         fields[("nodes", node.id)] = (node.kind, reference, frozenset(node.route_labels))
@@ -100,7 +104,8 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
                       bindings: Mapping[str, Callable[[S], object]], cases: Mapping[str, S],
                       evidence_dir: Path,
                       judgments: Mapping[str, JudgmentBinding[S]] | None = None,
-                      protected_roots: tuple[Path, ...] = ()) -> ConformanceReport:
+                      protected_roots: tuple[Path, ...] = (),
+                      model_operations: Mapping[str, ModelOperation[S]] | None = None) -> ConformanceReport:
     """Check supplied cases; ValueError inputs and programming errors propagate.
 
     Additional Hermes source/install locations must be supplied as protected_roots
@@ -121,7 +126,8 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
     named_cases = tuple(cases.items())
     if any(type(name) is not str or not name.strip() for name, _ in named_cases):
         raise ValueError("Case names must be nonempty strings")
-    compilation = compile_reference(spec, state_type=state_type, bindings=bindings, judgments=judgments)
+    compilation = compile_reference(spec, state_type=state_type, bindings=bindings, judgments=judgments,
+                                    model_operations=model_operations)
     if compilation.plan is None:
         return ConformanceReport(findings=compilation.findings)
     if not named_cases:
@@ -156,6 +162,14 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
         raise ValueError("Conformance requires explicit offline judgment sources")
     if any(left is right for left in reference_sources for right in candidate_sources):
         raise ValueError("Conformance requires independent judgment sources for each driver")
+    model_keys = tuple(node.operation for node in compilation.plan.spec.nodes
+                       if isinstance(node, TransformNode) and node.model_operation)
+    reference_models = tuple(compilation.plan.model_operations[key].source for key in model_keys)
+    candidate_models = tuple(candidate._model_operations[key].source for key in model_keys)
+    if any(source.mode not in {"fixture", "recorded"} for source in reference_models + candidate_models):
+        raise ValueError("Conformance requires explicit offline model sources")
+    if any(left is right for left in reference_models for right in candidate_models):
+        raise ValueError("Conformance requires independent model sources for each driver")
     try:
         destination.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="check-", dir=destination))

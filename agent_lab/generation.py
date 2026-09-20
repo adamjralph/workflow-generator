@@ -7,17 +7,19 @@ from it per run so mutable framework internals never escape to callers.
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
+import hashlib
 from typing import Generic, Literal, NamedTuple
 
 from pydantic_graph import GraphBuilder, StepContext
 
 from .reference import (
     S, AuditError, CompileFinding, JudgmentBinding, ReferenceResult, _Execution, _initial_snapshot,
-    compile_reference,
+    compile_reference, _snapshot, TransformResult,
 )
 from .runlog import RunLog
 from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
-from .state import Budget
+from .state import Budget, BudgetExceeded
+from .model_operation import ModelOperation, validate_request, validate_response
 
 
 class _Node(NamedTuple):
@@ -28,6 +30,9 @@ class _Node(NamedTuple):
     routes: tuple[tuple[str, str], ...]
 
     max_iterations: int | None = None
+    model_operation: bool = False
+    operation_version: str | None = None
+    schema_version: str | None = None
 
     def declaration(self) -> TransformNode | DecisionNode | JudgmentNode | LoopNode:
         if self.kind == "loop":
@@ -37,7 +42,9 @@ class _Node(NamedTuple):
         if self.kind == "judgment":
             return JudgmentNode(id=self.identity, options=self.labels)
         if self.kind == "transform":
-            return TransformNode(id=self.identity, operation=self.reference, outcomes=self.labels)
+            return TransformNode(id=self.identity, operation=self.reference, outcomes=self.labels,
+                                 model_operation=self.model_operation, operation_version=self.operation_version,
+                                 schema_version=self.schema_version)
         return DecisionNode(id=self.identity, value=self.reference, cases=self.labels)
 
 
@@ -56,6 +63,7 @@ class GraphCandidate(Generic[S]):
     _budget: int
     _bindings: Mapping[str, Callable[[S], object]]
     _judgments: Mapping[str, JudgmentBinding[S]]
+    _model_operations: Mapping[str, ModelOperation[S]]
     _seal: tuple[object, ...] = field(repr=False)
 
     def inspect_structure(self) -> WorkflowSpec:
@@ -82,6 +90,34 @@ class GraphCandidate(Generic[S]):
 
         def make_step(node: _Node):
             async def invoke(ctx: StepContext) -> str:
+                if node.model_operation:
+                    operation = self._model_operations[node.reference]
+                    selected = failure = request_digest = response_digest = None
+                    try:
+                        execution.budget = execution.accounting.reserve(run_id, execution.budget)
+                    except BudgetExceeded:
+                        target, failure = "FAILED_BUDGET", "budget_exhausted"
+                    else:
+                        try:
+                            snapshot = _snapshot(self.state_type, execution.state)
+                            request = validate_request(operation, operation.prepare(snapshot))
+                            request_digest = request.digest
+                            response = validate_response(operation.source.invoke(request))
+                            response_digest = hashlib.sha256(response.body.encode("utf-8")).hexdigest()
+                            result = operation.apply(snapshot, response)
+                            if not isinstance(result, TransformResult):
+                                raise ValueError("Expected TransformResult")
+                            next_state = _snapshot(self.state_type, result.state)
+                            if type(result.outcome) is not str or result.outcome not in node.labels:
+                                raise ValueError("Expected declared route label")
+                            target = dict(node.routes)[result.outcome]
+                            execution.state, selected = next_state, result.outcome
+                        except Exception:
+                            target, failure = "FAILED_VALIDATION", "invalid_binding_result"
+                    declaration = node.declaration()
+                    assert isinstance(declaration, TransformNode)
+                    return execution.record_model(declaration, target, selected, failure, request_digest,
+                                                  response_digest, self._terminals)
                 binding = (self._judgments[node.identity] if node.kind == "judgment"
                            else self._bindings[node.reference])
                 return execution.invoke(node.declaration(), binding,
@@ -114,7 +150,7 @@ class GraphCandidate(Generic[S]):
             raise AuditError("Graph audit I/O failed; execution stopped") from exc
 
 
-_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings", "_judgments")
+_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings", "_judgments", "_model_operations")
 _METHODS = ((GraphCandidate, "run", GraphCandidate.run, GraphCandidate.run.__code__),
             (GraphCandidate, "inspect_structure", GraphCandidate.inspect_structure,
              GraphCandidate.inspect_structure.__code__),
@@ -143,9 +179,11 @@ class Generation(Generic[S]):
 
 def generate_graph(candidate: object, *, state_type: type[S],
                    bindings: Mapping[str, Callable[[S], object]],
-                   judgments: Mapping[str, JudgmentBinding[S]] | None = None) -> Generation[S]:
+                   judgments: Mapping[str, JudgmentBinding[S]] | None = None,
+                   model_operations: Mapping[str, ModelOperation[S]] | None = None) -> Generation[S]:
     """Admit all declarations without invoking trusted local bindings."""
-    admitted = compile_reference(candidate, state_type=state_type, bindings=bindings, judgments=judgments)
+    admitted = compile_reference(candidate, state_type=state_type, bindings=bindings, judgments=judgments,
+                                 model_operations=model_operations)
     if admitted.plan is None:
         return Generation(None, admitted.findings)
     plan = admitted.plan
@@ -161,11 +199,14 @@ def generate_graph(candidate: object, *, state_type: type[S],
             tuple((edge.outcome, edge.target) for edge in plan.spec.edges
                   if isinstance(edge, Route) and edge.source == node.id),
             node.max_iterations if isinstance(node, LoopNode) else None,
+            node.model_operation if isinstance(node, TransformNode) else False,
+            node.operation_version if isinstance(node, TransformNode) else None,
+            node.schema_version if isinstance(node, TransformNode) else None,
         ))
     result = object.__new__(GraphCandidate)
     owned = (state_type, plan.spec.entry, tuple(nodes), plan.spec.terminals,
              plan.spec.budget, MappingProxyType(dict(plan.bindings)),
-             MappingProxyType(dict(plan.judgments)))
+             MappingProxyType(dict(plan.judgments)), MappingProxyType(dict(plan.model_operations)))
     for name, value in zip(_CONFIG_FIELDS, owned):
         object.__setattr__(result, name, value)
     object.__setattr__(result, "_seal", owned)

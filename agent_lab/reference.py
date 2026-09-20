@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from .accounting import RunAccounting
 from .judgment import JudgmentSource
+from .model_operation import ModelOperation, validate_request, validate_response
 from .runlog import RunEvent, RunLog
 from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec, validate_spec
 from .state import Budget, BudgetExceeded, Intervention, Judgment
@@ -46,7 +47,8 @@ class ReferenceResult(Generic[S]):
 @dataclass(frozen=True)
 class CompileFinding:
     code: Literal["unsupported_node", "unsupported_edge", "unbound_reference",
-                  "missing_safety_terminal", "invalid_state_type", "unsupported_options"]
+                  "missing_safety_terminal", "invalid_state_type", "unsupported_options",
+                  "invalid_model_operation"]
     path: tuple[str | int, ...]
     message: str
 
@@ -152,6 +154,19 @@ class _Execution(Generic[S]):
         ))
         return target
 
+    def record_model(self, node: TransformNode, target: str, selected: str | None,
+                     failure: str | None, request_digest: str | None,
+                     response_digest: str | None, terminals: tuple[str, ...]) -> str:
+        self.log.append_next(RunEvent(
+            self.run_id, 0, node.id, node.kind, selected,
+            target if target in terminals else None,
+            {"target": target, "failure": failure, "used_steps": self.budget.used_steps,
+             "max_steps": self.budget.max_steps, "operation": node.operation,
+             "operation_version": node.operation_version, "schema_version": node.schema_version,
+             "request_digest": request_digest, "response_digest": response_digest},
+        ))
+        return target
+
     def result(self, terminal: str) -> ReferenceResult[S]:
         return ReferenceResult(self.state, terminal, self.budget.used_steps,
                                tuple(event for event in self.log.read() if event.run_id == self.run_id))
@@ -163,6 +178,7 @@ class ReferencePlan(Generic[S]):
     state_type: type[S]
     bindings: Mapping[str, Callable[[S], object]]
     judgments: Mapping[str, JudgmentBinding[S]]
+    model_operations: Mapping[str, ModelOperation[S]]
 
     def run(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
         """Fresh single-pass execution; each invocation reserves one step."""
@@ -182,6 +198,33 @@ class ReferencePlan(Generic[S]):
         while current not in self.spec.terminals:
             node = nodes[current]
             assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode, LoopNode))
+            if isinstance(node, TransformNode) and node.model_operation:
+                operation = self.model_operations[node.operation]
+                selected = failure = request_digest = response_digest = None
+                try:
+                    execution.budget = execution.accounting.reserve(run_id, execution.budget)
+                except BudgetExceeded:
+                    target, failure = "FAILED_BUDGET", "budget_exhausted"
+                else:
+                    try:
+                        snapshot = _snapshot(self.state_type, execution.state)
+                        request = validate_request(operation, operation.prepare(snapshot))
+                        request_digest = request.digest
+                        response = validate_response(operation.source.invoke(request))
+                        response_digest = hashlib.sha256(response.body.encode("utf-8")).hexdigest()
+                        result = operation.apply(snapshot, response)
+                        if not isinstance(result, TransformResult):
+                            raise ValueError("Expected TransformResult")
+                        next_state = _snapshot(self.state_type, result.state)
+                        if type(result.outcome) is not str or result.outcome not in node.route_labels:
+                            raise ValueError("Expected declared route label")
+                        target = routes[(current, result.outcome)]
+                        execution.state, selected = next_state, result.outcome
+                    except Exception:
+                        target, failure = "FAILED_VALIDATION", "invalid_binding_result"
+                current = execution.record_model(node, target, selected, failure, request_digest,
+                                                 response_digest, self.spec.terminals)
+                continue
             binding: Callable[[S], object] | JudgmentBinding[S]
             if isinstance(node, JudgmentNode):
                 binding = self.judgments[node.id]
@@ -199,7 +242,8 @@ class ReferencePlan(Generic[S]):
 
 def compile_reference(candidate: object, *, state_type: type[S],
                       bindings: Mapping[str, Callable[[S], object]],
-                      judgments: Mapping[str, JudgmentBinding[S]] | None = None) -> Compilation[S]:
+                      judgments: Mapping[str, JudgmentBinding[S]] | None = None,
+                      model_operations: Mapping[str, ModelOperation[S]] | None = None) -> Compilation[S]:
     """References are opaque explicit keys, never import paths or expressions."""
     admitted = validate_spec(candidate)
     if admitted.spec is None:
@@ -208,6 +252,7 @@ def compile_reference(candidate: object, *, state_type: type[S],
     findings: list[Finding | CompileFinding] = []
     resolved = dict(bindings)
     resolved_judgments = dict(judgments or {})
+    resolved_models = dict(model_operations or {})
     if not isinstance(state_type, type) or not issubclass(state_type, BaseModel) or not state_type.model_config.get("frozen"):
         findings.append(CompileFinding("invalid_state_type", ("state_type",), "State must be a frozen Pydantic model"))
     for index, node in enumerate(spec.nodes):
@@ -227,6 +272,23 @@ def compile_reference(candidate: object, *, state_type: type[S],
                  "exit_predicate" if isinstance(node, LoopNode) else "value")
         key = (node.operation if isinstance(node, TransformNode) else
                node.exit_predicate if isinstance(node, LoopNode) else node.value)
+        if isinstance(node, TransformNode):
+            operation = resolved_models.get(key)
+            if node.model_operation:
+                if (key in resolved or key not in {"draft_linkedin", "review_linkedin"}
+                        or not isinstance(operation, ModelOperation)
+                        or operation.operation != key or operation.state_type is not state_type
+                        or not node.operation_version or operation.version != node.operation_version
+                        or not node.schema_version or operation.schema_version != node.schema_version
+                        or not callable(operation.prepare) or not callable(operation.apply)
+                        or getattr(operation.source, "mode", None) not in {"live", "fixture", "recorded"}
+                        or not callable(getattr(operation.source, "invoke", None))):
+                    findings.append(CompileFinding("invalid_model_operation", ("nodes", index), key))
+                continue
+            if operation is not None or node.operation_version is not None or node.schema_version is not None:
+                findings.append(CompileFinding("invalid_model_operation", ("nodes", index), key))
+        elif key in resolved_models:
+            findings.append(CompileFinding("invalid_model_operation", ("nodes", index), key))
         if key not in resolved or not callable(resolved[key]):
             findings.append(CompileFinding("unbound_reference", ("nodes", index, field), key))
     for index, edge in enumerate(spec.edges):
@@ -238,4 +300,4 @@ def compile_reference(candidate: object, *, state_type: type[S],
     if findings:
         return Compilation(None, tuple(findings))
     return Compilation(ReferencePlan(spec.model_copy(deep=True), state_type, MappingProxyType(resolved),
-                                     MappingProxyType(resolved_judgments)))
+                                     MappingProxyType(resolved_judgments), MappingProxyType(resolved_models)))

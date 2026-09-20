@@ -10,18 +10,23 @@
 </head>
 <body><main>
 <h1>Route a request</h1>
-<p>Design a deterministic offline workflow or capture a LinkedIn draft for inspection. No model calls or external actions.</p>
+<p>Design an offline workflow or capture and explicitly generate a LinkedIn draft. Only Run Signal Generator can contact a model.</p>
 <label for="mode">Workflow mode</label>
-<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline)</option><option value="drafts">LinkedIn draft capture (no execution)</option></select>
+<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline)</option><option value="drafts">LinkedIn draft / Signal Generator</option></select>
 <p>Changing mode starts its default design and clears previous results.</p>
 <section id="draft-capture" aria-labelledby="draft-heading" hidden>
 <h2 id="draft-heading">Capture the oldest unprocessed draft</h2>
-<p id="draft-policy">Capture only. No model calls, review, conformance check or publication. The eventual workflow allows at most two generation calls, one per role, without retries. Capturing does not authorize public use of private material.</p>
+<p id="draft-policy">Capture makes no model calls. Explicit Run makes at most one Generator call, without retries or repair. No Guardian review, conformance check or publication. Results are not reviewed. Local time and response bounds do not guarantee remote cancellation or capped spend; usage may be unknown. Capturing does not authorize public use of private material.</p>
 <p>Top-level Markdown drafts only, ordered by date_created then exact filename. Public copy bank is excluded. Invalid required metadata blocks selection. Inbox and published folders are not scanned. Sources, processing flags and Hermes remain unchanged.</p>
 <p id="draft-availability" role="status">Loading draft availability…</p>
 <button id="draft-capture-button" type="button" disabled>Capture / recapture draft</button>
 <p id="draft-status" role="status" aria-live="polite">No captured input.</p>
 <div id="draft-preview"></div>
+<button id="draft-run" type="button" disabled>Run Signal Generator</button>
+<button id="draft-new-request" type="button" disabled>Request another run on this capture</button>
+<p>Another run may use the same oldest draft and incur another call. No source processing flags change. Recapture or changing mode clears display only; it does not cancel an in-flight call.</p>
+<p id="draft-run-status" role="status" aria-live="polite">Not run.</p>
+<div id="draft-run-result" aria-live="polite"></div>
 </section>
 <div id="offline-workflow">
 <form id="questions">

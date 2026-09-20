@@ -1,0 +1,456 @@
+"""Tool-free Codex subscription adapter; no Hermes imports or credential mutation.
+
+Explicit auth_file is Hermes auth.json (normally ~/.hermes/auth.json), with
+providers.openai-codex.tokens.access_token. Expiry is the JWT exp epoch seconds;
+account identity is JWT https://api.openai.com/auth.chatgpt_account_id (not a
+standalone tokens.account_id). Refresh/id tokens are never used for auth.
+
+Transport is an async byte iterator over the *complete SSE envelope*, called
+once with (canonical_body, headers, absolute_monotonic_deadline). It must be
+cooperative with asyncio cancellation. The default uses direct TLS, no proxies,
+redirects or retries. A local timeout does not promise remote cancellation.
+ModelResponse.body preserves the exact semantic output text for replay, not the
+raw provider SSE envelope; credentials and raw provider failures never escape.
+"""
+from __future__ import annotations
+
+import asyncio
+import base64
+import json
+import math
+import os
+import queue
+import ssl
+import stat
+import threading
+import time
+from collections.abc import AsyncIterator, Callable
+from pathlib import Path
+from typing import Any, Literal
+
+from agent_lab.model_operation import ModelRequest, ModelResponse
+
+ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
+REQUEST_TIMEOUT = 180.0
+STREAM_LIMIT = 65536
+AUTH_LIMIT = 1048576
+Transport = Callable[[bytes, dict[str, str], float], AsyncIterator[bytes]]
+
+
+class CodexError(ValueError):
+    """Sanitized operator-facing failure, never provider text or credentials."""
+
+
+class _CredentialError(CodexError):
+    pass
+
+
+class CodexUncertain(TimeoutError):
+    """The remote exchange did not finish; cancellation is not guaranteed."""
+
+
+def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError
+        result[key] = value
+    return result
+
+
+def _json(data: str | bytes) -> Any:
+    def invalid(value: str) -> None:
+        raise ValueError
+    return json.loads(data, object_pairs_hook=_unique, parse_constant=invalid)
+
+
+def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
+    try:
+        # Nonblocking open plus fstat avoids FIFO hangs and path-swap races.
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > AUTH_LIMIT:
+                raise ValueError
+            raw = stream.read(AUTH_LIMIT + 1)
+            if len(raw) > AUTH_LIMIT:
+                raise ValueError
+        data = _json(raw)
+        tokens = data["providers"]["openai-codex"]["tokens"]
+        token = tokens["access_token"]
+        if not isinstance(token, str) or len(token.split(".")) != 3:
+            raise ValueError
+        payload = token.split(".")[1]
+        claims = _json(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        exp = claims["exp"]
+        account = claims["https://api.openai.com/auth"]["chatgpt_account_id"]
+        if (type(exp) not in (int, float) or not math.isfinite(exp) or exp <= time.time()
+                or not isinstance(account, str) or not account
+                or any(ord(c) < 33 or ord(c) > 126 for c in token + account)):
+            raise ValueError
+        secrets = tuple(value for key, value in tokens.items()
+                        if key in ("access_token", "refresh_token", "id_token")
+                        and isinstance(value, str) and value)
+        return token, account, secrets
+    except Exception:
+        pass
+    raise _CredentialError("Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.")
+
+
+async def _https(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
+    reader, writer = await asyncio.open_connection("chatgpt.com", 443, ssl=ssl.create_default_context(),
+                                                   server_hostname="chatgpt.com", limit=STREAM_LIMIT)
+    try:
+        head = {**headers, "Host": "chatgpt.com", "Content-Length": str(len(body)), "Connection": "close"}
+        wire = "POST /backend-api/codex/responses HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in head.items()) + "\r\n"
+        writer.write(wire.encode("ascii") + body)
+        await writer.drain()
+        raw = await reader.readuntil(b"\r\n\r\n")
+        lines = raw.decode("ascii").split("\r\n")
+        status = lines[0].split()[1]
+        if status in ("408", "504"):
+            raise CodexUncertain
+        if status != "200":
+            raise CodexError("Codex request rejected; check subscription login and model selection.")
+        response_headers: dict[str, str] = {}
+        for line in lines[1:]:
+            if line:
+                key, value = line.split(":", 1)
+                key = key.lower()
+                if key in response_headers:
+                    raise ValueError
+                response_headers[key] = value.strip()
+        if response_headers.get("content-type", "").split(";")[0].strip() != "text/event-stream":
+            raise ValueError
+        if response_headers.get("content-encoding", "identity") != "identity":
+            raise ValueError
+        encoding = response_headers.get("transfer-encoding")
+        length = response_headers.get("content-length")
+        if encoding:
+            if encoding != "chunked" or length is not None:
+                raise ValueError
+            framing = 0
+            while True:
+                line_bytes = await reader.readuntil(b"\r\n")
+                framing += len(line_bytes)
+                if framing > STREAM_LIMIT:
+                    raise ValueError
+                size = int(line_bytes.split(b";", 1)[0], 16)
+                if size < 0 or size > STREAM_LIMIT:
+                    raise ValueError
+                if not size:
+                    # Trailer fields are not needed, but must be consumed and bounded.
+                    while True:
+                        trailer = await reader.readuntil(b"\r\n")
+                        framing += len(trailer)
+                        if framing > STREAM_LIMIT:
+                            raise ValueError
+                        if trailer == b"\r\n":
+                            return
+                yield await reader.readexactly(size)
+                if await reader.readexactly(2) != b"\r\n":
+                    raise ValueError
+        elif length is not None:
+            remaining = int(length)
+            if not 0 <= remaining <= STREAM_LIMIT:
+                raise ValueError
+            while remaining:
+                chunk = await reader.readexactly(min(4096, remaining))
+                remaining -= len(chunk)
+                yield chunk
+        else:
+            while chunk := await reader.read(4096):
+                yield chunk
+    finally:
+        writer.close()
+        # Do not wait for a remote TLS close acknowledgement after the deadline.
+
+
+def _reasoning_item(item: dict[str, Any], *, final: bool) -> None:
+    """Accept native reasoning, never treating it as assistant output or a tool."""
+    if (set(item) - {"id", "type", "status", "summary", "encrypted_content"}
+            or item.get("type") != "reasoning"
+            or not isinstance(item.get("id"), str) or not item["id"]
+            or item.get("status", "completed" if final else "in_progress")
+            not in (("completed",) if final else ("in_progress", "completed"))
+            or not isinstance(item.get("summary"), list)
+            or any(not isinstance(part, dict) or part.get("type") != "summary_text"
+                   or not isinstance(part.get("text"), str) for part in item["summary"])
+            or (item.get("encrypted_content") is not None
+                and not isinstance(item["encrypted_content"], str))):
+        raise ValueError
+
+
+def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
+    text = data.decode("utf-8").replace("\r\n", "\n")
+    if not text.endswith("\n\n"):
+        raise CodexUncertain
+    final: dict[str, Any] | None = None
+    response_id: str | None = None
+    deltas: list[str] = []
+    done_text: str | None = None
+    terminal_texts: list[str] = []
+    seen: set[tuple[Any, ...]] = set()
+    item_events: list[dict[str, Any]] = []
+    message_indices: set[int] = set()
+    summary_deltas: dict[tuple[int, int], list[str]] = {}
+    summary_done: set[tuple[int, int]] = set()
+    for block in text.split("\n\n"):
+        if not block:
+            continue
+        event = None
+        payload = []
+        for line in block.split("\n"):
+            if line.startswith(":"):
+                continue
+            key, sep, value = line.partition(":")
+            if not sep:
+                raise ValueError
+            value = value.removeprefix(" ")
+            if key == "event" and event is None:
+                event = value
+            elif key == "data":
+                payload.append(value)
+            else:
+                raise ValueError
+        if not payload:
+            continue
+        obj = _json("\n".join(payload))
+        kind = obj["type"]
+        if event is not None and event != kind:
+            raise ValueError
+        if final is not None:
+            raise ValueError
+        for index_field in ("output_index", "content_index", "summary_index"):
+            if index_field in obj and (type(obj[index_field]) is not int or obj[index_field] < 0):
+                raise ValueError
+        if kind not in ("response.output_text.delta", "response.reasoning_summary_text.delta", "response.in_progress"):
+            event_key = (kind, obj.get("output_index"), obj.get("content_index"), obj.get("summary_index"))
+            if event_key in seen:
+                raise ValueError
+            seen.add(event_key)
+        if kind == "response.completed":
+            final = obj["response"]
+        elif kind in ("response.created", "response.in_progress"):
+            response = obj["response"]
+            if response["status"] != "in_progress":
+                raise ValueError
+            if "id" in response:
+                if not isinstance(response["id"], str) or not response["id"]:
+                    raise ValueError
+                if response_id is not None and response_id != response["id"]:
+                    raise ValueError
+                response_id = response["id"]
+        elif kind in ("response.output_item.added", "response.output_item.done"):
+            item = obj["item"]
+            item_events.append(obj)
+            if item["type"] == "reasoning":
+                _reasoning_item(item, final=kind.endswith("done"))
+                continue
+            message_indices.add(obj["output_index"])
+            status = "in_progress" if kind.endswith("added") else "completed"
+            if (item["type"] != "message"
+                    or item["role"] != "assistant" or item["status"] != status
+                    or not isinstance(item["content"], list) or len(item["content"]) > 1
+                    or any(part["type"] != "output_text" for part in item["content"])):
+                raise ValueError
+            if kind.endswith("done"):
+                if len(item["content"]) != 1:
+                    raise ValueError
+                terminal_texts.append(item["content"][0]["text"])
+        elif kind in ("response.reasoning_summary_part.added", "response.reasoning_summary_part.done",
+                      "response.reasoning_summary_text.delta", "response.reasoning_summary_text.done"):
+            key_pair = (obj["output_index"], obj["summary_index"])
+            item_events.append(obj)
+            if "_part." in kind:
+                part = obj["part"]
+                if part["type"] != "summary_text" or not isinstance(part["text"], str):
+                    raise ValueError
+            elif kind.endswith("delta"):
+                if key_pair in summary_done or not isinstance(obj["delta"], str):
+                    raise ValueError
+                summary_deltas.setdefault(key_pair, []).append(obj["delta"])
+            elif not isinstance(obj["text"], str):
+                raise ValueError
+            if kind.endswith("done"):
+                summary_done.add(key_pair)
+        elif kind in ("response.content_part.added", "response.content_part.done",
+                      "response.output_text.delta", "response.output_text.done"):
+            message_indices.add(obj["output_index"])
+            item_events.append(obj)
+            if obj["content_index"] != 0:
+                raise ValueError
+            if kind.startswith("response.content_part"):
+                if obj["part"]["type"] != "output_text":
+                    raise ValueError
+                if kind.endswith("done"):
+                    terminal_texts.append(obj["part"]["text"])
+            elif kind.endswith("delta"):
+                if done_text is not None or not isinstance(obj["delta"], str):
+                    raise ValueError
+                deltas.append(obj["delta"])
+            else:
+                if done_text is not None or not isinstance(obj["text"], str):
+                    raise ValueError
+                done_text = obj["text"]
+        else:
+            raise ValueError
+    if final is None:
+        raise CodexUncertain
+    if final["status"] != "completed":
+        raise ValueError
+    output = final["output"]
+    if not isinstance(output, list):
+        raise ValueError
+    messages = []
+    for index, item in enumerate(output):
+        if item["type"] == "reasoning":
+            _reasoning_item(item, final=True)
+        elif item["type"] == "message":
+            messages.append((index, item))
+        else:
+            raise ValueError
+    if len(messages) != 1:
+        raise ValueError
+    message_index, message = messages[0]
+    if message_indices - {message_index}:
+        raise ValueError
+    for observed in item_events:
+        item = output[observed["output_index"]]
+        if "item" in observed:
+            streamed = observed["item"]
+            if item["type"] != streamed["type"] or (
+                    "id" in item and "id" in streamed and item["id"] != streamed["id"]):
+                raise ValueError
+            if observed["type"].endswith("done") and streamed != item:
+                raise ValueError
+        if "item_id" in observed and observed["item_id"] != item.get("id"):
+            raise ValueError
+        if observed["type"].startswith("response.reasoning_summary_"):
+            if item["type"] != "reasoning":
+                raise ValueError
+            summary_text = item["summary"][observed["summary_index"]]["text"]
+            if observed["type"].endswith("done"):
+                observed_text = observed["part"]["text"] if "part" in observed else observed["text"]
+                if observed_text != summary_text:
+                    raise ValueError
+    for (index, summary_index), chunks in summary_deltas.items():
+        if "".join(chunks) != output[index]["summary"][summary_index]["text"]:
+            raise ValueError
+    content = message["content"]
+    if (message["type"] != "message" or message["role"] != "assistant"
+            or message["status"] != "completed" or len(content) != 1
+            or content[0]["type"] != "output_text"):
+        raise ValueError
+    body = content[0]["text"]
+    if ((response_id is not None and "id" in final and response_id != final["id"])
+            or (deltas and "".join(deltas) != body)
+            or (done_text is not None and done_text != body)
+            or any(value != body for value in terminal_texts)):
+        raise ValueError
+    usage = final.get("usage")
+    if usage is None:
+        usage = {}
+    if not isinstance(usage, dict):
+        raise ValueError
+    for key in ("input_tokens_details", "output_tokens_details"):
+        if usage.get(key) is not None and not isinstance(usage[key], dict):
+            raise ValueError
+    for field in ("id", "model"):
+        if field in final and (not isinstance(final[field], str) or not final[field]):
+            raise ValueError
+    result = ModelResponse(body=body, provider_request_id=final.get("id", response_id), resolved_model=final.get("model"),
+                           input_tokens=usage.get("input_tokens"), output_tokens=usage.get("output_tokens"),
+                           reasoning_tokens=(usage.get("output_tokens_details") or {}).get("reasoning_tokens"),
+                           cache_read_tokens=(usage.get("input_tokens_details") or {}).get("cached_tokens"))
+    if any(secret in value for secret in secrets for value in
+           (result.body, result.provider_request_id or "", result.resolved_model or "")):
+        raise ValueError
+    return result
+
+
+class CodexSource:
+    mode: Literal["live"] = "live"
+
+    def __init__(self, auth_file: Path, *, transport: Transport | None = None) -> None:
+        self._auth_file = auth_file
+        self._transport = transport or _https
+
+    def invoke(self, request: ModelRequest) -> ModelResponse:
+        deadline = time.monotonic() + REQUEST_TIMEOUT
+        try:
+            body = _json(request.request_json)
+            text_input = body["input"]
+            # Codex's native request uses a list of user input-text messages.
+            # Retain the semantic string form for injected transports.
+            if isinstance(text_input, list):
+                if len(text_input) != 1:
+                    raise ValueError
+                message = text_input[0]
+                if set(message) != {"role", "content"} or message["role"] != "user":
+                    raise ValueError
+                parts = message["content"]
+                if (not isinstance(parts, list) or len(parts) != 1
+                        or set(parts[0]) != {"type", "text"} or parts[0]["type"] != "input_text"):
+                    raise ValueError
+                text_input = parts[0]["text"]
+            if not isinstance(text_input, str) or not text_input:
+                raise ValueError
+            if (set(body) != {"model", "instructions", "input", "tools", "store", "stream"}
+                    or body["tools"] != [] or body["store"] is not False or body["stream"] is not True
+                    or any(not isinstance(body[key], str) or not body[key] for key in ("model", "instructions"))):
+                raise ValueError
+        except Exception:
+            raise CodexError("Codex requires a tool-free text request with store false and stream true.") from None
+        results: queue.Queue[ModelResponse | Literal["failed", "uncertain", "credentials"]] = queue.Queue(maxsize=1)
+
+        async def run() -> ModelResponse:
+            token, account, secrets = _credentials(self._auth_file)
+            # Reading a regular file can still be slow (for example on NFS).
+            # The caller's queue deadline bounds that wait; never send late.
+            if time.monotonic() >= deadline:
+                raise CodexUncertain
+            headers = {"Authorization": "Bearer " + token, "ChatGPT-Account-ID": account,
+                       "Content-Type": "application/json", "Accept": "text/event-stream",
+                       "Accept-Encoding": "identity", "User-Agent": "WorkflowGenerator/1",
+                       "originator": "workflow-generator"}
+            async with asyncio.timeout(max(0, deadline - time.monotonic())):
+                data = bytearray()
+                async for chunk in self._transport(request.request_json.encode("utf-8"), headers, deadline):
+                    if time.monotonic() >= deadline:
+                        raise CodexUncertain
+                    if len(data) + len(chunk) > STREAM_LIMIT:
+                        raise ValueError
+                    data.extend(chunk)
+                try:
+                    return _parse(bytes(data), secrets)
+                except CodexUncertain:
+                    raise
+                except Exception:
+                    raise CodexError from None
+
+        def worker() -> None:
+            try:
+                result = asyncio.run(run())
+            except CodexError as exc:
+                results.put("credentials" if isinstance(exc, _CredentialError) else "failed")
+            except ValueError:
+                results.put("failed")
+            except Exception:
+                results.put("uncertain")
+            else:
+                results.put(result)
+
+        # invoke is synchronous and also works when called by an async graph.
+        threading.Thread(target=worker, daemon=True).start()
+        try:
+            result = results.get(timeout=max(0, deadline - time.monotonic()))
+        except queue.Empty:
+            result = "uncertain"
+        if result == "uncertain":
+            raise CodexUncertain("Codex exchange incomplete; remote completion is unknown. Retry only explicitly.")
+        if result == "credentials":
+            raise CodexError("Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.")
+        if result == "failed":
+            raise CodexError("Codex request failed or returned invalid output; check login/model and retry explicitly.")
+        return result

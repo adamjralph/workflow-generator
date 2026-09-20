@@ -9,6 +9,12 @@ target-independent. The foundation's existing six nodes become one *instance* of
 (intake/verify are Transform, classify is Judgment, route is Decision, await_approval is Gate), not
 the model.
 
+## Accepted amendment
+
+[ADR 0010](0010-explicit-model-operations-and-offline-replay.md) permits explicitly
+declared model operations on Transform. Ordinary callable bindings remain deterministic;
+Judgment remains the narrow classifier. No additional node kind is introduced.
+
 ## Considered Options
 
 - **Reuse the foundation's six nodes as the spec model** — conflates the spec with one runtime.

@@ -32,6 +32,9 @@ class Node(Declaration):
 class TransformNode(Node):
     kind: Literal["transform"] = "transform"
     operation: Name
+    model_operation: bool = False
+    operation_version: Name | None = None
+    schema_version: Name | None = None
     outcomes: Annotated[tuple[Name, ...], Field(min_length=1)] = ("done",)
 
     @property

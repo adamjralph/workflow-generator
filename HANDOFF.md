@@ -1,22 +1,48 @@
 # Workflow Generator — next-session handoff
 
-## Latest update — ticket 16 implemented; awaiting acceptance
+## Latest update — ticket 17 implemented; awaiting acceptance
 
-Adam requested implementation of ticket 16, then requested this handoff.
-Implementation is committed on `main` as `0b87473`:
-**custom support requests execute offline against the currently authored triage
-workflow**. Do not reimplement it. Adam has not explicitly accepted/closed ticket
-16 yet; the untracked local issue still says `ready-for-agent` and its checklist
-has not been updated. Do not mistake that stale bookkeeping for missing code.
+Ticket 17 is implemented on `main` in `a1384c5`. Select **Role workflow (offline
+fixtures)** in the browser to compose Signal Generator → `evidence_handoff` →
+Signal Guardian, run either fixture, and independently check both supplied cases.
+Studio Producer demonstrates an incompatible consumer; matching registry types
+without fixture operations are explicitly unsupported. No real agents/models run.
+
+- Full offline suite: **915 passed, 3 expected skips**, including **68 real Chromium
+  tests**. Mypy: **25 files, no issues**. Console: `/tmp/workflow-ticket17-full-suite.txt`.
+- Independent review against `19ae20e563ab82968a23874380315ccfbc0a5678`: Standards
+  found no documented violations and two optional duplication heuristics; Spec
+  found no confirmed issues and independently reran all 107 new tests successfully.
+- Evidence: `docs/designer-ticket17.md`. No code changes after full-suite verification.
+- Ticket 17 is `ready-for-human`, awaiting explicit acceptance. Do not reimplement
+  it or close it without Adam's acceptance. Ticket 18 remains `needs-info`, blocked
+  by 17 and its unresolved source/snapshot contract; no implementation is authorized.
+- Unrelated working-tree changes remain preserved. Hermes stays read-only; no live calls.
+
+Next: help Adam try/review ticket 17 and obtain acceptance or concrete follow-up.
+Older next-step instructions below are historical and superseded by this update.
+
+## Previous update — ticket 16 accepted and closed
+
+Adam explicitly accepted ticket 16 ("accept"). Implementation is committed on
+`main` as `0b87473`: **custom support requests execute offline against the
+currently authored triage workflow**. Do not reimplement it. The local issue now
+records acceptance and closure with its acceptance checklist checked.
 
 ### Next session
 
 1. Read `docs/designer-ticket16.md` and the approved contract at
    `.scratch/workflow-generator/issues/16-try-custom-support-requests.md`.
-2. Help Adam try/review the delivered slice and obtain acceptance or concrete
-   follow-up changes. Only update issue closure when acceptance is explicit.
-3. No ticket 17 or next implementation scope has been agreed. Discuss the next
-   frontier with Adam rather than starting a provisional planning item.
+2. Ticket 16 is accepted and closed. Adam approved the next two slices:
+   ticket 17, compose and run one role-compatible workflow; ticket 18, run that
+   workflow with one controlled read-only data source (blocked by 17).
+3. Ticket 17 is now `ready-for-agent`: Adam explicitly approved the complete
+   contract and review baseline `19ae20e563ab82968a23874380315ccfbc0a5678`.
+   Read its local issue before implementation. The demo is Signal Generator →
+   Signal Guardian via `evidence_handoff`, with two deterministic fixture-backed
+   Transforms, two supplied cases and a two-step budget; no real agent execution.
+   Ticket 18 remains `needs-info`, blocked by 17 and an agreed source/snapshot
+   contract. No live integrations are authorized.
 4. Inspect `git status` and use Graft before source exploration. Preserve the
    unrelated changes listed below. Hermes remains read-only; no live calls.
 

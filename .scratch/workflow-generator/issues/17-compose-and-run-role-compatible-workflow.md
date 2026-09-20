@@ -4,14 +4,20 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
+
+Implemented in `a1384c5`; awaiting Adam's explicit acceptance. Full offline suite:
+915 passed, 3 expected skips, including 68 real Chromium tests; mypy clean.
+Independent review: no documented Standards violations or Spec findings; two
+optional maintainability heuristics recorded in the delivery evidence.
 
 ## Approval and readiness
 
 Adam approved this slice and its dependency breakdown after accepting ticket 16,
 then explicitly approved the example and compatibility policy, followed by the
 complete detailed contract and review baseline below ("approve"). The ticket is
-fully scoped and ready for implementation; no implementation has started.
+fully scoped and has now been implemented and independently reviewed. Acceptance
+and closure remain Adam's decision.
 
 ## Acceptance criteria
 

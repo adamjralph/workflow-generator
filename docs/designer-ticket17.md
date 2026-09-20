@@ -98,4 +98,26 @@ case-scoped check. Score and triage regression files remain green.
   Skips: two opt-in live Jev calls and the optional real Hermes loader check.
   Console record: `/tmp/workflow-ticket17-full-suite.txt`.
 - Parent reran mypy: **25 source files, no issues**.
-- Independent Standards/Spec review follows the implementation commit.
+
+## Independent review
+
+Two independent reviewers examined `git diff
+19ae20e563ab82968a23874380315ccfbc0a5678...a1384c5`, excluding unrelated
+working-tree changes.
+
+### Standards
+
+No confirmed documented-standard violations. Two optional maintainability
+heuristics remain: repeated role/triage request dispatch in the HTTP and public
+run boundaries, and duplicated fixed fixture-contract declarations in catalog
+presentation and admission. Neither is a demonstrated runtime defect; no broad
+refactor was added to this bounded slice.
+
+### Spec
+
+No confirmed missing/partial requirements, incorrect behavior, or scope creep.
+The reviewer independently reran all ticket-17 public, HTTP, and Chromium tests:
+**107 passed**. No code changes were needed after the full-suite run.
+
+Implementation: `a1384c5`. Ticket 17 awaits Adam's explicit acceptance; review does
+not close it or authorize implementation of ticket 18.

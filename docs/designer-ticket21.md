@@ -1,5 +1,8 @@
 # Ticket 21 — one Signal Generator draft, explicitly not reviewed
 
+**Accepted and closed:** Adam explicitly accepted ticket 21 ("accept").
+This does not authorize live smoke or implementation of ticket 22.
+
 Adam approved ADR 0010, the execution/replay contract, ticket-20 authority inputs,
 public seams, numerical limits and duplicate/uncertain handling, then confirmed
 using the existing Hermes Codex subscription login read-only. Review baseline:
@@ -126,7 +129,7 @@ confirmed all three fixes and **0 outstanding actionable Spec findings**, with
 0 new heuristics** (one deferred fixture-naming heuristic total).
 
 **Review summary:** Standards 0 hard / 1 optional naming finding; Spec 0 outstanding.
-Implementation `3bf1bf9`; review fixes `56438c6`. Ready for Adam's acceptance.
+Implementation `3bf1bf9`; review fixes `56438c6`. Accepted by Adam.
 
 No production source text, real credential content, authentication traffic or live
 model invocation is part of the offline evidence. Live availability and post quality

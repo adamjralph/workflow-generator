@@ -7,7 +7,7 @@
 
 **Blocked by:** 20: Capture and preview the oldest eligible draft.
 
-**Status:** ready-for-human
+**Status:** resolved
 
 ## Readiness
 
@@ -47,7 +47,9 @@ mypy **31 source files clean**. Independent Standards review: 0 hard findings,
 1 deferred fixture-naming heuristic; independent Spec follow-up: 0 outstanding
 actionable findings. Review fixes were reproduced red-first.
 
-Ready for Adam's acceptance. No production captures, real credential reads, live
+Adam explicitly accepted ticket 21 ("accept"); this slice is closed.
+Acceptance does not authorize ticket 22 implementation or a live smoke.
+No production captures, real credential reads, live
 model calls or Hermes writes occurred. Live authentication/model availability and
 post quality are unverified, not implied by offline tests. A live smoke still
 requires explicit approval and a named destination. Tickets 19, 22 and 23 remain

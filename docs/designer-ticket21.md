@@ -120,7 +120,13 @@ Red-first regressions now cover each: whitelisted typed failure code/status in
 exchange and receipt, explicit pre-execution HTTP failure versus uncertain missing
 response/evidence, and `O_NOFOLLOW` plus current-user ownership on token reads.
 Storage that cannot establish whether an earlier request ran remains uncertain;
-that is deliberately not mislabeled as known remote failure. Follow-up review pending.
+that is deliberately not mislabeled as known remote failure. Independent follow-up
+confirmed all three fixes and **0 outstanding actionable Spec findings**, with
+**89 focused tests** rerun. Standards follow-up confirmed **0 hard findings and
+0 new heuristics** (one deferred fixture-naming heuristic total).
+
+**Review summary:** Standards 0 hard / 1 optional naming finding; Spec 0 outstanding.
+Implementation `3bf1bf9`; review fixes `56438c6`. Ready for Adam's acceptance.
 
 No production source text, real credential content, authentication traffic or live
 model invocation is part of the offline evidence. Live availability and post quality

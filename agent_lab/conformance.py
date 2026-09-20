@@ -21,8 +21,15 @@ def _strict_equal(left: object, right: object) -> bool:
     if type(left) is not type(right):
         return False
     if isinstance(left, dict) and isinstance(right, dict):
-        return left.keys() == right.keys() and all(_strict_equal(value, right[key])
-                                                  for key, value in left.items())
+        return len(left) == len(right) and all(
+            any(_strict_equal(key, other) and _strict_equal(value, other_value)
+                for other, other_value in right.items())
+            for key, value in left.items()
+        )
+    if isinstance(left, (set, frozenset)) and isinstance(right, (set, frozenset)):
+        return len(left) == len(right) and all(
+            any(_strict_equal(value, other) for other in right) for value in left
+        )
     if isinstance(left, (list, tuple)) and isinstance(right, (list, tuple)):
         return len(left) == len(right) and all(_strict_equal(a, b) for a, b in zip(left, right))
     return left == right

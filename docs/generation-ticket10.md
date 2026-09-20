@@ -134,9 +134,9 @@ Latest focused checker verification:
 
 ```text
 .venv/bin/python -m pytest -q tests/test_conformance.py
-45 passed
+51 passed
 .venv/bin/python -m pytest -q tests/test_conformance.py tests/test_generation.py tests/test_reference.py
-92 passed
+98 passed
 .venv/bin/python -m mypy agent_lab
 Success: no issues found in 19 source files
 git diff --check
@@ -144,6 +144,29 @@ git diff --check
 ```
 
 Mypy ran throughout the cycles; one intermediate missing list annotation was
-fixed. Full-suite verification, graph refresh and final review are intentionally
-left to the coordinating parent task; this worker made no commits or user-file
-changes.
+fixed. Final offline suite: **336 passed, 3 optional skips** (two live Jev tests
+and the real Hermes loader check). Mypy: **19 source files clean**. Diff checks
+passed and the local Graft graph was refreshed. No live calls or Hermes writes.
+Existing user changes were left untouched.
+
+## Independent two-axis review
+
+Baseline: `3efdbd096cbdf3385570c3ecd179354c55c3aa84`; implementation: `568ad14`.
+
+### Standards
+
+One confirmed violation: type-sensitive state comparison used ordinary equality
+for dictionary keys and set/frozenset members. Fixed after three failing
+public-seam regressions reproduced false passes for `True` versus `1`; three
+additional cases confirm order-independent equivalent containers still pass.
+One optional Repeated Switches/Duplicated Code smell: Transform/Decision reference
+selection repeats across admission, generation and inspection. Retained for the
+restricted two-type target rather than introducing another abstraction.
+
+### Spec
+
+One confirmed issue, the same unordered-container false pass. Fixed as above.
+No other confirmed omissions, incorrect behavior or scope creep were reported.
+
+Implementation awaits human acceptance; a passing check is case-scoped evidence,
+not universal conformance or semantic correctness.

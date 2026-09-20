@@ -293,6 +293,30 @@ def test_final_state_comparison_does_not_coerce_equal_python_values(tmp_path):
     assert any(f.path == ("cases", "case", "state") for f in report.findings)
 
 
+@pytest.mark.parametrize("container", [dict, set, frozenset])
+@pytest.mark.parametrize("altered", [False, True])
+def test_unordered_state_members_compare_types_without_order_dependence(tmp_path, container, altered):
+    class ContainerState(BaseModel):
+        model_config = ConfigDict(frozen=True)
+        value: dict[int | bool, str] | set[int | bool] | frozenset[int | bool]
+
+    def value(key, reverse=False):
+        pairs = [(key, "one"), (2, "two")]
+        if reverse:
+            pairs.reverse()
+        return dict(pairs) if container is dict else container(k for k, _ in pairs)
+
+    reference = {"increment": lambda s: TransformResult(ContainerState(value=value(1)), "done"),
+                 "sign": lambda s: "positive"}
+    changed = reference | {"increment": lambda s: TransformResult(
+        ContainerState(value=value(True if altered else 1, reverse=True)), "done")}
+    generated = generate_graph(example(), state_type=ContainerState, bindings=changed)
+    report = check_conformance(example(), generated.candidate, state_type=ContainerState,
+        bindings=reference, cases={"case": ContainerState(value=value(0))}, evidence_dir=tmp_path)
+    assert report.passed is not altered
+    assert any(f.path == ("cases", "case", "state") for f in report.findings) is altered
+
+
 @pytest.mark.parametrize("name", ["", "  ", 1])
 def test_invalid_case_names_raise_value_error(tmp_path, name):
     with pytest.raises(ValueError, match="Case names"):

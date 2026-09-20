@@ -1,0 +1,2 @@
+# Browser smoke tests also require system Chromium (or CHROMIUM executable path).
+playwright>=1.50,<2

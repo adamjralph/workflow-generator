@@ -1,0 +1,17 @@
+body { font-family: system-ui, sans-serif; color: #192b38; background: #f5f7fa; margin: 0; }
+main { max-width: 1150px; margin: auto; padding: 2rem; }
+form { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; background: white; padding: 1rem; border-radius: .5rem; }
+select, button { font: inherit; padding: .5rem; }
+button { background: #175581; color: white; border: 0; border-radius: .3rem; }
+button:disabled { background: #687987; }
+:focus-visible { outline: 3px solid #d07400; outline-offset: 3px; }
+section { background: white; padding: 1rem; margin-top: 1rem; border: 1px solid #d7e1e8; }
+#graph { overflow-x: auto; }
+svg { width: 100%; min-width: 850px; }
+svg text { font-size: 13px; fill: #192b38; }
+.node { fill: #e9f2ff; stroke: #245984; }
+.terminal { fill: #eef7ef; stroke: #456b46; }
+.route { fill: none; stroke: #456; stroke-width: 2; }
+.route-label { paint-order: stroke; stroke: white; stroke-width: 4px; }
+svg .label { font-size: 11px; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }

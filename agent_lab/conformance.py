@@ -11,7 +11,7 @@ from .generation import GraphCandidate, UnsupportedCandidate
 from .judgment import JevSource
 from .reference import S, AuditError, CompileFinding, JudgmentBinding, compile_reference
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
 
 
 _INSPECT = GraphCandidate.inspect_structure
@@ -42,9 +42,12 @@ def _structure(spec: WorkflowSpec) -> dict[tuple[str | int, ...], object]:
         ("terminals",): frozenset(spec.terminals),
     }
     for node in spec.nodes:
-        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
+        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode, LoopNode))
         reference = (node.operation if isinstance(node, TransformNode) else
-                     node.value if isinstance(node, DecisionNode) else node.id)
+                     node.value if isinstance(node, DecisionNode) else
+                     node.exit_predicate if isinstance(node, LoopNode) else node.id)
+        if isinstance(node, LoopNode):
+            fields[("nodes", node.id, "max_iterations")] = node.max_iterations
         fields[("nodes", node.id)] = (node.kind, reference, frozenset(node.route_labels))
     for edge in spec.edges:
         assert isinstance(edge, Route)

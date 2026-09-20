@@ -51,7 +51,7 @@ def test_compile_rejects_invalid_and_unbound_declarations_without_running_code()
     JudgmentNode(id="unused", options=("yes",)), GateNode(id="unused"),
     LoopNode(id="unused", max_iterations=2, exit_predicate="stop"),
 ])
-def test_even_unreachable_unsupported_nodes_are_rejected(node):
+def test_even_unreachable_unsupported_or_unbound_nodes_are_rejected(node):
     spec = example().model_copy(update={
         "nodes": example().nodes + (node,),
         "edges": example().edges + tuple(
@@ -62,6 +62,7 @@ def test_even_unreachable_unsupported_nodes_are_rejected(node):
     result = compile_reference(spec, state_type=State, bindings=bindings())
     assert result.plan is None
     expected = (("unsupported_options", ("nodes", 2, "options")) if isinstance(node, JudgmentNode)
+                else ("unbound_reference", ("nodes", 2, "exit_predicate")) if isinstance(node, LoopNode)
                 else ("unsupported_node", ("nodes", 2)))
     assert (result.findings[0].code, result.findings[0].path) == expected
 

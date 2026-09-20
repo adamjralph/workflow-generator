@@ -1,4 +1,4 @@
-"""Owned pydantic-graph target for Transform/Decision/Intervention Judgment + Route.
+"""Owned pydantic-graph target for Transform/Decision/Intervention Judgment/Loop + Route.
 
 No persistent bundle and no conformance verdict. Configuration is the executable
 input, not a separately stored spec manifest; a fresh framework graph is built
@@ -16,18 +16,24 @@ from .reference import (
     compile_reference,
 )
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
 from .state import Budget
 
 
 class _Node(NamedTuple):
     identity: str
-    kind: Literal["transform", "decision", "judgment"]
+    kind: Literal["transform", "decision", "judgment", "loop"]
     reference: str
     labels: tuple[str, ...]
     routes: tuple[tuple[str, str], ...]
 
-    def declaration(self) -> TransformNode | DecisionNode | JudgmentNode:
+    max_iterations: int | None = None
+
+    def declaration(self) -> TransformNode | DecisionNode | JudgmentNode | LoopNode:
+        if self.kind == "loop":
+            assert self.max_iterations is not None
+            return LoopNode(id=self.identity, exit_predicate=self.reference,
+                            max_iterations=self.max_iterations)
         if self.kind == "judgment":
             return JudgmentNode(id=self.identity, options=self.labels)
         if self.kind == "transform":
@@ -145,14 +151,16 @@ def generate_graph(candidate: object, *, state_type: type[S],
     plan = admitted.plan
     nodes = []
     for node in plan.spec.nodes:
-        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
+        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode, LoopNode))
         nodes.append(_Node(
             node.id, node.kind,
             (node.operation if isinstance(node, TransformNode) else
-             node.value if isinstance(node, DecisionNode) else node.id),
+             node.value if isinstance(node, DecisionNode) else
+             node.exit_predicate if isinstance(node, LoopNode) else node.id),
             node.route_labels,
             tuple((edge.outcome, edge.target) for edge in plan.spec.edges
                   if isinstance(edge, Route) and edge.source == node.id),
+            node.max_iterations if isinstance(node, LoopNode) else None,
         ))
     result = object.__new__(GraphCandidate)
     owned = (state_type, plan.spec.entry, tuple(nodes), plan.spec.terminals,

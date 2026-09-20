@@ -1,4 +1,4 @@
-"""In-memory Transform/Decision/Intervention Judgment reference; not conformance."""
+"""In-memory Transform/Decision/Intervention Judgment/Loop reference; not conformance."""
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from copy import deepcopy
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from .accounting import RunAccounting
 from .judgment import JudgmentSource
 from .runlog import RunEvent, RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec, validate_spec
+from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec, validate_spec
 from .state import Budget, BudgetExceeded, Intervention, Judgment
 
 S = TypeVar("S", bound=BaseModel)
@@ -84,7 +84,9 @@ class _Execution(Generic[S]):
     log: RunLog
     accounting: RunAccounting = field(default_factory=RunAccounting)
 
-    def invoke(self, node: TransformNode | DecisionNode | JudgmentNode,
+    repeat_counts: dict[str, int] = field(default_factory=dict)
+
+    def invoke(self, node: TransformNode | DecisionNode | JudgmentNode | LoopNode,
                binding: Callable[[S], object] | JudgmentBinding[S], routes: Mapping[str, str],
                terminals: tuple[str, ...]) -> str:
         selected: str | None = None
@@ -118,6 +120,14 @@ class _Execution(Generic[S]):
                         if not isinstance(result, TransformResult):
                             raise ValueError("Expected TransformResult")
                         next_state, label = _snapshot(self.state_type, result.state), result.outcome
+                    elif isinstance(node, LoopNode):
+                        if type(result) is not bool:
+                            raise ValueError("Expected strict boolean predicate")
+                        count = self.repeat_counts.get(node.id, 0)
+                        label = ("exit" if result else
+                                 "repeat" if count < node.max_iterations else "exhausted")
+                        if label == "repeat":
+                            self.repeat_counts[node.id] = count + 1
                     else:
                         label = result
                 if type(label) is not str or label not in node.route_labels:
@@ -133,6 +143,9 @@ class _Execution(Generic[S]):
             target if target in terminals else None,
             {"target": target, "failure": failure,
              "used_steps": self.budget.used_steps, "max_steps": self.budget.max_steps,
+             **({"repeat_count": self.repeat_counts.get(node.id, 0),
+                 "max_iterations": node.max_iterations}
+                if isinstance(node, LoopNode) else {}),
              **({"judgment": judgment.model_dump(mode="json") if judgment else None,
                  "assessment_sha": assessment_sha}
                 if isinstance(node, JudgmentNode) else {})},
@@ -168,12 +181,13 @@ class ReferencePlan(Generic[S]):
         current = self.spec.entry
         while current not in self.spec.terminals:
             node = nodes[current]
-            assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
+            assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode, LoopNode))
             binding: Callable[[S], object] | JudgmentBinding[S]
             if isinstance(node, JudgmentNode):
                 binding = self.judgments[node.id]
             else:
-                key = node.operation if isinstance(node, TransformNode) else node.value
+                key = (node.operation if isinstance(node, TransformNode) else
+                       node.exit_predicate if isinstance(node, LoopNode) else node.value)
                 binding = self.bindings[key]
             current = execution.invoke(
                 node, binding,
@@ -206,11 +220,13 @@ def compile_reference(candidate: object, *, state_type: type[S],
                     or not callable(getattr(binding.source, "judge", None))):
                 findings.append(CompileFinding("unbound_reference", ("nodes", index, "id"), node.id))
             continue
-        if not isinstance(node, (TransformNode, DecisionNode)):
+        if not isinstance(node, (TransformNode, DecisionNode, LoopNode)):
             findings.append(CompileFinding("unsupported_node", ("nodes", index), node.kind))
             continue
-        field = "operation" if isinstance(node, TransformNode) else "value"
-        key = node.operation if isinstance(node, TransformNode) else node.value
+        field = ("operation" if isinstance(node, TransformNode) else
+                 "exit_predicate" if isinstance(node, LoopNode) else "value")
+        key = (node.operation if isinstance(node, TransformNode) else
+               node.exit_predicate if isinstance(node, LoopNode) else node.value)
         if key not in resolved or not callable(resolved[key]):
             findings.append(CompileFinding("unbound_reference", ("nodes", index, field), key))
     for index, edge in enumerate(spec.edges):

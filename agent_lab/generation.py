@@ -1,4 +1,4 @@
-"""Owned in-memory pydantic-graph target for Transform/Decision + Route.
+"""Owned pydantic-graph target for Transform/Decision/Intervention Judgment + Route.
 
 No persistent bundle and no conformance verdict. Configuration is the executable
 input, not a separately stored spec manifest; a fresh framework graph is built
@@ -12,22 +12,24 @@ from typing import Generic, Literal, NamedTuple
 from pydantic_graph import GraphBuilder, StepContext
 
 from .reference import (
-    S, AuditError, CompileFinding, ReferenceResult, _Execution, _initial_snapshot,
+    S, AuditError, CompileFinding, JudgmentBinding, ReferenceResult, _Execution, _initial_snapshot,
     compile_reference,
 )
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec
 from .state import Budget
 
 
 class _Node(NamedTuple):
     identity: str
-    kind: Literal["transform", "decision"]
+    kind: Literal["transform", "decision", "judgment"]
     reference: str
     labels: tuple[str, ...]
     routes: tuple[tuple[str, str], ...]
 
-    def declaration(self) -> TransformNode | DecisionNode:
+    def declaration(self) -> TransformNode | DecisionNode | JudgmentNode:
+        if self.kind == "judgment":
+            return JudgmentNode(id=self.identity, options=self.labels)
         if self.kind == "transform":
             return TransformNode(id=self.identity, operation=self.reference, outcomes=self.labels)
         return DecisionNode(id=self.identity, value=self.reference, cases=self.labels)
@@ -47,6 +49,7 @@ class GraphCandidate(Generic[S]):
     _terminals: tuple[str, ...]
     _budget: int
     _bindings: Mapping[str, Callable[[S], object]]
+    _judgments: Mapping[str, JudgmentBinding[S]]
     _seal: tuple[object, ...] = field(repr=False)
 
     def inspect_structure(self) -> WorkflowSpec:
@@ -73,7 +76,9 @@ class GraphCandidate(Generic[S]):
 
         def make_step(node: _Node):
             async def invoke(ctx: StepContext) -> str:
-                return execution.invoke(node.declaration(), self._bindings[node.reference],
+                binding = (self._judgments[node.identity] if node.kind == "judgment"
+                           else self._bindings[node.reference])
+                return execution.invoke(node.declaration(), binding,
                                         dict(node.routes), self._terminals)
             return invoke
 
@@ -103,7 +108,7 @@ class GraphCandidate(Generic[S]):
             raise AuditError("Graph audit I/O failed; execution stopped") from exc
 
 
-_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings")
+_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings", "_judgments")
 _METHODS = ((GraphCandidate, "run", GraphCandidate.run, GraphCandidate.run.__code__),
             (GraphCandidate, "inspect_structure", GraphCandidate.inspect_structure,
              GraphCandidate.inspect_structure.__code__),
@@ -131,25 +136,28 @@ class Generation(Generic[S]):
 
 
 def generate_graph(candidate: object, *, state_type: type[S],
-                   bindings: Mapping[str, Callable[[S], object]]) -> Generation[S]:
+                   bindings: Mapping[str, Callable[[S], object]],
+                   judgments: Mapping[str, JudgmentBinding[S]] | None = None) -> Generation[S]:
     """Admit all declarations without invoking trusted local bindings."""
-    admitted = compile_reference(candidate, state_type=state_type, bindings=bindings)
+    admitted = compile_reference(candidate, state_type=state_type, bindings=bindings, judgments=judgments)
     if admitted.plan is None:
         return Generation(None, admitted.findings)
     plan = admitted.plan
     nodes = []
     for node in plan.spec.nodes:
-        assert isinstance(node, (TransformNode, DecisionNode))
+        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
         nodes.append(_Node(
             node.id, node.kind,
-            node.operation if isinstance(node, TransformNode) else node.value,
+            (node.operation if isinstance(node, TransformNode) else
+             node.value if isinstance(node, DecisionNode) else node.id),
             node.route_labels,
             tuple((edge.outcome, edge.target) for edge in plan.spec.edges
                   if isinstance(edge, Route) and edge.source == node.id),
         ))
     result = object.__new__(GraphCandidate)
     owned = (state_type, plan.spec.entry, tuple(nodes), plan.spec.terminals,
-             plan.spec.budget, MappingProxyType(dict(plan.bindings)))
+             plan.spec.budget, MappingProxyType(dict(plan.bindings)),
+             MappingProxyType(dict(plan.judgments)))
     for name, value in zip(_CONFIG_FIELDS, owned):
         object.__setattr__(result, name, value)
     object.__setattr__(result, "_seal", owned)

@@ -61,7 +61,9 @@ def test_even_unreachable_unsupported_nodes_are_rejected(node):
     assert validate_spec(spec).valid
     result = compile_reference(spec, state_type=State, bindings=bindings())
     assert result.plan is None
-    assert (result.findings[0].code, result.findings[0].path) == ("unsupported_node", ("nodes", 2))
+    expected = (("unsupported_options", ("nodes", 2, "options")) if isinstance(node, JudgmentNode)
+                else ("unsupported_node", ("nodes", 2)))
+    assert (result.findings[0].code, result.findings[0].path) == expected
 
 
 def test_fork_is_not_executable_even_when_structurally_valid():

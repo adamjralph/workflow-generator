@@ -8,9 +8,10 @@ import tempfile
 from typing import Literal
 
 from .generation import GraphCandidate, UnsupportedCandidate
-from .reference import S, AuditError, CompileFinding, compile_reference
+from .judgment import JevSource
+from .reference import S, AuditError, CompileFinding, JudgmentBinding, compile_reference
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec
 
 
 _INSPECT = GraphCandidate.inspect_structure
@@ -41,8 +42,9 @@ def _structure(spec: WorkflowSpec) -> dict[tuple[str | int, ...], object]:
         ("terminals",): frozenset(spec.terminals),
     }
     for node in spec.nodes:
-        assert isinstance(node, (TransformNode, DecisionNode))
-        reference = node.operation if isinstance(node, TransformNode) else node.value
+        assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
+        reference = (node.operation if isinstance(node, TransformNode) else
+                     node.value if isinstance(node, DecisionNode) else node.id)
         fields[("nodes", node.id)] = (node.kind, reference, frozenset(node.route_labels))
     for edge in spec.edges:
         assert isinstance(edge, Route)
@@ -81,6 +83,7 @@ class ConformanceReport:
 def check_conformance(spec: object, candidate: object, *, state_type: type[S],
                       bindings: Mapping[str, Callable[[S], object]], cases: Mapping[str, S],
                       evidence_dir: Path,
+                      judgments: Mapping[str, JudgmentBinding[S]] | None = None,
                       protected_roots: tuple[Path, ...] = ()) -> ConformanceReport:
     """Check supplied cases; ValueError inputs and programming errors propagate.
 
@@ -102,7 +105,7 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
     named_cases = tuple(cases.items())
     if any(type(name) is not str or not name.strip() for name, _ in named_cases):
         raise ValueError("Case names must be nonempty strings")
-    compilation = compile_reference(spec, state_type=state_type, bindings=bindings)
+    compilation = compile_reference(spec, state_type=state_type, bindings=bindings, judgments=judgments)
     if compilation.plan is None:
         return ConformanceReport(findings=compilation.findings)
     if not named_cases:
@@ -126,6 +129,17 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
                                               "Candidate state type differs"))
     if differences:
         return ConformanceReport(findings=tuple(sorted(differences, key=lambda f: str(f.path))))
+    # Bindings are trusted local code, not a sandbox. Refuse known live sources
+    # and directly shared replay objects; callers must also avoid hidden shared
+    # cursors inside their custom offline sources.
+    judgment_ids = tuple(node.id for node in compilation.plan.spec.nodes
+                         if isinstance(node, JudgmentNode))
+    reference_sources = tuple(compilation.plan.judgments[key].source for key in judgment_ids)
+    candidate_sources = tuple(candidate._judgments[key].source for key in judgment_ids)
+    if any(isinstance(source, JevSource) for source in reference_sources + candidate_sources):
+        raise ValueError("Conformance requires explicit offline judgment sources")
+    if any(left is right for left in reference_sources for right in candidate_sources):
+        raise ValueError("Conformance requires independent judgment sources for each driver")
     try:
         destination.mkdir(parents=True, exist_ok=True)
         root = Path(tempfile.mkdtemp(prefix="check-", dir=destination))

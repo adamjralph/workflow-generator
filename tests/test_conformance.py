@@ -234,7 +234,7 @@ def test_repeated_checks_use_fresh_subdirectories_but_identical_bytes(tmp_path):
 
 @pytest.mark.parametrize("mode, code", [("invalid", "invalid_declaration"),
     ("unbound", "unbound_reference"), ("safety", "missing_safety_terminal"),
-    ("state", "invalid_state_type"), ("unreachable", "unsupported_node")])
+    ("state", "invalid_state_type"), ("unreachable", "unsupported_options")])
 def test_reference_compilation_failure_cannot_pass_or_invoke(tmp_path, mode, code):
     from agent_lab.spec import JudgmentNode
     spec, state_type, bound = example(), State, bindings()

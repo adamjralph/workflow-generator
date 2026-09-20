@@ -1,22 +1,32 @@
-"""Offline, in-memory Transform/Decision reference target; not conformance."""
+"""In-memory Transform/Decision/Intervention Judgment reference; not conformance."""
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from copy import deepcopy
+import hashlib
 from types import MappingProxyType
 from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel
 
 from .accounting import RunAccounting
+from .judgment import JudgmentSource
 from .runlog import RunEvent, RunLog
-from .spec import DecisionNode, Finding, Route, TransformNode, WorkflowSpec, validate_spec
-from .state import Budget, BudgetExceeded
+from .spec import DecisionNode, Finding, JudgmentNode, Route, TransformNode, WorkflowSpec, validate_spec
+from .state import Budget, BudgetExceeded, Intervention, Judgment
 
 S = TypeVar("S", bound=BaseModel)
 
 
 class AuditError(RuntimeError):
     """Audit I/O failed. No claim that a terminal was persisted is made."""
+
+
+@dataclass(frozen=True)
+class JudgmentBinding(Generic[S]):
+    """Explicit trusted source and deterministic assessment adapter, keyed by node ID."""
+
+    source: JudgmentSource
+    assessment: Callable[[S], str]
 
 
 @dataclass(frozen=True)
@@ -36,7 +46,7 @@ class ReferenceResult(Generic[S]):
 @dataclass(frozen=True)
 class CompileFinding:
     code: Literal["unsupported_node", "unsupported_edge", "unbound_reference",
-                  "missing_safety_terminal", "invalid_state_type"]
+                  "missing_safety_terminal", "invalid_state_type", "unsupported_options"]
     path: tuple[str | int, ...]
     message: str
 
@@ -74,10 +84,12 @@ class _Execution(Generic[S]):
     log: RunLog
     accounting: RunAccounting = field(default_factory=RunAccounting)
 
-    def invoke(self, node: TransformNode | DecisionNode,
-               binding: Callable[[S], object], routes: Mapping[str, str],
+    def invoke(self, node: TransformNode | DecisionNode | JudgmentNode,
+               binding: Callable[[S], object] | JudgmentBinding[S], routes: Mapping[str, str],
                terminals: tuple[str, ...]) -> str:
         selected: str | None = None
+        judgment: Judgment | None = None
+        assessment_sha: str | None = None
         failure = None
         try:
             self.budget = self.accounting.reserve(self.run_id, self.budget)
@@ -88,13 +100,26 @@ class _Execution(Generic[S]):
                 snapshot = _snapshot(self.state_type, self.state)
                 next_state = self.state
                 label: object
-                result = binding(snapshot)
-                if isinstance(node, TransformNode):
-                    if not isinstance(result, TransformResult):
-                        raise ValueError("Expected TransformResult")
-                    next_state, label = _snapshot(self.state_type, result.state), result.outcome
+                if isinstance(node, JudgmentNode):
+                    assert isinstance(binding, JudgmentBinding)
+                    assessment = binding.assessment(snapshot)
+                    if type(assessment) is not str:
+                        raise ValueError("Expected assessment text")
+                    assessment_sha = hashlib.sha256(assessment.encode("utf-8")).hexdigest()
+                    raw = binding.source.judge(assessment)
+                    if not isinstance(raw, Judgment):
+                        raise ValueError("Expected Judgment")
+                    judgment = Judgment.model_validate(raw.model_dump(warnings=False))
+                    label = judgment.intervention.value
                 else:
-                    label = result
+                    assert callable(binding)
+                    result = binding(snapshot)
+                    if isinstance(node, TransformNode):
+                        if not isinstance(result, TransformResult):
+                            raise ValueError("Expected TransformResult")
+                        next_state, label = _snapshot(self.state_type, result.state), result.outcome
+                    else:
+                        label = result
                 if type(label) is not str or label not in node.route_labels:
                     raise ValueError("Expected declared route label")
                 target = routes[label]
@@ -107,7 +132,10 @@ class _Execution(Generic[S]):
             self.run_id, 0, node.id, node.kind, selected,
             target if target in terminals else None,
             {"target": target, "failure": failure,
-             "used_steps": self.budget.used_steps, "max_steps": self.budget.max_steps},
+             "used_steps": self.budget.used_steps, "max_steps": self.budget.max_steps,
+             **({"judgment": judgment.model_dump(mode="json") if judgment else None,
+                 "assessment_sha": assessment_sha}
+                if isinstance(node, JudgmentNode) else {})},
         ))
         return target
 
@@ -121,6 +149,7 @@ class ReferencePlan(Generic[S]):
     spec: WorkflowSpec
     state_type: type[S]
     bindings: Mapping[str, Callable[[S], object]]
+    judgments: Mapping[str, JudgmentBinding[S]]
 
     def run(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
         """Fresh single-pass execution; each invocation reserves one step."""
@@ -139,10 +168,15 @@ class ReferencePlan(Generic[S]):
         current = self.spec.entry
         while current not in self.spec.terminals:
             node = nodes[current]
-            assert isinstance(node, (TransformNode, DecisionNode))
-            key = node.operation if isinstance(node, TransformNode) else node.value
+            assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode))
+            binding: Callable[[S], object] | JudgmentBinding[S]
+            if isinstance(node, JudgmentNode):
+                binding = self.judgments[node.id]
+            else:
+                key = node.operation if isinstance(node, TransformNode) else node.value
+                binding = self.bindings[key]
             current = execution.invoke(
-                node, self.bindings[key],
+                node, binding,
                 {label: routes[(current, label)] for label in node.route_labels},
                 self.spec.terminals,
             )
@@ -150,7 +184,8 @@ class ReferencePlan(Generic[S]):
 
 
 def compile_reference(candidate: object, *, state_type: type[S],
-                      bindings: Mapping[str, Callable[[S], object]]) -> Compilation[S]:
+                      bindings: Mapping[str, Callable[[S], object]],
+                      judgments: Mapping[str, JudgmentBinding[S]] | None = None) -> Compilation[S]:
     """References are opaque explicit keys, never import paths or expressions."""
     admitted = validate_spec(candidate)
     if admitted.spec is None:
@@ -158,9 +193,19 @@ def compile_reference(candidate: object, *, state_type: type[S],
     spec = admitted.spec
     findings: list[Finding | CompileFinding] = []
     resolved = dict(bindings)
+    resolved_judgments = dict(judgments or {})
     if not isinstance(state_type, type) or not issubclass(state_type, BaseModel) or not state_type.model_config.get("frozen"):
         findings.append(CompileFinding("invalid_state_type", ("state_type",), "State must be a frozen Pydantic model"))
     for index, node in enumerate(spec.nodes):
+        if isinstance(node, JudgmentNode):
+            if any(option not in {item.value for item in Intervention} for option in node.options):
+                findings.append(CompileFinding("unsupported_options", ("nodes", index, "options"),
+                                               "Executable Judgment requires Intervention options"))
+            binding = resolved_judgments.get(node.id)
+            if (not isinstance(binding, JudgmentBinding) or not callable(binding.assessment)
+                    or not callable(getattr(binding.source, "judge", None))):
+                findings.append(CompileFinding("unbound_reference", ("nodes", index, "id"), node.id))
+            continue
         if not isinstance(node, (TransformNode, DecisionNode)):
             findings.append(CompileFinding("unsupported_node", ("nodes", index), node.kind))
             continue
@@ -176,4 +221,5 @@ def compile_reference(candidate: object, *, state_type: type[S],
             findings.append(CompileFinding("missing_safety_terminal", ("terminals", terminal), terminal))
     if findings:
         return Compilation(None, tuple(findings))
-    return Compilation(ReferencePlan(spec.model_copy(deep=True), state_type, MappingProxyType(resolved)))
+    return Compilation(ReferencePlan(spec.model_copy(deep=True), state_type, MappingProxyType(resolved),
+                                     MappingProxyType(resolved_judgments)))

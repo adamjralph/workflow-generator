@@ -171,5 +171,6 @@ Independent follow-up review of fix `0855f25` confirmed resolution: Standards
 **0 new findings**, Spec **0 outstanding findings**, with all **98 focused tests**
 passing.
 
-Implementation awaits human acceptance; a passing check is case-scoped evidence,
-not universal conformance or semantic correctness.
+Adam explicitly accepted the implementation after follow-up review. Ticket 10
+is accepted and closed; a passing check remains case-scoped evidence, not
+universal conformance or semantic correctness.

@@ -8,7 +8,8 @@ Adam approved the next sequence after ticket 09:
 before expanding node support or building the questionnaire.**
 
 This roadmap orders work; it does not authorize every milestone for implementation.
-Only ticket 10 is drafted below this roadmap. Later milestones must be split into
+Ticket 10 is implemented, reviewed, accepted and closed; M1 is complete for its
+restricted target. Next session: use `/to-tickets` to refine M2. Later milestones must be split into
 bounded tickets with agreed contracts, test seams and review baselines. No time or
 percentage-complete estimate is implied.
 
@@ -24,13 +25,14 @@ Closed domain decisions: [CONTEXT.md](CONTEXT.md), [ADRs](docs/adr/).
 | Read-only diagnosis, four metrics, role/run reports and measured baselines | Tickets 03–06 accepted |
 | Inherited type errors and judgment-validation hardening | Ticket 07 accepted |
 | Typed in-memory workflow declarations and structural admission | Ticket 08 accepted |
-| Plain reference execution for Transform/Decision + Route | Ticket 09 implemented/reviewed; explicit closure pending |
+| Plain reference execution for Transform/Decision + Route | Ticket 09 accepted and closed |
+| In-memory graph generation and case-scoped structural/behavioral conformance | Ticket 10 accepted and closed |
 
 Diagnosis is usable through terminal/plugin commands; this does not mean the
 visual workflow generator is complete. The foundation's existing graph business
 workflow is not a generated arbitrary-spec artifact.
 
-## M1 — smallest complete generation loop (next)
+## M1 — smallest complete generation loop (accepted)
 
 **Authored spec → plain reference → generated graph → conformance report.**
 
@@ -48,8 +50,13 @@ workflow is not a generated arbitrary-spec artifact.
 agreed slice-level checks; altered candidates fail; failure/budget behavior agrees.
 This proves the loop for the restricted target, not full-product conformance.
 
-Next draft: [ticket 10](.scratch/workflow-generator/issues/10-generate-and-check-reference-slice.md).
-Artifact representation and trace/digest comparison need confirmation first;
+Accepted and closed: [ticket 10](.scratch/workflow-generator/issues/10-generate-and-check-reference-slice.md).
+Evidence: [generation/checking contract and review](docs/generation-ticket10.md),
+**336 passed, 3 optional skips**, mypy clean; independent review findings resolved.
+The artifact is in-memory; paired runs use the same ID in separate fresh logs for
+exact event/byte/raw-log-digest comparison. The independently supplied candidate
+is checked against the authoritative plain reference. Public test seam and review
+baseline `3efdbd096cbdf3385570c3ecd179354c55c3aa84` are approved;
 persistent spec serialization remains deferred.
 
 ## M2 — expand the executable language and its checks together

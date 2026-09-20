@@ -4,41 +4,36 @@
 
 Working branch: `main`.
 
-Tickets **01–08 are accepted and closed**. Ticket **09 is implemented, reviewed
-and committed** (`cc10740`, `027efa0`); its tracker remains ready-for-human pending
-explicit closure. Adam responded positively and approved the next direction:
+Tickets **01–10 are accepted and closed**. Adam explicitly accepted ticket 10
+following implementation and independent review. Commits: `568ad14` (implementation),
+`0855f25` (review fix), `03f1af3` (follow-up review evidence).
+
+The smallest generation/checking loop now works for Transform/Decision + Route.
+Its artifact is in-memory, with independently supplied candidates and
+same-ID/separate-fresh-log exact trace/byte/digest comparison. Persistent spec
+serialization remains deferred. Later milestones remain outlines, not authorized
+implementation work.
+
+Adam approved the next direction:
 
 > Prove the smallest complete generation loop first:
 > authored spec → plain reference → generated graph → passing conformance check.
 > Keep the initial target restricted to Transform/Decision nodes and Route edges;
 > expand node support only after this loop is demonstrated.
 
-Adam requested this handoff and roadmap for a fresh session. This approves the
-sequence, not an invented artifact format, public API, digest convention or
-additional runtime scope. **Do not start writing tests or implementing ticket 10
-until its remaining contract/seam decisions are confirmed.**
+That restricted loop is now accepted. The next session should refine the next
+smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
 
 ### Next session's job
 
-1. Read `ROADMAP.md` and
-   `.scratch/workflow-generator/issues/10-generate-and-check-reference-slice.md`.
-2. Read `docs/reference-ticket09.md` and `docs/spec-ticket08.md` for the implemented
-   public contracts. Read `CONTEXT.md` and relevant ADRs, especially 0001, 0004,
-   0007 and 0008. Use the repo's Graft graph before opening source.
-3. Confirm ticket 09 closure with Adam if needed; do not reimplement it.
-4. Run a targeted `to-tickets` pass: outline later roadmap milestones, but fully
-   flesh out only the next generation/conformance slice. Propose and confirm its
-   minimal artifact/execution/conformance API, comparison rules and public test
-   seam. Resolve how an executable graph artifact can be checked without
-   prematurely choosing persistent spec serialization. If that skill is not
-   available, say so and refine the local Markdown ticket explicitly instead of
-   claiming the skill ran.
-   No additional broad test/review pause is required before this planning work:
-   ticket 09 already passed the full suite and both review axes. New work still
-   needs its own tests and review.
-5. Pin the current committed HEAD as a proposed review baseline and get approval.
-   Then implement ticket 10 test-first in vertical slices, with regular focused
-   tests/mypy, full offline verification, two-axis review and scoped commits.
+1. Read `ROADMAP.md`, `docs/generation-ticket10.md` and the closed ticket 10.
+2. Read `docs/reference-ticket09.md`, `docs/spec-ticket08.md`, `CONTEXT.md` and
+   relevant ADRs. Use the repo's Graft graph before opening source.
+3. Tickets 01–10 are accepted; do not reimplement or reopen them without cause.
+4. Run `/to-tickets` on the remaining roadmap, starting with M2. Define the next
+   smallest complete vertical slice across reference, generation and checking.
+5. Surface decisions needing approval, including contract, public test seam and
+   review baseline. Do not implement until the next ticket is approved.
 
 **No live calls, Hermes activation changes or Hermes writes are authorized.**
 
@@ -66,9 +61,23 @@ until its remaining contract/seam decisions are confirmed.**
 - Reference execution reuses `RunAccounting.reserve`, `Budget` and
   `RunLog.append_next`. `RunLog.fresh_run` refuses reused recorded identities and
   overlapping reference passes on the same log. Audit I/O failure stops execution
-  visibly. No resume, crash durability, generated artifact or conformance claim.
+  visibly. No resume or crash durability.
+- `agent_lab.generation.generate_graph` emits an owned in-memory executable graph;
+  `agent_lab.conformance.check_conformance` checks actual execution configuration
+  and supplied-case behavior against its independently compiled plain reference.
+  Passing is restricted, case-scoped evidence, not universal conformance.
 
-## Verification at the end of ticket 09
+## Verification at the end of ticket 10
+
+- Focused generation/conformance/reference tests: **98 passed**.
+- Full offline suite: **336 passed, 3 optional skips**.
+- Mypy: **19 source files, zero errors**; diff checks clean; Graft refreshed.
+- Both review axes found the same unordered-state strict-comparison bug, fixed
+  with red→green public-seam regressions. Independent follow-up: Standards
+  **0 new findings**, Spec **0 outstanding findings**.
+- Evidence and public APIs: `docs/generation-ticket10.md`.
+
+## Historical verification at the end of ticket 09
 
 Implementation: `cc10740`; review improvement and evidence: `027efa0`.
 Approved review baseline: `e6c1c9bc3d7920c518f210e05bcc271b685eebb8`.
@@ -91,8 +100,8 @@ AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
 ## Remaining product work
 
 See `ROADMAP.md` for ordered milestones and their completion evidence. Most of the
-full generator and user-facing product remains: graph generation/conformance,
-Judgment/Gate/Loop and generated parallel/resume support, spec/bundle approvals,
+full generator and user-facing product remains: expansion beyond restricted
+generation/conformance, Judgment/Gate/Loop and generated parallel/resume support, spec/bundle approvals,
 regeneration, roles/data/skills, questionnaire/visual surface, second runtime
 and end-to-end dogfooding. There is no credible completion percentage or delivery
 estimate yet; later milestones are not sized implementation tickets.
@@ -142,3 +151,4 @@ Do not use `git add -A` or discard user changes.
 - Ticket 06: `docs/report-ticket06.md` (`ea50593`, `c4af4d3`, `f6b9c49`).
 - Ticket 08: `docs/spec-ticket08.md` (`98f555a`, `abfe1e8`; closure `e6c1c9b`).
 - Ticket 09: `docs/reference-ticket09.md` (`cc10740`, `027efa0`).
+- Ticket 10: `docs/generation-ticket10.md` (`568ad14`, `0855f25`, `03f1af3`); accepted.

@@ -119,5 +119,6 @@ No confirmed missing/partial requirements, incorrect behavior, or scope creep.
 The reviewer independently reran all ticket-17 public, HTTP, and Chromium tests:
 **107 passed**. No code changes were needed after the full-suite run.
 
-Implementation: `a1384c5`. Ticket 17 awaits Adam's explicit acceptance; review does
-not close it or authorize implementation of ticket 18.
+Implementation: `a1384c5`; verification/review record: `0555c3a`.
+Adam subsequently explicitly accepted ticket 17 ("approve"); it is accepted and
+closed. This does not authorize implementation of ticket 18.

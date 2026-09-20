@@ -1,6 +1,6 @@
 # Workflow Generator — next-session handoff
 
-## Latest update — ticket 17 implemented; awaiting acceptance
+## Latest update — ticket 17 accepted and closed
 
 Ticket 17 is implemented on `main` in `a1384c5`. Select **Role workflow (offline
 fixtures)** in the browser to compose Signal Generator → `evidence_handoff` →
@@ -14,12 +14,13 @@ without fixture operations are explicitly unsupported. No real agents/models run
   found no documented violations and two optional duplication heuristics; Spec
   found no confirmed issues and independently reran all 107 new tests successfully.
 - Evidence: `docs/designer-ticket17.md`. No code changes after full-suite verification.
-- Ticket 17 is `ready-for-human`, awaiting explicit acceptance. Do not reimplement
-  it or close it without Adam's acceptance. Ticket 18 remains `needs-info`, blocked
-  by 17 and its unresolved source/snapshot contract; no implementation is authorized.
+- Adam explicitly accepted ticket 17 ("approve"); it is accepted and closed.
+  Do not reimplement it. Ticket 18's implementation prerequisite is now satisfied,
+  but it remains `needs-info` pending its source/snapshot contract; no implementation
+  of ticket 18 is authorized.
 - Unrelated working-tree changes remain preserved. Hermes stays read-only; no live calls.
 
-Next: help Adam try/review ticket 17 and obtain acceptance or concrete follow-up.
+Next: refine ticket 18's controlled source and bounded snapshot contract with Adam.
 Older next-step instructions below are historical and superseded by this update.
 
 ## Previous update — ticket 16 accepted and closed

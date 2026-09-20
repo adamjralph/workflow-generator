@@ -4,9 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-human
+**Status:** accepted and closed
 
-Implemented in `a1384c5`; awaiting Adam's explicit acceptance. Full offline suite:
+Adam explicitly accepted ticket 17 ("approve"). Implemented in `a1384c5`;
+verification and review recorded in `0555c3a`. Full offline suite:
 915 passed, 3 expected skips, including 68 real Chromium tests; mypy clean.
 Independent review: no documented Standards violations or Spec findings; two
 optional maintainability heuristics recorded in the delivery evidence.
@@ -16,18 +17,17 @@ optional maintainability heuristics recorded in the delivery evidence.
 Adam approved this slice and its dependency breakdown after accepting ticket 16,
 then explicitly approved the example and compatibility policy, followed by the
 complete detailed contract and review baseline below ("approve"). The ticket is
-fully scoped and has now been implemented and independently reviewed. Acceptance
-and closure remain Adam's decision.
+fully scoped, implemented, independently reviewed, and explicitly accepted by Adam.
 
 ## Acceptance criteria
 
-- [ ] The browser offers a small, agreed offline role catalog grounded in registry contracts and shows the selected roles' declared inputs and outputs.
-- [ ] A user can compose and inspect one bounded compatible workflow through the existing questionnaire and Spec seam.
-- [ ] Incompatible role connections fail visibly before execution under an explicit compatibility policy.
-- [ ] Deterministic fixture-backed bindings execute the actual generated graph and display observable outputs and run evidence; these are not represented as real agent execution.
-- [ ] The same authored workflow supports supplied-case conformance against an independently executing plain reference, with independently expected outcomes and deliberate mismatch coverage.
-- [ ] Browser/API boundaries, stale-result handling, bounded execution, fresh-run accounting, protected evidence outputs, and visible failure behavior remain intact.
-- [ ] Public-seam, HTTP, and real-browser tests cover the agreed successful composition and rejected compositions; offline regression and type checking pass.
+- [x] The browser offers a small, agreed offline role catalog grounded in registry contracts and shows the selected roles' declared inputs and outputs.
+- [x] A user can compose and inspect one bounded compatible workflow through the existing questionnaire and Spec seam.
+- [x] Incompatible role connections fail visibly before execution under an explicit compatibility policy.
+- [x] Deterministic fixture-backed bindings execute the actual generated graph and display observable outputs and run evidence; these are not represented as real agent execution.
+- [x] The same authored workflow supports supplied-case conformance against an independently executing plain reference, with independently expected outcomes and deliberate mismatch coverage.
+- [x] Browser/API boundaries, stale-result handling, bounded execution, fresh-run accounting, protected evidence outputs, and visible failure behavior remain intact.
+- [x] Public-seam, HTTP, and real-browser tests cover the agreed successful composition and rejected compositions; offline regression and type checking pass.
 
 ## Approved example and compatibility policy
 

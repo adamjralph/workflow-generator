@@ -4,12 +4,28 @@
 
 Working branch: `main`.
 
-Tickets **01–11 are accepted and closed**. Ticket **12 is implemented, tested and
-independently reviewed**: `597d315` (bounded Loop execution and conformance),
-`c0a2760` (review evidence and candidate-side audit-failure regression). Explicit
-acceptance/closure of ticket 12 has not been recorded; do not infer it from this
-handoff request. Its local issue still says `ready-for-agent` and has unchecked
-acceptance criteria; reconcile that bookkeeping with Adam before closing it.
+**Latest session:** ticket 13 is implemented and reviewed in `0bad1d0` and
+`3e47b2b`. Adam tried the UI, confirmed that it is a constrained pre-built workflow
+demo, and said “good work. next”. Do not reimplement ticket 13. Its local issue and
+the planning map still contain older `ready-for-agent` wording; the implementation
+and verification evidence is `docs/designer-ticket13.md`.
+
+**Next-session priority:** scope **ticket 14: compose workflows through the browser
+questionnaire**, moving beyond the fixed threshold-demo shape. Adam approved this
+direction with “yes, but we will have to do it in next session handoff”. Detailed
+contract design and implementation are deferred to the next session. Ticket 14 has
+not yet been published; do not treat this direction as an agreed detailed spec.
+
+**Numbering warning:** published ticket 13 came from planning item **P26**. The new
+browser-composition ticket 14 is **not P14** (parallel branch Decisions/Loops), and
+neither P13's parallel kernel nor P17's Gate work blocks this browser direction.
+Read this handoff before selecting an item by number.
+
+Tickets **01–12 are accepted and closed**. Ticket 12 implementation and review:
+`597d315` (bounded Loop execution and conformance), `c0a2760` (review evidence and
+candidate-side audit-failure regression). Adam explicitly confirmed ticket 12
+acceptance/closure (“confirm 12”); its local issue now records closure and checked
+acceptance criteria.
 
 The generation/checking loop now supports Transform/Decision, restricted
 Intervention Judgment and bounded Loop nodes with Route edges.
@@ -25,28 +41,60 @@ Adam approved the next direction:
 > Keep the initial target restricted to Transform/Decision nodes and Route edges;
 > expand node support only after this loop is demonstrated.
 
-That restricted loop is now accepted. The next session should refine the next
-smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
+That restricted loop is now accepted. Adam subsequently clarified that a small
+implementation slice must not restrict the planning horizon. The next session should
+review the whole-product dependency map before refining the implementation frontier.
 
 ### Next session's job
 
-1. Read `docs/loop-ticket12.md` and
-   `.scratch/workflow-generator/issues/12-execute-and-check-bounded-loop-routes.md`.
-   Confirm acceptance/closure; implementation is already complete, not a new task.
-2. Read `ROADMAP.md`, `CONTEXT.md` and relevant ADRs. Use the repo's Graft graph
-   before opening source. Roadmap M2's Judgment and Loop bullets are now implemented
-   for the restricted target described here; its status prose predates those slices.
-3. No ticket 13 exists yet. Use `/to-tickets` (if available) to propose the next
-   smallest complete vertical slice, not to authorize the whole remaining roadmap.
-4. Discuss the remaining M2 choices with Adam: Gate pause/rejection/resume must be
-   planned with M3 spec/bundle identity and approvals; generated parallel work needs
-   an explicit reducer, scheduling, join and evidence contract. Neither direction
-   is selected or approved by this handoff. Arbitrary Judgment vocabulary also
-   remains unsupported; do not silently expand it.
-5. Agree scope, semantics, public test seam and review baseline before implementation.
-   `c0a2760` is the latest implementation/evidence baseline candidate, not an approved
-   ticket-13 review baseline. Keep reference execution, actual graph execution and
-   conformance in the same vertical slice. No broad prefactor is pre-authorized.
+1. Read `docs/designer-ticket13.md` and
+   `.scratch/workflow-generator/issues/13-build-browser-workflow-designer.md` for the
+   delivered browser slice. Inspect working-tree changes before editing; use Graft
+   before opening source. The implementation is in `agent_lab/designer/`.
+2. Scope ticket 14 with Adam around the approved direction:
+   - Choose steps from a small, safe operation catalog.
+   - Add Decisions and select their destinations.
+   - See the graph change structurally, not just its threshold.
+   - Generate/check through the same existing core.
+   - Keep questionnaire-based editing, **not drag-and-drop**.
+   Existing Transform/Decision + Route execution is enough for this direction;
+   parallel execution and Gates remain separate work, not prerequisites.
+3. Agree a bounded concrete demo, catalog/state contract, allowed graph shapes and
+   size/budget limits, destination editing and invalid-design behavior, typed offline
+   cases/independent expected outcomes, public test seams and review baseline before
+   marking ticket 14 `ready-for-agent`. These details have **not** been approved yet.
+   `3e47b2b` is the latest implementation baseline candidate, not an approved ticket-14
+   review baseline. Publish the agreed contract under `.scratch/workflow-generator/issues/`.
+4. Retain ticket 13's safety and evidence guarantees: finite trusted operations,
+   strict inputs, caller-selected protected evidence root, exact loopback/origin/token
+   request boundary, real core checking, visible failures and stale-result invalidation.
+   No persistent public spec format, arbitrary browser-supplied code, live calls or
+   Hermes changes are authorized by this direction.
+5. Read `.scratch/workflow-generator/map.md`, `ROADMAP.md`, `CONTEXT.md` and relevant
+   ADRs for the whole-product horizon. Update stale ticket-13 bookkeeping explicitly;
+   do not conflate provisional P-identifiers with published issue numbers. Parallel,
+   Gate/artifact identity, roles/data/skills and other outlines remain future work.
+   No broad prefactor is pre-authorized.
+
+### Ticket 13 verification and trying the UI
+
+- Full offline suite: **474 passed, 3 expected optional skips**, including five real
+  Chromium smoke tests. Mypy: **22 source files, zero errors**.
+- Independent Standards/Spec review: no outstanding hard/blocking findings. A concern
+  about digest-addressed logs was withdrawn on follow-up: the browser reuses the
+  accepted temporary conformance-evidence contract, not an approval-bound artifact store.
+- Commits: `0bad1d0` implementation; `3e47b2b` protected-root review follow-up/evidence.
+- The current UI's shape is fixed: receive → threshold Decision → chosen terminals.
+  Threshold/outcome choices author a real spec and execute real generation/conformance;
+  it is not yet a general composer. Adam understands this limitation.
+
+```bash
+.venv/bin/python -m agent_lab.designer --evidence-dir /tmp/workflow-evidence
+```
+
+Open the printed `http://127.0.0.1:PORT/` URL, not `localhost`. Ctrl-C stops serving.
+Browser tests require `requirements-browser.txt` and system Chromium (or `CHROMIUM`).
+Repeatable `--protected-root PATH` protects additional Hermes installations.
 
 **No live calls, Hermes activation changes or Hermes writes are authorized.**
 

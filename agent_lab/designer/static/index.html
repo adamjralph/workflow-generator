@@ -12,12 +12,19 @@
 <h1>Route a request</h1>
 <p>Design a deterministic offline workflow using trusted operations. No model calls or external actions.</p>
 <label for="mode">Workflow mode</label>
-<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option></select>
+<select id="mode"><option value="score">Score demo</option><option value="triage">Support-request triage</option><option value="roles">Role workflow (offline fixtures)</option></select>
 <p>Changing mode starts its default design and clears previous results.</p>
 <form id="questions">
 <p id="limits"></p>
 <div id="triage-entry" hidden><label for="entry">Entry node</label><select id="entry"></select></div>
 <div id="nodes"></div>
+<section id="role-choices" hidden>
+<label for="role-producer">Producer role</label><select id="role-producer"></select>
+<label for="role-output">Declared output type</label><select id="role-output"></select>
+<label for="role-consumer">Consumer role</label><select id="role-consumer"></select>
+<div id="role-contracts"></div><p id="role-policy"></p>
+<pre id="role-operations"></pre><p id="role-provenance"></p>
+</section>
 <button id="add-adjust" type="button">Add adjustment</button>
 <button id="add-compare" type="button">Add Decision</button>
 <span id="triage-catalog" hidden>
@@ -40,6 +47,12 @@
 <h2 id="custom-heading">Try a custom support request</h2>
 <p>This is one offline run of the current workflow, not a conformance check. It does not extend the supplied-case evidence. Descriptions are text, never instructions.</p>
 <form id="custom-request" novalidate>
+<div id="role-fixtures" hidden>
+<p>Two fixed synthetic briefs only. Labels are inert text, never fetched URLs or paths. Mechanical fixture results, not approval or a real review.</p>
+<label for="role-fixture">Synthetic fixture</label>
+<select id="role-fixture"><option value="with_evidence">with_evidence</option><option value="without_evidence">without_evidence</option></select>
+</div>
+<div id="triage-fields">
 <label for="request-id">Request ID</label>
 <input id="request-id" type="text" maxlength="64" aria-describedby="request-rules">
 <p id="request-rules">1–64 characters: start with an ASCII letter, then letters, digits, hyphens or underscores.</p>
@@ -50,6 +63,7 @@
 <label for="request-description">Short description</label>
 <textarea id="request-description" aria-describedby="description-rules"></textarea>
 <p id="description-rules">1–240 characters, including at least one non-whitespace character.</p>
+</div>
 <button id="run" type="submit" disabled>Run request</button>
 </form>
 <p id="run-status" role="status" aria-live="polite">Not run.</p>

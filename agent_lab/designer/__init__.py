@@ -208,6 +208,9 @@ def _compare(threshold: int) -> Callable[[RequestState], object]:
 
 
 def author_design(raw: object) -> Design[Any]:
+    if isinstance(raw, dict) and raw.get("mode") == "roles":
+        from .roles import author_roles
+        return author_roles(raw)
     if isinstance(raw, dict) and raw.get("mode") == "triage":
         from .triage import author_triage
         return author_triage(raw)

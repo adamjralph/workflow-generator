@@ -1,0 +1,28 @@
+{
+  "provenance": {
+    "source": "specialist-agent-role-registry.yaml",
+    "section": "roles.signal_generator, roles.studio_producer, roles.signal_guardian",
+    "source_sha256": "bad436694d02d5435a852650f31229b7baf9a346e119368244fc9986eaa0b970",
+    "note": "Read-only excerpt for ticket 17. Verification status is historical metadata, not current permission or execution-quality proof. Receipt references are metadata, never executable inputs; receipts, routes and account identifiers omitted."
+  },
+  "roles": [
+    {
+      "id": "signal_generator", "display_name": "Signal Generator", "status": "verified",
+      "accepts": ["bounded_writing_brief", "approved_source_material", "adam_dictation", "revision_request"],
+      "produces": ["prose_artifact", "caption", "creative_brief", "evidence_handoff"],
+      "reviews": [], "reviewed_by": ["signal_guardian"]
+    },
+    {
+      "id": "studio_producer", "display_name": "Studio Producer", "status": "verified",
+      "accepts": ["approved_copy", "caption", "creative_brief", "approved_visual_references", "revision_request"],
+      "produces": ["versioned_visual_assets", "export_receipt", "provenance_handoff"],
+      "reviews": [], "reviewed_by": ["signal_guardian"]
+    },
+    {
+      "id": "signal_guardian", "display_name": "Signal Guardian", "status": "verified",
+      "accepts": ["bounded_brief", "draft_artifact", "evidence_handoff"],
+      "produces": ["review_verdict", "revision_request"],
+      "reviews": ["signal_generator"], "reviewed_by": []
+    }
+  ]
+}

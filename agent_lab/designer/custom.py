@@ -4,8 +4,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
+
 from . import Design, generate_candidate, validate_evidence_root
 from .triage import TriageRequest, TriageState, author_triage
+from .roles import FixtureRequest, author_roles
 from agent_lab.generation import GraphCandidate
 from agent_lab.reference import AuditError
 from agent_lab.runlog import RunLog
@@ -19,20 +22,29 @@ def run_request(raw: object, request: object, *, evidence_dir: Path,
     Errors propagate without a success claim. A recorded safety terminal is a
     failed run, even though the engine successfully recorded its outcome.
     """
-    design = author_triage(raw)
-    submitted = TriageRequest.model_validate(request)
+    design: Design
+    submitted: BaseModel
+    initial: BaseModel
+    if isinstance(raw, dict) and raw.get("mode") == "roles":
+        design = author_roles(raw)
+        selection = FixtureRequest.model_validate(request)
+        initial = design.cases[selection.fixture]
+        submitted = initial.brief
+    else:
+        design = author_triage(raw)
+        submitted = TriageRequest.model_validate(request)
+        initial = TriageState.model_validate(submitted.model_dump())
     destination = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
     candidate = candidate_factory(design)
     if type(candidate) is not GraphCandidate:
         raise ValueError("Expected exact GraphCandidate type")
-    if (candidate.state_type is not TriageState
+    if (candidate.state_type is not design.state_type
             or candidate.inspect_structure() != design.spec):
         raise ValueError("Candidate execution configuration differs from authored Spec")
     destination.mkdir(parents=True, exist_ok=True)
     root = Path(tempfile.mkdtemp(prefix="run-", dir=destination))
     log = RunLog(root / "candidate.jsonl")
-    actual = candidate.run(TriageState.model_validate(submitted.model_dump()),
-                           run_id=root.name, log=log)
+    actual = candidate.run(initial, run_id=root.name, log=log)
     events = log.read()
     if (not events or events[-1].terminal != actual.terminal
             or len(events) != actual.used_steps + (actual.terminal == "FAILED_BUDGET")

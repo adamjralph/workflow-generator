@@ -11,6 +11,7 @@ from typing import Any
 from agent_lab.designer import Design, author_design, check_design, validate_evidence_root
 from agent_lab.designer.custom import run_request
 from agent_lab.designer.triage import TriageRequest, author_triage
+from agent_lab.designer.roles import FixtureRequest, author_roles
 
 _STATIC = Path(__file__).with_name("static")
 _MAX_BODY = 4096
@@ -97,8 +98,12 @@ def create_server(
                 if self.path == "/api/run":
                     if not isinstance(raw, dict) or raw.keys() != {"design", "request"}:
                         raise ValueError("Custom run requires only design and request")
-                    design = author_triage(raw["design"])
-                    TriageRequest.model_validate(raw["request"])
+                    if isinstance(raw["design"], dict) and raw["design"].get("mode") == "roles":
+                        design = author_roles(raw["design"])
+                        FixtureRequest.model_validate(raw["request"])
+                    else:
+                        design = author_triage(raw["design"])
+                        TriageRequest.model_validate(raw["request"])
                 else:
                     design = author_design(raw)
             except (ValueError, OSError, RecursionError) as exc:

@@ -19,9 +19,13 @@ const triageDefault = {mode: "triage", entry: "category", nodes: [
   {id: "urgent_priority", operation: "assign_priority", priority: "high", done: "summary"},
   {id: "summary", operation: "summarize", done: "COMPLETED"}
 ]};
+const roleDefault = {mode: "roles", producer: "signal_generator", output: "evidence_handoff", consumer: "signal_guardian"};
+let roleCatalog = null;
 let draft = structuredClone(scoreDefault);
 let suppliedCases = [];
 const isTriage = () => draft.mode === "triage";
+const isRoles = () => draft.mode === "roles";
+const canRun = () => isTriage() || isRoles();
 const terminals = () => isTriage() ? ["COMPLETED"] : ["ACCEPTED", "REVIEW"];
 const routeLabels = n => n.operation === "compare" ? ["below", "at_or_above"]
   : n.operation === "category" ? ["billing", "technical", "general"]
@@ -31,12 +35,22 @@ const answers = () => structuredClone(draft);
 function editNodes() {
   const container = byId("nodes");
   container.replaceChildren();
-  const destinations = [...draft.nodes.map(n => n.id), ...terminals()];
-  byId("custom").hidden = !isTriage();
+  byId("custom").hidden = !canRun();
+  byId("role-choices").hidden = !isRoles();
+  byId("role-fixtures").hidden = !isRoles();
+  byId("triage-fields").hidden = !isTriage();
+  byId("custom-heading").textContent = isRoles() ? "Try a synthetic role fixture" : "Try a custom support request";
+  byId("run").textContent = isRoles() ? "Run fixture" : "Run request";
   byId("triage-entry").hidden = !isTriage();
   byId("triage-catalog").hidden = !isTriage();
-  byId("add-adjust").hidden = isTriage();
-  byId("add-compare").hidden = isTriage();
+  byId("add-adjust").hidden = isTriage() || isRoles();
+  byId("add-compare").hidden = isTriage() || isRoles();
+  if (isRoles()) {
+    byId("limits").textContent = "One two-role connection; two deterministic fixture Transforms, budget two. No agents or model calls. Inspect declared contracts before running.";
+    editRoles();
+    return;
+  }
+  const destinations = [...draft.nodes.map(n => n.id), ...terminals()];
   byId("limits").textContent = isTriage()
     ? "Compose up to 12 nodes and three Decisions. Every path must assign team and priority before summary. Choose destinations; removed nodes leave routes to repair. No cycles. Check supplied cases or run a custom request."
     : "Compose 1–6 nodes, including one receive entry and at most two Decisions. Choose destinations to connect nodes; removing a node leaves incoming routes for you to repair.";
@@ -100,6 +114,29 @@ function editNodes() {
   byId("add-adjust").disabled = draft.nodes.length >= 6;
   byId("add-compare").disabled = draft.nodes.length >= 6 || draft.nodes.filter(n => n.operation === "compare").length >= 2;
 }
+function editRoles() {
+  if (!roleCatalog) return;
+  const roles = roleCatalog.roles;
+  const producer = roles.find(role => role.id === draft.producer);
+  for (const [key, values] of Object.entries({producer: roles.map(r => r.id), output: producer.produces, consumer: roles.map(r => r.id)})) {
+    const select = byId(`role-${key}`);
+    select.replaceChildren();
+    values.forEach(value => {
+      const role = roles.find(r => r.id === value);
+      const option = text(select, "option", role ? role.display_name : value);
+      option.value = value;
+    });
+    select.value = draft[key];
+  }
+  const container = byId("role-contracts");
+  container.replaceChildren();
+  [producer, roles.find(role => role.id === draft.consumer)].forEach(role => {
+    text(container, "h3", role.display_name);
+    text(container, "p", `Accepts: ${role.accepts.join(", ")}`);
+    text(container, "p", `Produces: ${role.produces.join(", ")}`);
+    text(container, "p", `Reviews: ${role.reviews.join(", ") || "none"}; reviewed by: ${role.reviewed_by.join(", ") || "none"}. Historical status: ${role.status}.`);
+  });
+}
 function addNode(operation) {
   const id = `${operation}_${nextId++}`;
   const defaults = {
@@ -116,6 +153,11 @@ function addNode(operation) {
   refresh();
 }
 function draftView() {
+  if (isRoles()) return {nodes: [{id: "generator", kind: "Transform", label: draft.producer},
+    {id: "guardian", kind: "Transform", label: draft.consumer}],
+    edges: [{source: "generator", outcome: draft.output, target: "guardian"},
+      {source: "guardian", outcome: "done", target: "COMPLETED"}],
+    terminals: ["COMPLETED", "FAILED_VALIDATION", "FAILED_BUDGET"], cases: suppliedCases, budget: "unvalidated"};
   const edges = draft.nodes.flatMap(n => routeLabels(n).map(outcome => ({source: n.id, outcome, target: n[outcome]})));
   const missing = edges.map(e => e.target).filter(id => !draft.nodes.some(n => n.id === id) && !terminals().includes(id));
   return {nodes: draft.nodes.map(n => ({...n, kind: isDecision(n) ? "Decision" : "Transform", label: n.operation})),
@@ -182,7 +224,7 @@ function graph(view) {
   byId("graph").replaceChildren(svg);
   byId("budget").textContent = `Step budget: ${view.budget} — longest admitted path, counting nodes and excluding terminals.`;
   byId("cases").replaceChildren();
-  view.cases.forEach(c => text(byId("cases"), "li", c.request_id
+  view.cases.forEach(c => text(byId("cases"), "li", isRoles() ? `${c.name}: ${JSON.stringify(c)}` : c.request_id
     ? `${c.request_id}: ${c.category} / ${c.urgency} — ${c.description}` : `${c.name}: score ${c.score}`));
   byId("scope").textContent = typeof view.scope === "string" ? view.scope : JSON.stringify(view.scope || "Unvalidated draft; no case scope yet.");
   byId("infeasible").replaceChildren();
@@ -201,6 +243,7 @@ function renderResult(result) {
     text(row, "h4", `${output.name} · candidate result`);
     text(row, "p", [...output.route.map(edge => edge[0]), output.terminal].join(" → "));
     text(row, "pre", output.route.map(edge => `${edge[0]} — ${edge[1]} → ${edge[2]}`).join("\n"));
+    if (output.state.brief !== undefined) text(row, "pre", JSON.stringify(output.state, null, 2));
     if (output.state.summary !== undefined) {
       text(row, "p", `Team: ${output.state.team ?? "unassigned"}; priority: ${output.state.priority ?? "unassigned"}`);
       text(row, "p", output.state.summary || "No handling summary produced");
@@ -224,10 +267,17 @@ async function refresh() {
   try {
     const view = await api("/api/design", answers());
     if (current !== revision) return;
-    if (isTriage()) suppliedCases = view.cases;
+    if (canRun()) suppliedCases = view.cases;
+    if (isRoles()) {
+      roleCatalog = view.catalog;
+      editRoles();
+      byId("role-policy").textContent = view.policy;
+      byId("role-operations").textContent = `Executable fixture operation contracts:\n${JSON.stringify(view.operations, null, 2)}`;
+      byId("role-provenance").textContent = JSON.stringify(view.catalog.provenance);
+    }
     graph(view);
     designReady = true;
-    byId("run").disabled = !isTriage();
+    byId("run").disabled = !canRun();
     byId("check").disabled = false;
     byId("status").textContent = "Current design ready; not checked.";
   } catch (error) {
@@ -238,15 +288,15 @@ function invalidateRun() {
   ++runRevision;
   byId("run-result").replaceChildren();
   byId("run-status").textContent = "Not run for current workflow and input; previous run invalidated.";
-  byId("run").disabled = !designReady || !isTriage();
+  byId("run").disabled = !designReady || !canRun();
 }
 byId("custom-request").addEventListener("input", invalidateRun);
 byId("custom-request").addEventListener("change", invalidateRun);
 byId("custom-request").addEventListener("submit", async event => {
   event.preventDefault();
-  if (!designReady || !isTriage() || byId("run").disabled) return;
+  if (!designReady || !canRun() || byId("run").disabled) return;
   const current = ++runRevision;
-  const request = {request_id: byId("request-id").value,
+  const request = isRoles() ? {fixture: byId("role-fixture").value} : {request_id: byId("request-id").value,
     category: byId("request-category").value, urgency: byId("request-urgency").value,
     description: byId("request-description").value};
   byId("run").disabled = true;
@@ -261,8 +311,13 @@ byId("custom-request").addEventListener("submit", async event => {
     text(container, "pre", JSON.stringify(result.input, null, 2));
     text(container, "p", [...output.route.map(edge => edge[0]), output.terminal].join(" → "));
     text(container, "pre", output.route.map(edge => `${edge[0]} — ${edge[1]} → ${edge[2]}`).join("\n"));
-    text(container, "p", `Team: ${output.state.team ?? "unassigned"}; priority: ${output.state.priority ?? "unassigned"}`);
-    text(container, "p", output.state.summary || "No handling summary produced");
+    if (isRoles()) {
+      text(container, "h4", "Fixture handoff and mechanical result — not a real review");
+      text(container, "pre", JSON.stringify(output.state, null, 2));
+    } else {
+      text(container, "p", `Team: ${output.state.team ?? "unassigned"}; priority: ${output.state.priority ?? "unassigned"}`);
+      text(container, "p", output.state.summary || "No handling summary produced");
+    }
     text(container, "p", `Terminal: ${output.terminal}; steps spent: ${output.used_steps}`);
     text(container, "pre", `Run evidence: ${result.evidence}`);
     byId("run-status").textContent = result.succeeded
@@ -272,11 +327,17 @@ byId("custom-request").addEventListener("submit", async event => {
     text(byId("run-result"), "h3", `Run failed — ${error.message}`);
     byId("run-status").textContent = "Run failed; no successful run established.";
   } finally {
-    if (current === runRevision) byId("run").disabled = !designReady || !isTriage();
+    if (current === runRevision) byId("run").disabled = !designReady || !canRun();
   }
 });
+["producer", "output", "consumer"].forEach(key => byId(`role-${key}`).addEventListener("change", () => {
+  draft[key] = byId(`role-${key}`).value;
+  if (key === "producer") draft.output = roleCatalog.roles.find(r => r.id === draft.producer).produces[0];
+  editRoles();
+  refresh();
+}));
 byId("mode").addEventListener("change", () => {
-  draft = structuredClone(byId("mode").value === "triage" ? triageDefault : scoreDefault);
+  draft = structuredClone(byId("mode").value === "roles" ? roleDefault : byId("mode").value === "triage" ? triageDefault : scoreDefault);
   suppliedCases = [];
   nextId = 1;
   editNodes();

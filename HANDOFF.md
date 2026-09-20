@@ -4,12 +4,15 @@
 
 Working branch: `main`.
 
-Tickets **01–11 are accepted and closed**. Adam explicitly accepted ticket 11
-following implementation and independent review. Commits: `2e9848e` (implementation),
-`cfa2151` (strict-validation review fix), `c3664b1` (review evidence).
+Tickets **01–11 are accepted and closed**. Ticket **12 is implemented, tested and
+independently reviewed**: `597d315` (bounded Loop execution and conformance),
+`c0a2760` (review evidence and candidate-side audit-failure regression). Explicit
+acceptance/closure of ticket 12 has not been recorded; do not infer it from this
+handoff request. Its local issue still says `ready-for-agent` and has unchecked
+acceptance criteria; reconcile that bookkeeping with Adam before closing it.
 
-The generation/checking loop now supports Transform/Decision and restricted
-Intervention Judgment nodes with Route edges.
+The generation/checking loop now supports Transform/Decision, restricted
+Intervention Judgment and bounded Loop nodes with Route edges.
 Its artifact is in-memory, with independently supplied candidates and
 same-ID/separate-fresh-log exact trace/byte/digest comparison. Persistent spec
 serialization remains deferred. Later milestones remain outlines, not authorized
@@ -27,14 +30,23 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
 
 ### Next session's job
 
-1. Read `ROADMAP.md`, `docs/judgment-ticket11.md` and the closed ticket 11.
-2. Read `docs/reference-ticket09.md`, `docs/spec-ticket08.md`, `CONTEXT.md` and
-   relevant ADRs. Use the repo's Graft graph before opening source.
-3. Tickets 01–11 are accepted; do not reimplement or reopen them without cause.
-4. Run `/to-tickets` on the remaining roadmap, starting with M2. Define the next
-   smallest complete vertical slice across reference, generation and checking.
-5. Surface decisions needing approval, including contract, public test seam and
-   review baseline. Do not implement until the next ticket is approved.
+1. Read `docs/loop-ticket12.md` and
+   `.scratch/workflow-generator/issues/12-execute-and-check-bounded-loop-routes.md`.
+   Confirm acceptance/closure; implementation is already complete, not a new task.
+2. Read `ROADMAP.md`, `CONTEXT.md` and relevant ADRs. Use the repo's Graft graph
+   before opening source. Roadmap M2's Judgment and Loop bullets are now implemented
+   for the restricted target described here; its status prose predates those slices.
+3. No ticket 13 exists yet. Use `/to-tickets` (if available) to propose the next
+   smallest complete vertical slice, not to authorize the whole remaining roadmap.
+4. Discuss the remaining M2 choices with Adam: Gate pause/rejection/resume must be
+   planned with M3 spec/bundle identity and approvals; generated parallel work needs
+   an explicit reducer, scheduling, join and evidence contract. Neither direction
+   is selected or approved by this handoff. Arbitrary Judgment vocabulary also
+   remains unsupported; do not silently expand it.
+5. Agree scope, semantics, public test seam and review baseline before implementation.
+   `c0a2760` is the latest implementation/evidence baseline candidate, not an approved
+   ticket-13 review baseline. Keep reference execution, actual graph execution and
+   conformance in the same vertical slice. No broad prefactor is pre-authorized.
 
 **No live calls, Hermes activation changes or Hermes writes are authorized.**
 
@@ -54,13 +66,20 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
 - `agent_lab.spec.validate_spec`: typed in-memory declarations for all five node
   types, Route/Fork edges, complete routing, joins and bounded-cycle validation.
   Admission is not execution or conformance.
-- `agent_lab.reference.compile_reference`: Transform/Decision/Intervention Judgment
+- `agent_lab.reference.compile_reference`: Transform/Decision/Intervention Judgment/Loop
   + Route execution with explicit caller bindings and frozen Pydantic state.
   Judgment uses node-ID bindings with an assessment adapter and source; checking
   requires independent offline sources and compares full judgment/input evidence. All unsupported/unbound
   declarations, including unreachable ones, are rejected before execution.
   State snapshots are validated/detached; binding failures and budget exhaustion
   are recorded. Arbitrary node identities work, not just business Stage values.
+- Loop predicates use exact opaque caller-binding keys and strict boolean results.
+  Every visit reserves a step before invocation. True exits even after the last
+  allowed repeat; false repeats while allowance remains, otherwise exhausts.
+  Counters are per Loop identity/per run, never reset on re-entry, and start fresh
+  for a new run. Predicate snapshots cannot mutate retained state or caller input.
+  Events persist `repeat_count` and `max_iterations`; structural checking inspects
+  actual bounds, predicate references, routes and unreachable declarations.
 - Reference execution reuses `RunAccounting.reserve`, `Budget` and
   `RunLog.append_next`. `RunLog.fresh_run` refuses reused recorded identities and
   overlapping reference passes on the same log. Audit I/O failure stops execution
@@ -70,7 +89,30 @@ smallest complete vertical slice from the remaining roadmap with `/to-tickets`.
   and supplied-case behavior against its independently compiled plain reference.
   Passing is restricted, case-scoped evidence, not universal conformance.
 
-## Verification at the end of ticket 11
+## Verification at the end of ticket 12
+
+- Loop public-seam tests: **32 passed** (`tests/test_loop_routes.py`).
+- Full offline suite: **423 passed, 3 optional skips**.
+- Mypy: **19 source files, zero errors**; diff checks clean; Graft refreshed.
+- Parallel Standards/Spec review against `5038a372780171b892b057be150baf7fb2f0dd8d`:
+  no documented Standards violations and no confirmed Spec violations. The Spec
+  reviewer suggested candidate-phase checker audit-failure coverage; added it.
+- One optional maintainability smell retained: repeated type switches selecting
+  `operation` / `value` / `exit_predicate` / Judgment node ID in admission,
+  execution, generation and structural inspection. A small shared accessor could
+  reduce drift, but is not a blocker or an approved standalone next ticket.
+  Preserve independent driver control flow and actual-candidate inspection if
+  addressing it; do not conflate shared metadata lookup with driver delegation.
+- Evidence: `docs/loop-ticket12.md`. No live calls or Hermes edits.
+
+```bash
+.venv/bin/python -m pytest -q tests/test_loop_routes.py
+.venv/bin/python -m mypy agent_lab
+AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
+git diff --check
+```
+
+## Historical verification at the end of ticket 11
 
 - Judgment public-seam tests: **55 passed**.
 - Full offline suite: **391 passed, 3 optional skips**.
@@ -114,7 +156,7 @@ AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
 
 See `ROADMAP.md` for ordered milestones and their completion evidence. Most of the
 full generator and user-facing product remains: expansion beyond restricted
-generation/conformance, arbitrary Judgment vocabularies, Gate/Loop and generated
+generation/conformance, arbitrary Judgment vocabularies, Gate and generated
 parallel/resume support, spec/bundle approvals,
 regeneration, roles/data/skills, questionnaire/visual surface, second runtime
 and end-to-end dogfooding. There is no credible completion percentage or delivery
@@ -146,10 +188,10 @@ contracts; do not interpret stale wording as new scope permission.
 ## Working-tree care
 
 Before this handoff update there were unrelated local edits to `.gitignore`,
-ticket 04, `docs/read-only-ticket04.md`, plus untracked `.ignore`, `AGENTS.md` and
-`opencode.json`. Leave these alone; inspect `git status` before staging.
-`HANDOFF.md` also had local updates to ticket 04's activation/acceptance wording;
-that meaning is preserved above in this explicitly requested handoff refresh.
+tickets 04 and 09, and `docs/read-only-ticket04.md`, plus untracked `.ignore`,
+`AGENTS.md`, `opencode.json` and the ticket-12 issue file. Leave these alone unless
+explicitly updating ticket bookkeeping with Adam; inspect `git status` before
+staging. Ticket-12 implementation commits deliberately excluded those files.
 Do not use `git add -A` or discard user changes.
 
 ## Historical evidence pointers

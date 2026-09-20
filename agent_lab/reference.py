@@ -109,7 +109,7 @@ class _Execution(Generic[S]):
                     raw = binding.source.judge(assessment)
                     if not isinstance(raw, Judgment):
                         raise ValueError("Expected Judgment")
-                    judgment = Judgment.model_validate(raw.model_dump(warnings=False))
+                    judgment = Judgment.model_validate(raw.model_dump(warnings=False), strict=True)
                     label = judgment.intervention.value
                 else:
                     assert callable(binding)

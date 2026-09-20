@@ -81,6 +81,8 @@ def test_check_requires_independent_offline_sources_before_execution(tmp_path, s
 @pytest.mark.parametrize("field, value", [
     ("intervention", Intervention.PAYMENT_FOLLOW_UP), ("confidence", 0.5),
     ("review_gap_evidenced", 0.5), ("source", "recorded"),
+    ("intervention", "review_follow_up"), ("confidence", "0.99"),
+    ("review_gap_evidenced", "0.97"),
 ])
 def test_changed_judgment_evidence_cannot_pass(tmp_path, field, value):
     class AlteredSource:

@@ -76,7 +76,12 @@ def paired_events(report):
     valid_judgment().model_copy(update={"review_gap_evidenced": 1.1}),
     valid_judgment().model_copy(update={"confidence": float("nan")}),
     valid_judgment().model_copy(update={"source": "invented"}),
-], ids=["missing", "empty", "string", "dict", "choice", "confidence", "probability", "nan", "provenance"])
+    valid_judgment().model_copy(update={"intervention": "review_follow_up"}),
+    valid_judgment().model_copy(update={"confidence": "0.99"}),
+    valid_judgment().model_copy(update={"review_gap_evidenced": "0.97"}),
+    valid_judgment().model_copy(update={"confidence": True}),
+], ids=["missing", "empty", "string", "dict", "choice", "confidence", "probability", "nan", "provenance",
+        "unchecked-string-choice", "unchecked-string-confidence", "unchecked-string-probability", "bool-confidence"])
 def test_malformed_and_unchecked_judgments_record_validation_failure(tmp_path, bad):
     sources = [SuppliedSource(bad), SuppliedSource(bad)]
     events = paired_events(checked(tmp_path, spec(), *(judgments(s) for s in sources)))

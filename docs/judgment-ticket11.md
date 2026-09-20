@@ -37,7 +37,8 @@ Other options remain valid conceptual spec declarations but return located
 `unbound_reference`; no runnable artifact is returned.
 
 The existing `JudgmentSource.judge(assessment)` boundary is unchanged. Returned
-models are revalidated, then routed only on a declared Intervention. One budget
+models are strictly revalidated without coercing unchecked string/boolean fields,
+then routed only on a declared Intervention. One budget
 step is reserved before the adapter/source. Budget refusal does not call either;
 invalid results and ordinary adapter/source errors record FAILED_VALIDATION.
 Terminal routes cost nothing and stop immediately.
@@ -87,5 +88,39 @@ recording mismatch, budgets, detached state, and real filesystem audit failures.
 Existing admission tests now expect `unsupported_options` rather than
 `unsupported_node` for conceptual arbitrary-option Judgment declarations.
 
-Focused execution/conformance tests and `.venv/bin/mypy agent_lab` pass.
-Full-suite and independent review results are recorded below after verification.
+Final verification after review fixes:
+
+- Judgment public-seam files: **55 passed**.
+- Full `.venv/bin/pytest -q`: **391 passed, 3 skipped** (two live Jev tests and
+  optional real-Hermes integration; no live calls were made).
+- `.venv/bin/mypy agent_lab`: **zero errors, 19 source files**.
+- `git diff --check`: clean. `graft build`: refreshed.
+
+## Independent review
+
+Standards and Spec reviewers ran in parallel against the approved baseline and
+implementation commit `2e9848e`.
+
+### Standards
+
+Zero documented-standard violations. Two optional heuristics:
+
+1. Possible Duplicated Code: the short node-reference selection in generation
+   and structural comparison. Retained: a two-line fixed mapping does not yet
+   justify another abstraction, and scheduling remains deliberately independent.
+2. Possible Feature Envy: checking reads the candidate's private Judgment source
+   map after integrity inspection. Retained: this is an internal owned-target
+   boundary; adding a public source-inspection API solely for one internal check
+   would expand the supported surface unnecessarily.
+
+### Spec
+
+One substantive finding: non-strict model revalidation coerced unchecked string
+choices/confidence/probability into valid evidence, permitting a false pass.
+Seven new cases reproduced it before the fix. Commit `cfa2151` uses strict
+revalidation at the new execution boundary without changing business sources.
+Independent follow-up review confirmed resolution with no remaining substantive
+finding in scope; 55 focused tests and mypy passed there as well.
+
+Summary: Standards 0 hard findings, 2 optional heuristics retained; Spec 1 defect
+fixed and independently confirmed. Ticket awaits human acceptance.

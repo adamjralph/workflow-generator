@@ -1,181 +1,144 @@
-# Workflow Generator handoff
+# Workflow Generator — next-session handoff
 
-## Current authorization and state
+## Start here: current state and approved direction
 
-- Working branch: `main`. Ticket 01 was closed by Adam at `a158632`; foundation
-  promotion is `cddadc6` (from source lab `ce34093`).
-- **Ticket 02 is accepted and closed** at Adam's explicit request. Implementation
-  is `7e1d517`; independent review and final verification are `c492e93`.
-  Ticket 03 was subsequently authorized by Adam, including its test seams and
-  review baseline `02e4f6d`. **Ticket 03 is accepted and closed** at Adam's explicit
-  approval. Implementation: `fcfb06c`; review fix and verification: `39a2bd2`;
-  see `docs/diagnosis-ticket03.md`. Ticket 04 is now authorized, including the
-  diagnosis/adapter/plugin seams and review baseline `c3260ab`. Its read-only
-  proof and local plugin are implemented; normal activation requires Hermes
-  config opt-in and remains an open acceptance issue. See
-  `docs/read-only-ticket04.md`. **Ticket 05 is accepted and closed** at Adam's
-  explicit request. Implementation: `3106982`; review and final verification:
-  `7abde37`, against approved baseline `35f45fb`. See `docs/measurement-ticket05.md`.
-  **Ticket 07 is accepted and closed** at Adam's explicit approval.
-  Implementation and review fixes: `2077d7d`, `12db524`.
-  Ticket 06 was subsequently authorized with its report/store/CLI/plugin/adapter
-  seams and review baseline `9497f53`. Implementation `ea50593` and review fixes
-  `c4af4d3`; final verification `f6b9c49`. **Ticket 06 is accepted and closed**
-  at Adam's explicit approval. See `docs/report-ticket06.md`.
-  Final suite: 172 passed, 2 live-Jev skips; mypy clean in 15 files.
-- `agent_lab/` is the sole repo-local runtime; no sibling imports or changes.
-- Ticket 03 read the historical baseline documents and pilot board/profile usage
-  with read-only SQLite connections. No Hermes code/config/authentication or
-  application records were edited. The historical run reproduced 10 calls/run;
-  artifacts went to a temporary store outside Hermes. Automated tests are offline.
+Working branch: `main`.
 
-## Start here
+Tickets **01–08 are accepted and closed**. Ticket **09 is implemented, reviewed
+and committed** (`cc10740`, `027efa0`); its tracker remains ready-for-human pending
+explicit closure. Adam responded positively and approved the next direction:
 
-1. `CONTEXT.md` in full, especially §2, §5 and §9–§11; all nine `docs/adr/` files.
-2. `.scratch/workflow-generator/issues/02-fix-parallel-accounting.md`.
-3. `docs/foundation/README.md` for provenance and inherited limitations.
-4. `docs/foundation/parallel-accounting.md` for the concurrency contract,
-   criterion-by-criterion red/green evidence and reproduction commands.
-5. `README.md` for local setup and imports.
-6. `docs/diagnosis-ticket03.md` for the new adapter, measurement, store, terminal
-   entry point, fixture provenance, checks and explicit remaining limitations.
+> Prove the smallest complete generation loop first:
+> authored spec → plain reference → generated graph → passing conformance check.
+> Keep the initial target restricted to Transform/Decision nodes and Route edges;
+> expand node support only after this loop is demonstrated.
 
-The product spec is not this build's target. Its generation half remains
-unticketed; do not invent a spec format, packaging, naming, or community decision.
+Adam requested this handoff and roadmap for a fresh session. This approves the
+sequence, not an invented artifact format, public API, digest convention or
+additional runtime scope. **Do not start writing tests or implementing ticket 10
+until its remaining contract/seam decisions are confirmed.**
 
-## Ticket 02 implementation
+### Next session's job
 
-- Run-level `RunAccounting` is injected through `Deps`. Branches share one owner,
-  even if they use distinct judgment sources. A short lock reserves before work;
-  model work does not hold locks. Frozen state budgets are snapshots, refreshed
-  at the join. Fresh continuation seeds its owner from the joined typed state.
-- Runtime event numbering is allocated atomically with append, in log order.
-  Caller sequence hints no longer allocate numbers. Separate log handles and
-  resume continue per-run numbering.
-- Branch findings are returned through reducers, then `collect_findings` joins
-  note suffixes without overwriting common notes. It does not merge branch
-  stages/artifacts or choose a terminal; the caller owns post-join routing.
-- The existing business route remains linear; synthetic fan-out and overlapping
-  invocations prove its shared core semantics, without adding a general engine.
-- Plain remains the reference; both drivers still use `workflow.step`.
+1. Read `ROADMAP.md` and
+   `.scratch/workflow-generator/issues/10-generate-and-check-reference-slice.md`.
+2. Read `docs/reference-ticket09.md` and `docs/spec-ticket08.md` for the implemented
+   public contracts. Read `CONTEXT.md` and relevant ADRs, especially 0001, 0004,
+   0007 and 0008. Use the repo's Graft graph before opening source.
+3. Confirm ticket 09 closure with Adam if needed; do not reimplement it.
+4. Run a targeted `to-tickets` pass: outline later roadmap milestones, but fully
+   flesh out only the next generation/conformance slice. Propose and confirm its
+   minimal artifact/execution/conformance API, comparison rules and public test
+   seam. Resolve how an executable graph artifact can be checked without
+   prematurely choosing persistent spec serialization. If that skill is not
+   available, say so and refine the local Markdown ticket explicitly instead of
+   claiming the skill ran.
+   No additional broad test/review pause is required before this planning work:
+   ticket 09 already passed the full suite and both review axes. New work still
+   needs its own tests and review.
+5. Pin the current committed HEAD as a proposed review baseline and get approval.
+   Then implement ticket 10 test-first in vertical slices, with regular focused
+   tests/mypy, full offline verification, two-axis review and scoped commits.
 
-## Ticket 02 verification (historical)
+**No live calls, Hermes activation changes or Hermes writes are authorized.**
 
-- New concurrency tests: **10 passed**.
-- `AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q`:
-  **75 passed, 2 optional live-Jev skips**.
-- Mypy: the same **11 inherited errors in 3 files**, unsuppressed, no unrelated
-  cleanup. No green typechecking claim.
-- The four historical red failures are retained in
-  `docs/foundation/parallel_red.py`, runnable against an isolated archive of
-  `cddadc6`; they demonstrate colliding sequences, lost spend, exceeded cap,
-  and one of three findings surviving the unsafe shared-holder write.
-- Two independent parallel worker reviews against `cddadc6`: Standards found
-  zero violations/actionable smells (one non-blocking log-scan performance
-  observation); ticket-02 Spec found zero actionable findings. Details and the
-  findings-data-channel qualification are in `docs/foundation/parallel-accounting.md`.
+## What works now
 
-## Ticket 03 verification
+- Repo-local foundation in `agent_lab/`, with existing plain and graph business
+  drivers and their equivalence tests. No sibling-runtime imports.
+- Shared run-level budget reservations and append-only event sequence allocation;
+  parallel foundation tests prove cap enforcement and preservation of branch
+  results through reducers. This is not a general generated parallel engine.
+- Read-only Kanban/Hermes diagnosis, four metrics, worker/auxiliary/review traffic
+  separation, separate reasoning tokens, per-role/per-run reports and measured
+  baseline comparisons. Immutable digest-addressed diagnosis/report artifacts.
+- Terminal and local Hermes plugin commands. Installation/registration without
+  protected edits is accepted; normal activation remains an explicit operator
+  config opt-in. Do not bypass the host activation gate.
+- `agent_lab.spec.validate_spec`: typed in-memory declarations for all five node
+  types, Route/Fork edges, complete routing, joins and bounded-cycle validation.
+  Admission is not execution or conformance.
+- `agent_lab.reference.compile_reference`: Transform/Decision + Route execution
+  with explicit caller bindings and frozen Pydantic state. All unsupported/unbound
+  declarations, including unreachable ones, are rejected before execution.
+  State snapshots are validated/detached; binding failures and budget exhaustion
+  are recorded. Arbitrary node identities work, not just business Stage values.
+- Reference execution reuses `RunAccounting.reserve`, `Budget` and
+  `RunLog.append_next`. `RunLog.fresh_run` refuses reused recorded identities and
+  overlapping reference passes on the same log. Audit I/O failure stops execution
+  visibly. No resume, crash durability, generated artifact or conformance claim.
 
-- `tests/test_diagnosis.py`: **20 passed**, using offline temporary databases.
-- Final full suite: **95 passed, 2 optional live-Jev skips**.
-- Mypy: the same **11 inherited errors in 3 files**, no diagnosis errors.
-- Historical pilot run: `stillroom-research`, run `2`, reports **10 calls/run**
-  (9 main-loop + 1 auxiliary), matching the original join and published one-run
-  media-analyst figure; the rollup is only 9.
-- Parallel review against `02e4f6d`: Standards found one path-guard violation,
-  reproduced and fixed with independent follow-up, plus a nonblocking internal
-  protocol-typing heuristic. Spec found zero ticket-03 findings. Details in
-  `docs/diagnosis-ticket03.md`.
+## Verification at the end of ticket 09
 
-## Ticket 04 verification and open acceptance
+Implementation: `cc10740`; review improvement and evidence: `027efa0`.
+Approved review baseline: `e6c1c9bc3d7920c518f210e05bcc271b685eebb8`.
 
-- Implementation: `6271106`; evidence: `docs/read-only-ticket04.md`.
-- Boundary tests: **10 passed**; diagnosis tests: **20 passed**; isolated real
-  Hermes loader: **1 passed**. Final full suite with the loader opted in:
-  **106 passed, 2 optional live-Jev skips**.
-- Mypy retains the **11 inherited errors in 3 files**, no new diagnosis errors;
-  plugin source typechecks as a script.
-- Two-axis review against `c3260ab`: Standards found no violations and one
-  nonblocking duplicated protected-root policy heuristic. Spec found one partial
-  criterion: installation/registration works, but normal plugin activation still
-  requires Hermes config opt-in. No extra implementation defect was identified.
-- No live plugin installation, config activation, or authentication change was
-  made. Ticket 04 remains claimed, **not accepted/closed**, pending Adam's decision
-  on installation versus activation. Do not bypass the host activation gate.
+- `tests/test_reference.py`: **26 passed**.
+- Full offline suite: **264 passed, 3 optional skips** (two live Jev tests and the
+  real Hermes loader check).
+- Mypy: **17 source files, zero errors**.
+- Parallel review: Standards **0 hard violations**, one optional duplication
+  improvement addressed; Spec **0 actionable findings**.
+- Focused tests, mypy and full suite rerun after the improvement; diff check clean
+  and local Graft graph refreshed. No live calls or Hermes changes.
 
-## Ticket 05 verification
+```bash
+.venv/bin/python -m pytest -q tests/test_reference.py
+.venv/bin/python -m mypy agent_lab
+AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
+```
 
-- Implementation: `3106982`; evidence: `docs/measurement-ticket05.md`.
-- All four units, per-task worker/auxiliary/review separation, separate reasoning
-  counters, and schema-1 artifact read compatibility are implemented. The plugin
-  displays the same output through the unchanged terminal front door.
-- Diagnosis and offline baseline tests: **45 passed**. Final full suite with the
-  isolated real-loader opt-in: **131 passed, 2 optional live-Jev skips**.
-- Mypy: the same **11 inherited errors in 3 files**, no new diagnosis errors.
-- Historical baseline reproduced read-only: 23 runs, 214 calls (188 worker + 26
-  auxiliary), 1,132,524 fresh input, 4,608,338 cache-read, 89,103 output; 9.3
-  calls/run, 26,826 context/call, 49,240 fresh input/run, 80% cache hit. Newly
-  exposed reasoning: 19,237. The newer September 19 run is excluded explicitly.
-- Independent parallel review against `35f45fb`: Standards **0 findings**;
-  Spec **0 findings**. No Hermes edits or host activation changes.
-- **Ticket 05 is accepted and closed** at Adam's explicit approval. The inherited
-  mypy cleanup was separately tracked in ticket 07 (subsequently authorized; see below).
+## Remaining product work
 
-## Ticket 07 — accepted and closed
+See `ROADMAP.md` for ordered milestones and their completion evidence. Most of the
+full generator and user-facing product remains: graph generation/conformance,
+Judgment/Gate/Loop and generated parallel/resume support, spec/bundle approvals,
+regeneration, roles/data/skills, questionnaire/visual surface, second runtime
+and end-to-end dogfooding. There is no credible completion percentage or delivery
+estimate yet; later milestones are not sized implementation tickets.
 
-- Adam authorized implementation and confirmed judgment/driver test seams and
-  review baseline `70624c1`.
-- All 11 inherited mypy errors cleared without suppressions: **14 files, zero errors**.
-- SDK answer variants are checked; unreported token usage remains `None`, not zero.
-  Malformed recordings and missing/invalid judgments produce recorded failure terminals.
-- Offline suite: **158 passed, 3 optional skips**. No live calls or Hermes edits.
-- Evidence and independent review results: [ticket 07](docs/typechecking-ticket07.md).
+The product spec `.scratch/workflow-generator/spec.md` describes the whole product,
+not current implementation authorization. It has stale introductory/out-of-scope
+wording (for example, “No ADRs exist yet” and questionnaire/skill-policy language).
+Use the later explicit decisions in `CONTEXT.md` and ADRs, plus approved ticket
+contracts; do not interpret stale wording as new scope permission.
 
-## Boundaries and remaining work
+## Boundaries and decisions still owned by Adam
 
-Ticket 03 adds `agent_lab/diagnosis/`: runtime-neutral attribution and calls/run,
-fresh-process Kanban/Hermes readers, immutable digest-addressed diagnosis JSON,
-and a minimal line-oriented terminal UI. Ticket 05 adds context/call, token counters/run, cache hit rate and per-task
-worker/auxiliary/review breakdowns, preserving calls-only artifact readability.
-Role/baseline management and the generator/spec/conformance engine remain unimplemented. Ticket 04 replaces live SQLite connections with checked temporary
-DB/WAL copies, adds byte-preservation/admission tests, and provides a local
-symlinked plugin. It does not bypass Hermes' config activation gate.
-Diagnosis JSON does not settle workflow-spec serialization. Budget reservations are
-in-process, not distributed/crash-durable accounting. Parallel callers must
-share the accounting owner and return values rather than mutate a shared holder.
-The event writer uses local filesystem advisory locking; explicit-sequence
-import/replay writes must not be mixed with active runtime writes.
+- Hermes source, configuration, authentication and live application state remain
+  read-only. Outputs go to a caller-named project directory/tool store.
+- Persistent spec serialization and distribution/packaging remain deferred behind
+  the internal-versus-community decision. Naming remains undecided.
+- Whether gated Hermes writes are ever added remains open. Producing a generated
+  artifact does not authorize installing or activating it inside Hermes.
+- UI versus TUI can be chosen later; the core remains the spec/conformance seam.
+- The existing business approval binds run/draft, **not** a spec/bundle pair.
+- Shared accounting is in-process; logging uses local advisory file locks. Do not
+  mix explicit-sequence replay/import appends with active runtime writes.
+- Bindings are trusted deterministic local code, not sandboxed code. State
+  validators/serializers must support deterministic Python round-trip validation.
+- Conformance means structural/behavioral agreement, not semantic correctness,
+  proven savings, production readiness or verified least privilege.
 
-The existing approval semantics still bind run/draft, not a spec/bundle pair.
-No claim of production readiness, cost improvement, or general spec conformance
-is made. Preserve the plain-reference rule and the read-only Hermes boundary.
+## Working-tree care
 
-## Decisions still owned by Adam
+Before this handoff update there were unrelated local edits to `.gitignore`,
+ticket 04, `docs/read-only-ticket04.md`, plus untracked `.ignore`, `AGENTS.md` and
+`opencode.json`. Leave these alone; inspect `git status` before staging.
+`HANDOFF.md` also had local updates to ticket 04's activation/acceptance wording;
+that meaning is preserved above in this explicitly requested handoff refresh.
+Do not use `git add -A` or discard user changes.
 
-- Community vs internal use (deferred); blocks spec format and packaging.
-- Product naming and distribution.
-- Whether gated writes to Hermes are ever added.
+## Historical evidence pointers
 
-Tickets 02, 03 and 05 are resolved. The remaining
-diagnosis dependency order is 03 → {04, 05} → 06. Ticket 04 is authorized but
-not yet accepted. Ticket 07 is accepted and closed;
-ticket 06 is accepted and closed.
-Historical baseline paths remain in `CONTEXT.md`.
-
-## Ticket 08 — accepted and closed
-
-- Adam authorized the in-memory spec/validation scope and public validation test
-  seam, and confirmed review baseline `b90ea2e9154eb1503cd20ce314be6c7be57dd630`.
-- Implementation: `98f555a`; `agent_lab/spec.py` admits the five fixed node types,
-  complete typed routing, explicit forks/joins and bounded cycles. Invalid input
-  returns located typed findings. No execution, serialization or conformance
-  engine was added; no Hermes changes were made.
-- Tests: **67 focused passed**, **238 full-suite passed, 3 optional skips**;
-  mypy: **16 files, zero errors**. Independent parallel review: Standards **0
-  violations**, one optional finding-code typing improvement addressed; Spec **0
-  findings**. See `docs/spec-ticket08.md` for declaration rules and evidence.
-- Adam explicitly accepted and closed ticket 08. Final verification: `abfe1e8`.
-  Compilation and conformance require
-  later, separately authorized tickets. Deferred format/packaging decisions remain
-  deferred. The existing Deps runtime seam and both drivers are unchanged.
+- Foundation promotion: `docs/foundation/README.md` (source lab `ce34093`, repo
+  promotion `cddadc6`; ticket 01 closure `a158632`).
+- Ticket 02: `docs/foundation/parallel-accounting.md` (`7e1d517`, `c492e93`).
+- Ticket 03: `docs/diagnosis-ticket03.md` (`fcfb06c`, `39a2bd2`).
+- Ticket 04: `docs/read-only-ticket04.md` (`6271106` and subsequent explicit
+  acceptance of installation without protected edits; activation remains separate).
+- Ticket 05: `docs/measurement-ticket05.md` (`3106982`, `7abde37`).
+- Ticket 07: `docs/typechecking-ticket07.md` (`2077d7d`, `12db524`).
+- Ticket 06: `docs/report-ticket06.md` (`ea50593`, `c4af4d3`, `f6b9c49`).
+- Ticket 08: `docs/spec-ticket08.md` (`98f555a`, `abfe1e8`; closure `e6c1c9b`).
+- Ticket 09: `docs/reference-ticket09.md` (`cc10740`, `027efa0`).

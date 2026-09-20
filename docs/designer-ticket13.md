@@ -12,8 +12,8 @@ CDN, model credentials or Hermes activation is needed:
 Open the printed **http://127.0.0.1:PORT/** URL (not `localhost`). Optional `--port`
 selects a fixed port. Ctrl-C stops the server. Choose a caller-owned evidence directory
 outside this repository, Hermes home/configuration and Hermes source. Known Hermes
-home and loaded-host source paths are rejected; operators must not select other
-undiscovered Hermes installations. Evidence directories must be trusted local paths,
+home and loaded-host source paths are rejected; use repeatable `--protected-root PATH`
+for additional Hermes installations/source roots. Evidence directories must be trusted local paths,
 not concurrently replaced by another local process.
 
 Select a threshold (10, 50 or 100), a below-threshold terminal and an at-or-above
@@ -33,6 +33,10 @@ remain at the operator-selected root.
 A pass is structural/behavioural agreement for these cases only, not semantic
 correctness, universal conformance or measured savings. This slice does not persist
 a spec or executable bundle, implement approval Gates, or define a public wire format.
+These fresh conformance logs reuse the accepted ticket-10 checking contract; they are
+not published artifact-store versions or approval-bound records. ADR 0009's immutable,
+digest-addressed artifact lifecycle remains deferred to the artifact/Gate slice, not
+claimed by this browser front door.
 
 ## Public seams and safety
 
@@ -64,4 +68,19 @@ including equality; compare real persisted evidence; and exercise validation,
 nonconforming behavior, audit I/O failure and protected roots. HTTP tests prove the
 request-origin and fixed-root boundaries.
 
-Review baseline: `2047f1afe177ab60a993b68a56762689aa35fb0e`.
+## Results and review
+
+- Focused designer coverage: 51 tests, including five real Chromium smoke tests.
+- Full offline suite: **474 passed, 3 expected optional skips** (two live-model tests
+  and the real Hermes loader test).
+- Mypy: **22 source files, zero errors**. Diff checks clean; Graft refreshed.
+- Parallel Standards/Spec review against approved baseline
+  `2047f1afe177ab60a993b68a56762689aa35fb0e`: no outstanding hard Standards or Spec
+  violations. Standards initially questioned non-digest-addressed conformance logs;
+  follow-up withdrew this as the accepted, explicitly bounded ticket-10 contract,
+  not a new artifact-lifecycle claim. Optional duplication/catalog-maintenance smells
+  remain; no broad refactor was introduced.
+- Review prompted repeatable operator `--protected-root` support for additional
+  Hermes installations, checked at startup and per generation/check.
+- No live model calls, Hermes edits or activation. User acceptance/closure remains
+  separate from implementation and verification.

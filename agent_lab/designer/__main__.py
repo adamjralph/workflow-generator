@@ -9,9 +9,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Local offline workflow designer")
     parser.add_argument("--evidence-dir", type=Path, required=True)
     parser.add_argument("--port", type=int, default=0)
+    parser.add_argument("--protected-root", type=Path, action="append", default=[],
+                        help="Additional Hermes installation/source root to protect (repeatable)")
     args = parser.parse_args()
     try:
-        server = create_server(args.evidence_dir, port=args.port)
+        server = create_server(args.evidence_dir, port=args.port,
+                               protected_roots=tuple(args.protected_root))
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     print(f"Open http://127.0.0.1:{server.server_port}/", flush=True)

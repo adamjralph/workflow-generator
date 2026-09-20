@@ -18,9 +18,10 @@ def create_server(
     evidence_dir: Path,
     port: int = 0,
     candidate_factory: Callable[[Design], object] | None = None,
+    *, protected_roots: tuple[Path, ...] = (),
 ) -> HTTPServer:
     """Create a local server with an operator-selected, validated evidence root."""
-    root = validate_evidence_root(evidence_dir)
+    root = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -98,9 +99,10 @@ def create_server(
                 if self.path == "/api/design":
                     result = design.view()
                 elif candidate_factory is None:
-                    result = check_design(raw, evidence_dir=root)
+                    result = check_design(raw, evidence_dir=root, protected_roots=protected_roots)
                 else:
-                    result = check_design(raw, evidence_dir=root, candidate_factory=candidate_factory)
+                    result = check_design(raw, evidence_dir=root, candidate_factory=candidate_factory,
+                                          protected_roots=protected_roots)
                 self.json(200, result)
             except Exception as exc:
                 # Generation, checking and audit errors must never resemble a pass.

@@ -127,6 +127,13 @@ def test_startup_rejects_protected_source_and_symlinks(tmp_path):
             create_server(root)
 
 
+def test_operator_can_protect_an_additional_hermes_installation(tmp_path):
+    installation = tmp_path / "other-installation"
+    with pytest.raises(ValueError, match="outside Hermes"):
+        create_server(installation / "evidence", protected_roots=(installation,))
+    assert not installation.exists()
+
+
 def test_generation_exception_is_visible_json_failure(tmp_path):
     def broken(design):
         raise RuntimeError("deliberate generation failure")

@@ -99,14 +99,15 @@ def generate_candidate(design: Design) -> object:
 
 
 def check_design(raw: object, *, evidence_dir: Path,
-                 candidate_factory: Callable[[Design], object] = generate_candidate) -> dict[str, Any]:
+                 candidate_factory: Callable[[Design], object] = generate_candidate,
+                 protected_roots: tuple[Path, ...] = ()) -> dict[str, Any]:
     """Generate/check fresh evidence; candidate injection is trusted Python only."""
     design = author_design(raw)
-    destination = validate_evidence_root(evidence_dir)
+    destination = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
     candidate = candidate_factory(design)
     report = check_conformance(design.spec, candidate, state_type=design.state_type,
                                bindings=design.bindings, cases=design.cases,
-                               evidence_dir=destination)
+                               evidence_dir=destination, protected_roots=protected_roots)
     return {
         "passed": report.passed, "cases": list(design.cases),
         "completed_cases": list(report.completed),

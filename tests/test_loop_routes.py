@@ -233,13 +233,15 @@ def test_offline_judgment_inside_retry_reproduces_full_evidence(tmp_path):
     assert logs[0] == logs[1]
 
 
-@pytest.mark.parametrize("driver", ["reference", "graph", "check"])
+@pytest.mark.parametrize("driver", ["reference", "graph", "check", "check-candidate"])
 def test_real_audit_failure_stops_before_body(tmp_path, driver):
     calls = []
     def predicate(state):
         calls.append("predicate")
         # Sabotage this run's actual audit destination, not a mocked writer.
         for lock in tmp_path.rglob("*.reference.lock"):
+            if driver == "check-candidate" and "candidate" not in lock.name:
+                continue
             path = lock.with_name(lock.name.removesuffix(".reference.lock"))
             path.mkdir()
         return False
@@ -247,11 +249,13 @@ def test_real_audit_failure_stops_before_body(tmp_path, driver):
     bound = bindings() | {"done?": predicate,
                           "increment": lambda s: calls.append("body")}
     candidate = generate_graph(retry(), state_type=State, bindings=bound).candidate
-    if driver == "check":
-        report = check_conformance(retry(), candidate, state_type=State, bindings=bound,
+    if driver.startswith("check"):
+        report = check_conformance(retry(), candidate, state_type=State,
+                                   bindings=bindings() if driver == "check-candidate" else bound,
                                    cases={"audit": State()}, evidence_dir=tmp_path)
         assert not report.passed and not report.completed
         assert report.findings[0].code == "incomplete"
+        assert report.findings[0].path[-1] == ("candidate" if driver == "check-candidate" else "reference")
     else:
         runnable = (compile_reference(retry(), state_type=State, bindings=bound).plan
                     if driver == "reference" else candidate)

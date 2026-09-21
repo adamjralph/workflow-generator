@@ -44,6 +44,15 @@ and behavioral evidence, not semantic correctness, guaranteed savings or product
 
 ## Decisions-so-far: completed capability
 
+**D1 is settled.** Adam accepted the parallel-wave contract and
+[ADR 0011](../../docs/adr/0011-parallel-waves-are-declared-order-deterministic.md) as
+drafted on 2026-09-22 and selected P13 as the next implementation over the
+`ready-for-agent` browser-designer ticket 13:
+[ticket 28](issues/28-execute-and-check-one-parallel-wave.md). The contract is
+authoritative for wave concurrency, budget admission, reducer/join cost, failure
+selection and evidence semantics. Its §10 records the two items handed forward: P14's
+loop multiplier and the `wave_concurrency` cap value inside the accepted 1-16 range.
+
 Latest acceptance: **ticket 27 is accepted and closed** by Adam ("accept").
 Versioned secret-safe first-header-section shape observations now survive Codex/
 Vertex adapter failures and durable exchanges/receipts without additional reads or
@@ -126,7 +135,7 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 
 | ID | Proposed ticket / independently verifiable delivery | Blocked by | Readiness |
 |---|---|---|---|
-| P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 | Near-term contract draft |
+| P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — ready-for-agent |
 | P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; branch scheduling/counter extension to D1 | Outline; split if too large |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |

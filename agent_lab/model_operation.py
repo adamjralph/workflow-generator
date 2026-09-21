@@ -49,6 +49,25 @@ class ModelResponse(BaseModel):
     auth_requests: int = Field(default=0, ge=0, le=1)
 
 
+class HeaderObservation(BaseModel):
+    """Versioned shape of one rejected, bounded HTTP header section; no raw data."""
+    model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
+    version: Literal[1] = 1
+    section_bytes: int = Field(ge=4, le=65536)
+    field_lines: int = Field(ge=0, le=32766)
+    content_type: bool
+    content_length: bool
+    transfer_encoding: bool
+    content_encoding: bool
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def strict_version(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("Observation version must be an integer")
+        return value
+
+
 class ModelFailure(BaseModel):
     """Sanitized replayable failure identity; never arbitrary exception text."""
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
@@ -62,6 +81,7 @@ class ModelFailure(BaseModel):
                   "unsupported_http_content_encoding", "missing_http_content_type",
                   "empty_http_content_type"]
     provider_status: int | None = Field(default=None, ge=100, le=599)
+    header_observation: HeaderObservation | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ModelSource(Protocol):

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import re
 
+from agent_lab.model_operation import HeaderObservation
+
 # These fields are unused by the adapters and can legitimately occur repeatedly.
 REPEATABLE_METADATA = frozenset({
     "set-cookie", "cache-control", "vary", "warning", "link", "server-timing",
@@ -18,6 +20,17 @@ _TRAILER_METADATA = frozenset({"server-timing", "digest", "content-digest", "rep
 _TOKEN = rb"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
 _QUOTED = rb'"(?:[\t !#-\[\]-~\x80-\xff]|\\[\t !-~\x80-\xff])*"'
 _EXTENSION = re.compile(rb"[ \t]*;[ \t]*" + _TOKEN + rb"(?:[ \t]*=[ \t]*(?:" + _TOKEN + rb"|" + _QUOTED + rb"))?")
+
+
+def observe_headers(raw: bytes) -> HeaderObservation:
+    """Measure only the already-read, bounded first section, without interpreting values."""
+    fields = [line for line in raw.split(b"\r\n")[1:] if line]
+    names = {line.partition(b":")[0].lower() for line in fields if b":" in line}
+    return HeaderObservation(
+        section_bytes=len(raw), field_lines=len(fields),
+        content_type=b"content-type" in names, content_length=b"content-length" in names,
+        transfer_encoding=b"transfer-encoding" in names, content_encoding=b"content-encoding" in names,
+    )
 
 
 def header_field(line: str) -> tuple[str, str]:

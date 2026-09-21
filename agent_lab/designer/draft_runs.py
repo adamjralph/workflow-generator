@@ -161,12 +161,15 @@ class AttemptSource:
             status = "uncertain" if isinstance(exc, TimeoutError) else "failed"
             code = "deadline_exceeded" if isinstance(exc, TimeoutError) else "source_failure"
             provider_status = None
+            header_observation = None
             if isinstance(exc, (CodexError, CodexUncertain, VertexError, VertexUncertain)):
                 code, provider_status = exc.code, exc.provider_status
+                header_observation = exc.header_observation
             self.auth_requests = (exc.auth_requests if isinstance(exc, (VertexError, VertexUncertain))
                                   else None if self.mode == "live" and request.operation == "review_linkedin" else 0)
             self.failure = ModelFailure.model_validate({"status": status, "code": code,
-                                                        "provider_status": provider_status})
+                                                        "provider_status": provider_status,
+                                                        "header_observation": header_observation})
             self.exchange = self.evidence.record({**attempt, "response": None,
                 "failure": self.failure.model_dump(), "auth_requests": self.auth_requests,
                 "elapsed_seconds": time.monotonic() - start})

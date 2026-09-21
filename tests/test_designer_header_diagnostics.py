@@ -42,7 +42,18 @@ def test_wire_rule_survives_run_receipt_duplicate_and_offline_check(
         identity = capture(server)
         http_status, result = post(server, "/api/drafts/run", identity)
         assert http_status == 200 and result["status"] == "failed"
-        assert result["failure"] == {"status": "failed", "code": code, "provider_status": status}
+        assert result["failure"] == {
+            "status": "failed", "code": code, "provider_status": status,
+            "header_observation": {
+                "version": 1, "section_bytes": len(head.replace(b"{mime}", mime)),
+                "field_lines": {"invalid_http_status": 0, "missing_http_content_type": 0,
+                                "duplicate_http_header": 2, "unsupported_http_content_encoding": 2}.get(code, 1),
+                "content_type": code in {"unsupported_http_content_type", "empty_http_content_type",
+                                         "unsupported_http_content_encoding"},
+                "content_length": False, "transfer_encoding": False,
+                "content_encoding": code == "unsupported_http_content_encoding",
+            },
+        }
         assert result["auth_requests"] == (0 if kind == "codex" else 1)
         assert result["review"] is None
         assert (result["result"] is None) == (kind == "codex")

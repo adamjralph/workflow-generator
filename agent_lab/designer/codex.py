@@ -29,8 +29,8 @@ from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any, Literal
 
-from agent_lab.model_operation import ModelRequest, ModelResponse
-from .http_response import REPEATABLE_METADATA, chunk_size, header_field, trailer_field
+from agent_lab.model_operation import HeaderObservation, ModelRequest, ModelResponse
+from .http_response import REPEATABLE_METADATA, chunk_size, header_field, observe_headers, trailer_field
 
 ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 REQUEST_TIMEOUT = 180.0
@@ -64,7 +64,9 @@ class CodexError(ValueError):
     """Sanitized operator-facing failure, never provider text or credentials."""
 
     def __init__(self, message: str = "Codex returned invalid output.", *,
-                 code: str = "invalid_response", provider_status: int | None = None) -> None:
+                 code: str = "invalid_response", provider_status: int | None = None,
+                 header_observation: HeaderObservation | None = None) -> None:
+        self.header_observation = header_observation
         super().__init__(message)
         self.code = code if code in _FAILURE_MESSAGES else "invalid_response"
         self.provider_status = provider_status if type(provider_status) is int else None
@@ -78,7 +80,9 @@ class CodexUncertain(TimeoutError):
     """The remote exchange did not finish; cancellation is not guaranteed."""
 
     def __init__(self, message: str = "Codex exchange incomplete.", *,
-                 code: str = "transport_incomplete", provider_status: int | None = None) -> None:
+                 code: str = "transport_incomplete", provider_status: int | None = None,
+                 header_observation: HeaderObservation | None = None) -> None:
+        self.header_observation = header_observation
         super().__init__(message)
         self.code = code if code in _FAILURE_MESSAGES else "transport_incomplete"
         self.provider_status = provider_status if type(provider_status) is int else None
@@ -138,6 +142,7 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                                                    server_hostname="chatgpt.com", limit=STREAM_LIMIT)
     failure_code = "invalid_http_status"
     status = None
+    observation = None
     try:
         head = {**headers, "Host": "chatgpt.com", "Content-Length": str(len(body)), "Connection": "close"}
         wire = "POST /backend-api/codex/responses HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in head.items()) + "\r\n"
@@ -146,6 +151,7 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         raw = await reader.readuntil(b"\r\n\r\n")
         if len(raw) > STREAM_LIMIT:
             raise CodexError(code="response_limit")
+        observation = observe_headers(raw)
         lines = raw.split(b"\r\n")
         status_line = lines[0].decode("ascii").split(" ", 2)
         if status_line[0] not in ("HTTP/1.0", "HTTP/1.1") or not re.fullmatch(r"[1-5][0-9]{2}", status_line[1]):
@@ -178,6 +184,7 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         failure_code = "unsupported_http_content_encoding"
         if response_headers.get("content-encoding", "identity") != "identity":
             raise ValueError
+        observation = None  # Header acceptance ends this observation boundary.
         failure_code = "invalid_http_framing"
         encoding = response_headers.get("transfer-encoding")
         length = response_headers.get("content-length")
@@ -220,10 +227,12 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         else:
             while chunk := await reader.read(4096):
                 yield chunk
-    except (CodexError, CodexUncertain):
+    except (CodexError, CodexUncertain) as exc:
+        exc.header_observation = observation
         raise
     except (ValueError, IndexError):
-        raise CodexError(code=failure_code, provider_status=status) from None
+        raise CodexError(code=failure_code, provider_status=status,
+                         header_observation=observation) from None
     finally:
         writer.close()
         # Do not wait for a remote TLS close acknowledgement after the deadline.
@@ -500,7 +509,8 @@ class CodexSource:
                 # provider text, traceback, or chained exceptions.
                 kind = CodexUncertain if isinstance(exc, CodexUncertain) else CodexError
                 results.put(kind(_FAILURE_MESSAGES[exc.code], code=exc.code,
-                                 provider_status=exc.provider_status))
+                                 provider_status=exc.provider_status,
+                                 header_observation=exc.header_observation))
             except asyncio.LimitOverrunError:
                 results.put(CodexError(_FAILURE_MESSAGES["response_limit"], code="response_limit"))
             except TimeoutError:

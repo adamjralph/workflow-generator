@@ -291,15 +291,14 @@ def test_cli_rejects_invalid_operator_configuration_before_listening(operator, k
     assert not (evidence / "draft-snapshots").exists()
 
 
-def test_draft_mode_requires_run_identity_and_exposes_no_review_routes(operator) -> None:
+def test_draft_mode_requires_run_and_check_identities_and_exposes_no_load_route(operator) -> None:
     config, folder, evidence = operator
     draft(folder, "old.md")
     with running_server(evidence, draft_config=config) as server:
         headers = credentials(server)
-        for path in ("/api/drafts/run", "/api/drafts/request"):
+        for path in ("/api/drafts/run", "/api/drafts/request", "/api/drafts/check"):
             assert request(server, path, method="POST", headers=headers, body="{}")[0] == 400
-        for path in ("/api/drafts/check", "/api/drafts/load"):
-            assert request(server, path, method="POST", headers=headers, body="{}")[0] == 404
+        assert request(server, "/api/drafts/load", method="POST", headers=headers, body="{}")[0] == 404
     assert not evidence.exists()
 
 

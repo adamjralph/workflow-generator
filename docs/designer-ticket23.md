@@ -58,16 +58,46 @@ including after server restart with different or unavailable live credentials.
   HTTP and is trusted code, not a sandbox. Hashes provide local integrity bindings,
   not signatures or protection against an owner rewriting an entire history.
 
-## Verification in progress
+## Offline verification
 
-Focused new and ticket-22 regression checks: **104 passed**, including real Chromium.
-Mypy: **34 source files clean**. JavaScript syntax and whitespace checks pass.
+Final full offline suite: **1,544 passed, 3 expected skips**, including real Chromium
+and all **72 new ticket-23 tests** (52 replay, 9 HTTP, 11 Chromium). Skips are two
+opt-in live Jev checks and the optional real Hermes plugin-loader check. Console:
+`/tmp/workflow-ticket23-full-suite-final.txt`. Mypy: **34 source files clean**.
+JavaScript syntax and whitespace checks pass; Graft refreshed. No production changes
+followed the final suite. Implementation commit: `7aee160`.
+
+The first full run found one stale capture-era assertion expecting the Check route
+to be absent. It now checks that Run, request creation and Check require identities,
+while the unsupported load route remains absent. The focused capture HTTP file
+passed **43 tests**, then the entire suite was rerun successfully. This test-only
+adjustment followed independent review and changes no production behavior.
+
 Red-first cycles covered the new seam/HTTP/browser action, corrupt or incomplete
-recordings, unused candidate exchanges, a replaced evidence-root symlink and lost
-replay audit writes. Network-denying checks run with original inputs removed and
-reject any file access outside immutable evidence; existing evidence bytes, modes
-and modification times remain unchanged.
+recordings, unused and caught-extra candidate source invocations, a replaced
+evidence-root symlink and lost replay audit writes. Network-denying checks run with
+original inputs removed and reject any file access outside immutable evidence;
+existing evidence bytes, modes and modification times remain unchanged. Earlier
+focused new/ticket-22 regression checks passed 104 tests, before the final caught-extra
+invocation regression was added. The final suite includes that additional regression.
 
-Independent Standards/Spec reviews and final full offline regression are pending.
-No production captures, real credential-content reads or live auth/model calls
+## Standards
+
+Independent review of `101aa2f...7aee160`: **0 documented-standard violations**;
+2 optional duplication heuristics (historical limit encodings and repeated completed-
+pair browser setup). Both remain deliberately deferred. Explicit historical evidence
+shapes and literal test setup are retained rather than expanding this slice into a
+policy-abstraction or test-helper refactor.
+
+## Spec
+
+Independent review: **0 actionable implementation findings or scope creep**; the
+reviewer independently reran all **52 core replay tests** successfully. The pending
+full-regression acceptance gate noted by the reviewer is now satisfied by the final
+suite above. The subsequent stale route assertion update was not independently
+re-reviewed; it changes no production behavior.
+
+**Review summary:** Standards 0 hard / 2 optional heuristics; Spec 0 actionable.
+Ticket 23 is ready for Adam's acceptance, not automatically closed. Parent 19 remains
+open. No production captures, real credential-content reads or live auth/model calls
 were used. Live provider availability and editorial quality remain unverified.

@@ -88,6 +88,27 @@ live source was touched.
 | C12 | Distribution/naming/packaging and gated Hermes writes | ⏳ deferred by Adam's earlier instruction | Leave parked |
 | C13 | Live authorizations | ⏳ all five consumed; no live model call or Hermes write is authorized | Requires fresh explicit permission plus a new private destination |
 
+**Questions to re-present in a fresh session (verbatim, so nothing is re-derived)**
+
+1. **B6 interpretation — confirm or correct:** "closed" means accepting
+   `docs/designer-offline-transport-investigation.md`'s recommendation (do not replace the
+   transport with a plain HTTPX client yet; no further retry/diagnostics ticket on this
+   evidence), not scoping a new lower-level transport/evidence-boundary design.
+2. **B7 item 1 interpretation — confirm or correct:** "accept as drafted" means a selectable
+   draft lacking a usable ISO `date_created` blocks selection rather than being visibly skipped.
+3. **C8 (D3):** approve drafting one non-Intervention Judgment vocabulary example plus its
+   invalid-output behavior (`map.md` Fog D3). Not covered by the A2-B7 approval.
+4. **C9 (D4):** approve inspecting representative read-only registry fixtures and agreeing one
+   role-composition contract (`map.md` Fog D4).
+5. **C10 (D5):** approve a concrete isolated fresh-session permission plan before any live
+   test; no live test is authorized now (`map.md` Fog D5).
+6. **C11 (D7):** approve agreeing one supported Kanban shape with explicit unsupported-shape
+   failures and an independent local checking harness (`map.md` Fog D7).
+7. **C12:** distribution, naming, packaging and gated Hermes writes stay parked unless Adam
+   says otherwise.
+8. **C13:** any live model call or Hermes write needs fresh explicit permission plus a new
+   private destination; all five prior permissions are consumed.
+
 **Next steps for a fresh session**
 
 1. Read ticket 28 for scope and acceptance criteria, then contract §§3-8; both are committed,

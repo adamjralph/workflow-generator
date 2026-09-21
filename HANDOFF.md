@@ -39,14 +39,19 @@ context — handover now, including the table of questions and approvals").
 **No implementation has started**: ticket 28 is `ready-for-agent`, no `agent_lab/` file
 changed, no wave test module exists, and no reviewer has run on an implementation hash.
 Adam also reported that he wanted to approve the earlier A-C decision items but was not
-offered that option; those items are carried forward in the open-decision table below.
-Nothing was pushed, and no Hermes store or live source was touched.
+offered that option, then approved **A2 through B7** on 2026-09-22; those decisions are
+recorded in this commit (contract §10, the `map.md` P13/P14/P17 rows and Fog D1/D2, issue
+19's readiness section, and the table below). Nothing was pushed, and no Hermes store or
+live source was touched.
 
 **Commits (`main`, unpushed)**
 
 - `3f31c61` — Publish P13 parallel-wave contract, ADR 0011 and ticket 28 (documents only:
   contract status flip, ADR front matter, new ticket, `map.md` P13 row and Decisions-so-far).
-- This handoff commit follows it. Earlier bookkeeping commits `63e9b88`, `d1314ca`,
+- The commit carrying this handoff — "Record Adam's 2026-09-22 decisions for A2-B7"
+  (`git log --grep="decisions for A2-B7"`): the open-decision table above, plus
+  contract §10, the `map.md` rows and issue 19's readiness section.
+  Earlier bookkeeping commits `63e9b88`, `d1314ca`,
   `3c42b4f`, `0e12a9a` are detailed in the working-tree cleanup section below; previous HEAD
   was `0e12a9a27cdd22252e9cb73c7b6f057a63e68d50`.
 - `main` is 69 commits ahead of `origin/main` (origin tip is the ticket-02 closure). Adam
@@ -70,18 +75,18 @@ Nothing was pushed, and no Hermes store or live source was touched.
 - No `mypy` run this session; no code changed, so the previous typecheck evidence stands.
 - The `ROADMAP.md` M2 line was not touched because the ticket is not delivered.
 
-**Open decisions Adam owns — none of these is decided**
+**Open decisions Adam owns — status after Adam's 2026-09-22 approval of A2-B7**
 
-| ID | Item | State | What approval would mean |
+| ID | Item | Status | Notes |
 |---|---|---|---|
-| A2 | `wave_concurrency` default/cap | Open: contract §10 accepts range 1-16 and leaves the exact default to implementation (proposed `min(branch_count, 4)`, cap 16) | Pin default 4 / cap 16 as decided rather than implementation-tunable |
-| A3 | P14 loop multiplier | Open: handed forward to P14's contract; `agent_lab/reference.py:127-132` counts the extra `exhausted` visit | Fix `max_iterations + 1` as the wave worst case before P14 is published |
-| B5 | D2 identity/approval lifecycle (P17) | Not drafted | Approve drafting the executable identity plus approval/continuation contract (without reopening the parked public-format question) |
-| B6 | Offline transport / header-root-cause thread | Adam answered "handoff"; nothing decided: close the thread, scope an offline transport/evidence-boundary design, or park until after P13 | Pick one of the three |
-| B7 | Parent ticket 19 readiness | Unapproved: proposed observable contract, public test seams and review baseline `35b9a5d7` await approval; missing-date policy is proposed as "block selection when an otherwise eligible draft lacks a usable `date_created`", tie-break by exact filename ascending | Approve seams and baseline; decide block-versus-skip on a missing date |
-| C8-C11 | D3 Judgment vocabulary example, D4 role composition contract, D5 fresh-session permission test plan, D7 Kanban supported shape | Parked in `map.md` Fog; the parked-contracts question went unanswered | Pick any to draft next |
-| C12 | Distribution/naming/packaging and gated Hermes writes | Deferred by Adam's earlier instruction | Leave parked |
-| C13 | Live authorizations | All five consumed; no live model call or Hermes write is authorized | Requires fresh explicit permission plus a new private destination |
+| A2 | `wave_concurrency` default/cap | ✅ **decided 2026-09-22**: default `min(branch_count, 4)`, maximum 16, range 1-16; contract §10 now records these as fixed rather than implementation-tunable | Implementation must reject out-of-range values before work |
+| A3 | P14 loop multiplier | ✅ **decided 2026-09-22**: a wave's worst case counts `max_iterations + 1` visits per `Loop` node; contract §10 records it | P14's contract must use this multiplier |
+| B5 | D2 identity/approval lifecycle (P17) | ✅ **approved 2026-09-22**: drafting the executable identity plus approval/continuation contract is authorized; the parked format/community question is reopened only if executable identity requires it | Draft it, then re-slice; P17 row updated |
+| B6 | Offline transport / header-root-cause thread | ✅ **closed 2026-09-22** on my reading of the drafted recommendation: no lower-level transport or evidence-boundary design beyond the accepted tickets; `docs/designer-offline-transport-investigation.md` stands as the conclusion | Correct me if "close" was not the intended reading |
+| B7 | Parent ticket 19 readiness | ✅ **approved 2026-09-22**: fail-visible ambiguous/invalid metadata, a missing usable `date_created` blocks selection, ties by exact filename ascending, the six proposed public test seams and baseline `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`. Readiness items 2-3 (ADR 0010, the execution contract, its limits, credential boundary and duplicate handling) were already approved earlier and are unchanged | Issue 19 keeps `needs-info` only for the separately authorized live smoke and Adam's acceptance of the parent |
+| C8-C11 | D3 Judgment vocabulary example, D4 role composition contract, D5 fresh-session permission test plan, D7 Kanban supported shape | ⏳ still open — not covered by the A2-B7 approval and unanswered | Pick any to draft next |
+| C12 | Distribution/naming/packaging and gated Hermes writes | ⏳ deferred by Adam's earlier instruction | Leave parked |
+| C13 | Live authorizations | ⏳ all five consumed; no live model call or Hermes write is authorized | Requires fresh explicit permission plus a new private destination |
 
 **Next steps for a fresh session**
 

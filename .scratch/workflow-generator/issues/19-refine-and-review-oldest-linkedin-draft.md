@@ -238,17 +238,30 @@ No model substitution, live smoke test or protected write is authorized.
 
 1. Adam is adding creation dates. Confirm ambiguous-type policy and tie-break;
    retain fail-visible behavior for any remaining invalid/missing required metadata.
+   **Approved 2026-09-22:** missing/ambiguous classification stays visible rather than
+   guessed; invalid required metadata fails visibly; a selectable draft that lacks a
+   usable ISO `date_created` blocks selection instead of being silently skipped; ties
+   break by exact filename, ascending.
 2. Approve ADR 0010 and the complete execution/replay contract. Provider-limit
    adjustments and in-memory Vertex token acquisition are approved; no autonomous
-   Hermes session or fallback model is authorized.
+   Hermes session or fallback model is authorized. **Already approved** for the
+   ticket 21/22/23 breakdown; the 2026-09-22 decision changes nothing here.
 3. Pin allowed authority files and credential-source configuration, numerical local
    limits and duplicate/uncertain-completion handling. Test adapter enforcement;
-   live auth/model availability remains unverified.
+   live auth/model availability remains unverified. **Already approved** inside the
+   execution contract (approved limits, model and credential boundary, and duplicate
+   submissions and interruption sections); the 2026-09-22 decision changes nothing here.
 4. Approve proposed public test seams and implementation review baseline.
+   **Approved 2026-09-22:** the six proposed seams above and baseline
+   `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`.
+
+**Still missing:** the separately authorized live smoke and Adam's acceptance of this
+parent. The 2026-09-22 approval authorizes no live call, no protected write and no
+Hermes change.
 
 **Proposed review baseline:** `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`.
-This is current HEAD at contract drafting, not yet an approved baseline. Preserve
-all unrelated working-tree edits; ticket 18 acceptance records are still local.
+Approved on 2026-09-22. Preserve all unrelated working-tree edits; ticket 18
+acceptance records are still local.
 
 ## Comments
 

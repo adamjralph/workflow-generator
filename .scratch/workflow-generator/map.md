@@ -53,6 +53,17 @@ authoritative for wave concurrency, budget admission, reducer/join cost, failure
 selection and evidence semantics. Its §10 records the two items handed forward: P14's
 loop multiplier and the `wave_concurrency` cap value inside the accepted 1-16 range.
 
+Adam then approved the remaining decision items ("I'll accept A2 through B7",
+2026-09-22): the `wave_concurrency` values are fixed (`min(branch_count, 4)` default,
+16 maximum, range 1-16), P14's wave worst case counts `max_iterations + 1` visits per
+`Loop` node, drafting the D2 identity/approval lifecycle contract is authorized,
+the offline transport/header-root-cause thread is closed without a lower-level
+transport or evidence-boundary design, and parent ticket 19's readiness decisions 1
+and 4 are approved (fail-visible ambiguous/invalid metadata, a missing usable
+`date_created` blocks selection, ties by exact filename ascending, the six proposed
+public test seams and baseline `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`). D3, D4, D5
+and D7 remain parked.
+
 Latest acceptance: **ticket 27 is accepted and closed** by Adam ("accept").
 Versioned secret-safe first-header-section shape observations now survive Codex/
 Vertex adapter failures and durable exchanges/receipts without additional reads or
@@ -136,10 +147,10 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 | ID | Proposed ticket / independently verifiable delivery | Blocked by | Readiness |
 |---|---|---|---|
 | P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — ready-for-agent |
-| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; branch scheduling/counter extension to D1 | Outline; split if too large |
+| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | Outline; split if too large |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |
-| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 | Near-term design draft; likely sizing pressure |
+| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 (contract drafting approved 2026-09-22) | Near-term design draft; likely sizing pressure |
 | P18 | Gate between parallel waves: approved continuation executes only the remaining wave with preserved budget, state and evidence | P16, P17 | Outline |
 | P19 | Regenerate an executable artifact into a new immutable version, preserve its user layer, re-check it and refuse old approval | P17; marker/conflict contract | Outline |
 | P20 | A caller-declared Judgment vocabulary executes and replays through reference, graph and checking; invalid options fail closed | D3 | Independent design frontier |
@@ -203,11 +214,18 @@ No nested Forks, branch Decision/Loop/Judgment, Gate or resume in this first sli
 - Altered branch order, join/reducer configuration and candidate behavior cannot pass silently.
 - Exact persisted evidence agreement under an approved deterministic scheduling contract.
 
-**Still blocks readiness (D1):** Decide synchronous-binding concurrency mechanism;
-reservation granularity and refusal behavior; reducer cost; failure selection/cancellation;
-canonical event ordering versus actual completion evidence. Earlier suggestions to reserve
-an entire wave and buffer events were proposals, not decisions. Buffering cannot silently
-weaken audit-failure stopping or introduce an unacknowledged durability guarantee.
+**Settled (D1, approved 2026-09-22):** thread-dispatch concurrency bounded by a
+run-level `wave_concurrency` (default `min(branch_count, 4)`, maximum 16, range 1-16);
+one-step reservation granularity with static whole-wave admission
+(`sum(worst(branch)) + 1`, refused before any work); one reducer invocation from the
+join step, charged one step on success and failure; complete-all-then-select with no
+sibling cancellation and first-declared-failure selection; a canonical projection as
+the compared artefact with raw completion order recorded as non-normative. See
+[the contract](../../docs/parallel-wave-contract.md) and
+[ADR 0011](../../docs/adr/0011-parallel-waves-are-declared-order-deterministic.md).
+The earlier suggestions to reserve an entire wave and buffer events were proposals,
+not decisions; buffering still may not weaken audit-failure stopping or introduce an
+unacknowledged durability guarantee.
 
 **Public seam:** authored spec + bindings/reducer + independent candidate + typed cases
 → report and real logs. Keep independent driver control flow and inspect the actual
@@ -248,8 +266,8 @@ waiting for the execution track to finish. They are not `ready-for-agent` today.
 
 | Gate | Decision needed | Owner / proposed next action |
 |---|---|---|
-| D1 | Parallel reducer, scheduling, budget, join and evidence semantics | Adam approves a concrete contract; prototype only if design questions need measurement |
-| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Adam approves lifecycle contract and decides whether to reopen deferred format/community question |
+| D1 | Parallel reducer, scheduling, budget, join and evidence semantics | Settled 2026-09-22: contract accepted ([parallel-wave-contract.md](../../docs/parallel-wave-contract.md)) and published as [ticket 28](issues/28-execute-and-check-one-parallel-wave.md); no measurement prototype was needed |
+| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Settled 2026-09-22: drafting the lifecycle contract is approved; reopen the deferred format/community question only if executable identity requires it |
 | D3 | Typed vocabulary and confidence/probability validation, source compatibility | Propose one non-Intervention example and invalid-output behavior for approval |
 | D4 | Role composition representation, registry compatibility and verification policy | Inspect representative read-only registry fixtures and agree one composition contract |
 | D5 | Fresh-session permission verification without protected writes | Adam authorizes a concrete isolated integration plan; no live test is authorized now |

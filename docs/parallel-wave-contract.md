@@ -397,17 +397,17 @@ Judgment inside branches (P15), model operations inside branches (rejected at
 admission, §7), waves under `Loop` bodies, cross-wave reducers, and any claim that
 a passing wave proves semantic correctness, savings or production readiness.
 
-Two items are explicitly handed forward rather than decided here:
+Both items below were approved by Adam on 2026-09-22 with the contract ("I'll accept
+A2 through B7"), so they are decided rather than handed forward:
 
-- **Loops inside a wave (P14)**: their worst-case rule is P14's own contract
-  decision. The direction is a conservative multiplier over the region cost that
-  counts the extra `exhausted` visit of a `Loop` node: it can be visited up to
-  `max_iterations + 1` times (`agent_lab/reference.py:127-132`), so a multiplier of
-  `max_iterations` alone would under-estimate and re-open the mid-wave denial this
-  contract removes.
-- **The `wave_concurrency` cap value** (proposed 4 by default, 16 maximum) is a
-  bounded-fan-out choice that the implementation may tune within the stated range
-  without re-opening D1; the run-parameter declaration surface and the range are
-  part of the decision.
+- **Loops inside a wave (P14)**: the worst case uses a conservative multiplier over
+  the region cost that counts the extra `exhausted` visit of a `Loop` node — up to
+  `max_iterations + 1` visits (`agent_lab/reference.py:127-132`). P14's contract must
+  use `max_iterations + 1`, not `max_iterations`, which would under-estimate and
+  re-open the mid-wave denial this contract removes.
+- **The `wave_concurrency` cap value**: default `min(branch_count, 4)`, maximum 16,
+  range 1-16. These values are fixed by the decision rather than left to
+  implementation tuning; the run-parameter declaration surface and the range were
+  already part of the decision.
 
 Also out of scope: spec/bundle identity and approval work, which belongs to D2.

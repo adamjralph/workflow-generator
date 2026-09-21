@@ -121,5 +121,33 @@ exercise all editorial verdicts, failure/uncertainty, inert text rendering, attr
 usage, rerun warnings and stale responses. This is fixture evidence, not live model
 availability or a real editorial-quality review.
 
-Focused tests and mypy pass. Independent review and final full-suite results are
-recorded below after completion; no live auth/model calls are part of validation.
+Final full offline suite: **1,472 passed, 3 expected skips**, including real Chromium.
+The skips are two opt-in live Jev checks and the optional real Hermes plugin-loader
+check. Console: `/tmp/workflow-ticket22-full-suite-final.txt`. Mypy: **33 source
+files, no issues**. JavaScript syntax and diff whitespace checks pass. Graft was
+refreshed. No production changes followed the final suite.
+
+The first full run found one stale ticket-21 Chromium assertion about the old
+one-Generator policy. Updating it to assert the two-attempt, one-per-role policy
+passed the focused browser file (14 tests), then the entire suite was rerun above.
+No live authentication/model calls or real credential-content reads were used in
+implementation tests.
+
+## Standards
+
+Independent review of `538c101...7695153`: **0 documented-standard violations**.
+Three optional maintainability heuristics remain deliberately deferred: duplicated
+exception sanitization, duplicated JSON duplicate-key rejection, and operation
+identity/version/schema data repeated across metadata and declarations. These are
+not correctness findings; provider-specific validation and legacy execution remain
+explicit. Future cleanup should preserve those boundaries.
+
+## Spec
+
+Independent review: **0 actionable findings**, with 141 focused offline checks
+rerun independently across drivers, adapters, HTTP and Chromium. The final policy
+assertion update changes no production behavior. Acceptance remains Adam's decision;
+live availability is unverified and completed-pair replay remains ticket 23.
+
+**Review summary:** Standards 0 hard / 3 optional heuristics (duplication and metadata
+maintenance); Spec 0 actionable. Implementation commit: `7695153`.

@@ -13,6 +13,7 @@ from agent_lab.designer.custom import run_request
 from agent_lab.designer.drafts import DraftSource
 from agent_lab.designer.draft_runs import DraftRuns
 from agent_lab.designer.codex import CodexSource
+from agent_lab.designer.vertex import VertexSource
 from agent_lab.model_operation import ModelSource
 from agent_lab.designer.source import ControlledSource
 from agent_lab.designer.triage import TriageRequest, author_triage
@@ -42,6 +43,8 @@ def create_server(
     *, protected_roots: tuple[Path, ...] = (), source_file: Path | None = None,
     draft_config: Path | None = None,
     codex_auth_file: Path | None = None, draft_model_source: ModelSource | None = None,
+    guardian_model_source: ModelSource | None = None, vertex_auth_file: Path | None = None,
+    vertex_project: str = "project-54e16fcb-7c62-4041-bb1", vertex_region: str = "global",
 ) -> HTTPServer:
     """Create a local server with operator-selected sources and evidence root."""
     root = validate_evidence_root(evidence_dir, protected_roots=protected_roots)
@@ -53,7 +56,12 @@ def create_server(
                       draft_model_source if draft_model_source is not None else
                       CodexSource(codex_auth_file if codex_auth_file is not None else
                                   Path.home() / ".hermes" / "auth.json"),
-                      protected_roots=protected_roots) if drafts is not None else None)
+                      protected_roots=protected_roots,
+                      guardian_source=(guardian_model_source if guardian_model_source is not None else
+                          VertexSource(vertex_auth_file if vertex_auth_file is not None else
+                                       Path.home() / ".config/gcloud/application_default_credentials.json",
+                                       vertex_project, vertex_region)
+                          if draft_model_source is None else None)) if drafts is not None else None)
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -188,7 +196,8 @@ def create_server(
                     if result.get("succeeded"):
                         assert runs is not None
                         issued = runs.create_request(result["snapshot"])
-                        result.update({key: issued[key] for key in ("run_request", "status")})
+                        result.update({key: issued[key] for key in ("run_request", "status", "previously_attempted")})
+                        result["execution_options"] = issued.get("execution_options")
                 elif self.path == "/api/drafts/request":
                     assert runs is not None
                     result = runs.create_request(raw["snapshot"])

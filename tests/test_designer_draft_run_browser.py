@@ -37,7 +37,7 @@ def test_explicit_generator_run_inert_output_usage_and_warned_new_run(page, tmp_
         capture_draft(page)
         assert not source.requests
         expect(page.locator("#check")).not_to_be_visible()
-        page.get_by_role("button", name="Run Signal Generator", exact=True).click()
+        page.get_by_role("button", name="Run Generator + Guardian", exact=True).click()
         expect(page.locator("#draft-run-status")).to_contain_text("Not reviewed")
         assert POST in page.locator("#draft-run-result").text_content()
         expect(page.locator("#draft-run-result")).to_contain_text('"input_tokens": 17')
@@ -71,7 +71,7 @@ def test_recapture_warns_after_attempt_but_never_runs_automatically(page, tmp_pa
         expect(page.locator("#draft-run-status")).to_contain_text("Not reviewed")
         capture_draft(page)
         expect(page.locator("#draft-status")).to_contain_text("already run")
-        expect(page.locator("#draft-status")).to_contain_text("another model call")
+        expect(page.locator("#draft-status")).to_contain_text("two more generation attempts")
         assert len(source.requests) == 1
         selected.write_bytes(selected.read_bytes() + b"Changed body.\n")
         capture_draft(page)

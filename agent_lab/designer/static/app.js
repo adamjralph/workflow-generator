@@ -406,10 +406,15 @@ byId("draft-capture-button").addEventListener("click", async () => {
       text(details, "pre", item.text);
     }
     text(container, "p", `Instruction version: ${result.instruction_version}`);
+    if (result.execution_options) {
+      text(container, "h3", "Pinned operation versions, execution options and local bounds");
+      text(container, "pre", JSON.stringify(result.execution_options, null, 2));
+      text(container, "p", "Vertex authentication may send one separate network request. No retries, saved tokens, remote cancellation guarantee or monetary cap.");
+    }
     text(container, "pre", `Private capture evidence: ${result.evidence.join("\n")}`);
     byId("draft-status").textContent = "Captured input ready to inspect. Source, guidance or model changes require explicit recapture. " +
-      (attemptedDraftSnapshots.has(draftSnapshot)
-        ? "Warning: this capture was already run or attempted in this page. This new request may incur another model call; previous work is not cancelled. Explicit Run required. Not reviewed."
+      (result.previously_attempted || attemptedDraftSnapshots.has(draftSnapshot)
+        ? "Warning: this capture was already run or attempted. This new request may incur two more generation attempts; previous work is not cancelled. Explicit Run required."
         : "Not run or reviewed.");
   } catch (error) {
     if (current !== draftCaptureRevision) return;
@@ -423,23 +428,51 @@ byId("draft-run").addEventListener("click", async () => {
   byId("draft-run").disabled = true;
   byId("draft-new-request").disabled = true;
   byId("draft-run-result").replaceChildren();
-  byId("draft-run-status").textContent = "Running — at most one Generator call; not reviewed.";
+  byId("draft-run-status").textContent = "Running — at most two generation attempts, one per role; no retries or revisions.";
   try {
     const result = await api("/api/drafts/run", {snapshot: draftSnapshot, run_request: draftRunRequest});
     if (current !== draftRunRevision) return;
-    const labels = {not_reviewed: "Not reviewed", blocked: "Blocked", failed: "Failed", uncertain: "Uncertain", running: "Running"};
-    byId("draft-run-status").textContent = `${labels[result.status] || "Failed"} — no Guardian review or publication permission.`;
+    const labels = {completed: "Completed", not_reviewed: "Not reviewed (legacy Generator-only run)", blocked: "Blocked before Guardian review", failed: "Failed", uncertain: "Uncertain", running: "Running"};
+    byId("draft-run-status").textContent = `${labels[result.status] || "Failed"} — no publication permission.`;
     const container = byId("draft-run-result");
     if (result.result) {
+      text(container, "h3", "Generator result — exact submitted copy");
       for (const key of ["post", "reader", "one_point", "support", "limitations", "blocked_reason"]) {
         text(container, "h3", key);
         text(container, "pre", typeof result.result[key] === "string" ? result.result[key] : JSON.stringify(result.result[key], null, 2));
       }
     }
+    if (result.draft_digest) text(container, "p", `Draft digest (SHA-256): ${result.draft_digest}`);
+    if (result.review) {
+      const review = result.review;
+      text(container, "h3", `Guardian review — ${review.verdict}`);
+      text(container, "p", `Reviewed draft digest: ${review.draft_digest}`);
+      text(container, "p", `Scope: ${review.scope}. ${review.image_consistency}`);
+      for (const finding of review.findings) {
+        const row = text(container, "article", "");
+        text(row, "h4", `${finding.criterion} — ${finding.status}`);
+        text(row, "p", finding.detail);
+        if (finding.excerpt !== null) text(row, "pre", finding.excerpt);
+        for (const reference of finding.references) {
+          text(row, "p", `Source: ${reference.source}`);
+          text(row, "pre", reference.quote);
+        }
+      }
+      for (const [key, label] of [["required_fixes", "Required fixes"], ["optional_preferences", "Optional preferences"]]) {
+        text(container, "h3", label);
+        if (!review[key].length) text(container, "p", "None.");
+        for (const item of review[key]) text(container, "p", item);
+      }
+    } else {
+      text(container, "p", "No valid Guardian review. Generator output alone is not editorial approval.");
+    }
+    text(container, "h3", "Captured model and operation version attribution");
+    text(container, "pre", JSON.stringify(result.attribution ?? [], null, 2));
     text(container, "p", result.message || "");
     if (result.failure) text(container, "pre", JSON.stringify(result.failure, null, 2));
     text(container, "h3", "Usage (unknown is not zero)");
-    text(container, "pre", JSON.stringify(result.usage, null, 2));
+    text(container, "pre", JSON.stringify(result.role_usage ?? result.usage ?? null, null, 2));
+    text(container, "p", `Workflow steps: ${result.used_steps ?? "unknown"}; generation attempts: ${result.generation_attempts ?? "unknown"}; authentication network requests (separate): ${result.auth_requests ?? "unknown"}.`);
     text(container, "pre", `Private evidence: ${JSON.stringify(result.evidence, null, 2)}`);
     // Re-submit this identity only to inspect an active result, never to create a new call.
     byId("draft-run").disabled = result.status !== "running";
@@ -453,7 +486,7 @@ byId("draft-run").addEventListener("click", async () => {
 });
 byId("draft-new-request").addEventListener("click", async () => {
   if (!isDraftCapture() || !draftSnapshot || byId("draft-new-request").disabled) return;
-  if (!window.confirm("Request another run on the same capture? This may incur another model call. Previous uncertain work is not cancelled.")) return;
+  if (!window.confirm("Request another run on the same capture? This may incur two more generation attempts, one per role, with no retries or revisions. Previous uncertain work is not cancelled.")) return;
   const current = ++draftRunRevision;
   byId("draft-run").disabled = true;
   byId("draft-new-request").disabled = true;

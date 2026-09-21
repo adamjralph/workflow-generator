@@ -45,6 +45,8 @@ class ModelResponse(BaseModel):
     cache_read_tokens: int | None = Field(default=None, ge=0)
     provider_request_id: str | None = None
     resolved_model: str | None = None
+    # OAuth traffic is separate from model-generation usage, including unknown usage.
+    auth_requests: int = Field(default=0, ge=0, le=1)
 
 
 class ModelFailure(BaseModel):

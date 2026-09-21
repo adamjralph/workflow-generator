@@ -12,6 +12,7 @@ let draftsAvailable = false;
 let draftSnapshot = null;
 let draftRunRequest = null;
 let draftRunRevision = 0;
+let draftCheckRevision = 0;
 let designReady = false;
 let nextId = 1;
 const scoreDefault = {nodes: [
@@ -360,7 +361,14 @@ fetch("/api/source").then(async response => {
 });
 // Keep attempted captures across mode changes/recaptures, including lost responses.
 const attemptedDraftSnapshots = new Set();
+function clearDraftCheck() {
+  ++draftCheckRevision;
+  byId("draft-check").disabled = true;
+  byId("draft-check-result").replaceChildren();
+  byId("draft-check-status").textContent = "Not checked; previous display invalidated.";
+}
 function clearDraftCapture() {
+  clearDraftCheck();
   ++draftCaptureRevision;
   ++draftRunRevision;
   draftSnapshot = null;
@@ -424,6 +432,7 @@ byId("draft-capture-button").addEventListener("click", async () => {
 byId("draft-run").addEventListener("click", async () => {
   if (!isDraftCapture() || !draftSnapshot || !draftRunRequest || byId("draft-run").disabled) return;
   const current = ++draftRunRevision;
+  clearDraftCheck();
   attemptedDraftSnapshots.add(draftSnapshot);
   byId("draft-run").disabled = true;
   byId("draft-new-request").disabled = true;
@@ -477,6 +486,7 @@ byId("draft-run").addEventListener("click", async () => {
     // Re-submit this identity only to inspect an active result, never to create a new call.
     byId("draft-run").disabled = result.status !== "running";
     byId("draft-new-request").disabled = result.status === "running";
+    byId("draft-check").disabled = result.status !== "completed";
   } catch (error) {
     if (current !== draftRunRevision) return;
     byId("draft-run-status").textContent = "Uncertain — response unavailable. Inspect evidence; the call may have completed. No automatic retry.";
@@ -488,6 +498,7 @@ byId("draft-new-request").addEventListener("click", async () => {
   if (!isDraftCapture() || !draftSnapshot || byId("draft-new-request").disabled) return;
   if (!window.confirm("Request another run on the same capture? This may incur two more generation attempts, one per role, with no retries or revisions. Previous uncertain work is not cancelled.")) return;
   const current = ++draftRunRevision;
+  clearDraftCheck();
   byId("draft-run").disabled = true;
   byId("draft-new-request").disabled = true;
   try {
@@ -501,6 +512,40 @@ byId("draft-new-request").addEventListener("click", async () => {
     if (current !== draftRunRevision) return;
     byId("draft-run-status").textContent = "Failed to create a new request; no run started.";
     byId("draft-new-request").disabled = false;
+  }
+});
+byId("draft-check").addEventListener("click", async () => {
+  if (!isDraftCapture() || !draftSnapshot || !draftRunRequest || byId("draft-check").disabled) return;
+  const current = ++draftCheckRevision;
+  byId("draft-check").disabled = true;
+  byId("draft-check-result").replaceChildren();
+  byId("draft-check-status").textContent = "Checking completed pair offline…";
+  try {
+    const result = await api("/api/drafts/check", {snapshot: draftSnapshot, run_request: draftRunRequest});
+    if (current !== draftCheckRevision) return;
+    const container = byId("draft-check-result");
+    text(container, "p", result.message);
+    text(container, "p", `Snapshot: ${result.snapshot} · Run request: ${result.run_request}`);
+    if (result.receipt_digest) text(container, "p", `Receipt digest: ${result.receipt_digest}`);
+    text(container, "p", `Model calls: ${result.model_calls}; authentication requests: ${result.auth_requests}.`);
+    text(container, "h4", "Historical usage — not new or rebilled calls (unknown remains unknown)");
+    text(container, "pre", JSON.stringify(result.historical_usage, null, 2));
+    for (const finding of result.findings) text(container, "p", `${finding.code}: ${finding.message}`);
+    for (const output of result.outputs || []) {
+      text(container, "p", `${output.name}: ${output.terminal}; steps: ${output.used_steps}`);
+      text(container, "pre", JSON.stringify(output.route, null, 2));
+    }
+    text(container, "h4", "Fresh independent reference / candidate evidence");
+    text(container, "pre", JSON.stringify(result.evidence, null, 2));
+    text(container, "p", `Check receipt: ${result.check_receipt}`);
+    byId("draft-check-status").textContent = result.passed
+      ? "Passed — this recorded case only; Guardian verdict unchanged."
+      : "Failed — no conformance established; Guardian verdict unchanged.";
+  } catch (error) {
+    if (current !== draftCheckRevision) return;
+    byId("draft-check-status").textContent = "Failed — check response unavailable; no conformance established. No model calls were requested.";
+  } finally {
+    if (current === draftCheckRevision) byId("draft-check").disabled = false;
   }
 });
 fetch("/api/drafts").then(async response => {

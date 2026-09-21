@@ -16,7 +16,7 @@
 <p>Changing mode starts its default design and clears previous results.</p>
 <section id="draft-capture" aria-labelledby="draft-heading" hidden>
 <h2 id="draft-heading">Capture the oldest unprocessed draft</h2>
-<p id="draft-policy">Capture makes no model calls. Explicit Run permits at most two generation attempts, one Generator and one independent Guardian review, with no retries or revisions. Authentication network requests are counted separately. Guardian reviews the exact copy only; image consistency is not reviewed. All valid editorial verdicts complete the pair, including Changes requested and Blocked. No verdict grants publication permission. No conformance check, publication or scheduling occurs. Local time and response bounds do not guarantee remote cancellation or capped spend; usage may be unknown. Capturing does not authorize public use of private material.</p>
+<p id="draft-policy">Capture makes no model calls. Explicit Run permits at most two generation attempts, one Generator and one independent Guardian review, with no retries or revisions. Authentication network requests are counted separately. Guardian reviews the exact copy only; image consistency is not reviewed. All valid editorial verdicts complete the pair, including Changes requested and Blocked. No verdict grants publication permission. Check replays a completed pair offline for case-scoped conformance, without a new review or model/auth calls. No publication or scheduling occurs. Local time and response bounds do not guarantee remote cancellation or capped spend; usage may be unknown. Capturing does not authorize public use of private material.</p>
 <p>Top-level Markdown drafts only, ordered by date_created then exact filename. Public copy bank is excluded. Invalid required metadata blocks selection. Inbox and published folders are not scanned. Sources, processing flags and Hermes remain unchanged.</p>
 <p id="draft-availability" role="status">Loading draft availability…</p>
 <button id="draft-capture-button" type="button" disabled>Capture / recapture draft</button>
@@ -27,6 +27,10 @@
 <p>Another run may use the same oldest draft and incur another call. No source processing flags change. Recapture or changing mode clears display only; it does not cancel an in-flight call.</p>
 <p id="draft-run-status" role="status" aria-live="polite">Not run.</p>
 <div id="draft-run-result" aria-live="polite"></div>
+<h3>Completed-pair offline conformance</h3>
+<button id="draft-check" type="button" disabled>Check completed pair (offline)</button>
+<p id="draft-check-status" role="status" aria-live="polite">Not checked.</p>
+<div id="draft-check-result" aria-live="polite"></div>
 </section>
 <div id="offline-workflow">
 <form id="questions">

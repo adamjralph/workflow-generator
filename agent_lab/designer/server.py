@@ -12,6 +12,7 @@ from agent_lab.designer import Design, author_design, check_design, validate_evi
 from agent_lab.designer.custom import run_request
 from agent_lab.designer.drafts import DraftSource
 from agent_lab.designer.draft_runs import DraftRuns
+from agent_lab.designer.draft_checks import DraftChecks
 from agent_lab.designer.codex import CodexSource
 from agent_lab.designer.vertex import VertexSource
 from agent_lab.model_operation import ModelSource
@@ -62,6 +63,7 @@ def create_server(
                                        Path.home() / ".config/gcloud/application_default_credentials.json",
                                        vertex_project, vertex_region)
                           if draft_model_source is None else None)) if drafts is not None else None)
+    checks = DraftChecks(drafts, root, protected_roots) if drafts is not None else None
     token = secrets.token_urlsafe(32)
 
     class Handler(BaseHTTPRequestHandler):
@@ -135,7 +137,7 @@ def create_server(
                 return
             if self.path not in ("/api/design", "/api/check", "/api/run", "/api/source/capture",
                                  "/api/source/run", "/api/source/check", "/api/drafts/capture",
-                                 "/api/drafts/request", "/api/drafts/run"):
+                                 "/api/drafts/request", "/api/drafts/run", "/api/drafts/check"):
                 self.error(404, "Unknown path")
                 return
             if self.headers.get_all("Content-Type") != ["application/json"]:
@@ -157,7 +159,7 @@ def create_server(
                         raise ValueError("No draft capture configured")
                     if not isinstance(raw, dict) or raw:
                         raise ValueError("Draft capture requires an empty object")
-                elif self.path in ("/api/drafts/request", "/api/drafts/run"):
+                elif self.path in ("/api/drafts/request", "/api/drafts/run", "/api/drafts/check"):
                     keys = ({"snapshot"} if self.path == "/api/drafts/request" else
                             {"snapshot", "run_request"})
                     if runs is None or not isinstance(raw, dict) or raw.keys() != keys:
@@ -204,6 +206,9 @@ def create_server(
                 elif self.path == "/api/drafts/run":
                     assert runs is not None
                     result = runs.run(raw["snapshot"], raw["run_request"])
+                elif self.path == "/api/drafts/check":
+                    assert checks is not None
+                    result = checks.check(raw["snapshot"], raw["run_request"])
                 elif self.path.startswith("/api/source/"):
                     assert source is not None
                     if self.path == "/api/source/capture":

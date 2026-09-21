@@ -15,7 +15,8 @@ from tests.test_designer_server import running_server
 DIAGNOSTIC_CODES = ("invalid_request", "invalid_http_headers", "invalid_http_framing",
                     "invalid_auth_response", "invalid_response_body", "invalid_http_status",
                     "invalid_http_header", "duplicate_http_header", "unsupported_http_content_type",
-                    "unsupported_http_content_encoding")
+                    "unsupported_http_content_encoding", "missing_http_content_type",
+                    "empty_http_content_type")
 
 
 def diagnostic_guardian(tmp_path, code):

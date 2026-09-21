@@ -49,6 +49,8 @@ _FAILURE_MESSAGES = {
     "invalid_http_status": "Codex HTTP response status syntax is invalid.",
     "invalid_http_header": "Codex HTTP response header syntax is invalid.",
     "unsupported_http_content_type": "Codex HTTP response content type is unsupported or missing.",
+    "missing_http_content_type": "Codex HTTP response content type is missing.",
+    "empty_http_content_type": "Codex HTTP response content type is empty.",
     "unsupported_http_content_encoding": "Codex HTTP response content encoding is unsupported.",
     "duplicate_http_header": "Codex HTTP response contains a rejected duplicate header.",
     "invalid_http_framing": "Codex HTTP response framing is invalid.",
@@ -164,8 +166,14 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                     failure_code = "duplicate_http_header"
                     raise ValueError
                 response_headers[key] = value.strip()
+        failure_code = "missing_http_content_type"
+        if "content-type" not in response_headers:
+            raise ValueError
+        failure_code = "empty_http_content_type"
+        if not response_headers["content-type"]:
+            raise ValueError
         failure_code = "unsupported_http_content_type"
-        if response_headers.get("content-type", "").split(";")[0].strip() != "text/event-stream":
+        if response_headers["content-type"].split(";")[0].strip().lower() != "text/event-stream":
             raise ValueError
         failure_code = "unsupported_http_content_encoding"
         if response_headers.get("content-encoding", "identity") != "identity":

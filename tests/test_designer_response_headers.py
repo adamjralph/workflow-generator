@@ -62,6 +62,29 @@ def http_responses(monkeypatch, kind, extra="", *, target="generation", body=Non
     return calls
 
 
+@pytest.mark.parametrize("kind,target,mime", [
+    ("codex", "generation", "Text/Event-Stream"),
+    ("vertex", "generation", "Application/JSON"),
+    ("vertex", "oauth", "Application/JSON"),
+])
+@pytest.mark.parametrize("case", ["mixed", "upper", "lower"])
+@pytest.mark.parametrize("suffix", ["", "; charset=utf-8", '; charset="utf-8"',
+                                    "; Charset=UTF-8", "; PRIVATE_PARAMETER",
+                                    '; charset="PRIVATE_PARAMETER'])
+def test_expected_media_type_is_case_insensitive(tmp_path, monkeypatch, kind, target, mime, case, suffix):
+    source, request = provider(tmp_path, kind)
+    before = (tmp_path / "auth.json").read_bytes()
+    value = {"mixed": mime, "upper": mime.upper(), "lower": mime.lower()}[case]
+    value = "\t " + value + " \t" + suffix
+    head = f"HTTP/1.1 200 OK\r\nContent-Type: {value}\r\n\r\n".encode()
+    calls = http_responses(monkeypatch, kind, target=target, response_head=head)
+    result = source.invoke(request)
+    assert result.body == (" Exact text\n" if kind == "codex" else '{"verdict":"Approved"}')
+    assert "PRIVATE_" not in result.model_dump_json()
+    assert len(calls) == (1 if kind == "codex" else 2)
+    assert (tmp_path / "auth.json").read_bytes() == before
+
+
 @pytest.mark.parametrize("kind,target", [("codex", "generation"), ("vertex", "generation"), ("vertex", "oauth")])
 @pytest.mark.parametrize("header", ["Set-Cookie", "Cache-Control", "Vary", "Warning", "Link", "Server-Timing", "Via", "Allow", "Accept-Ranges",
                                     "Content-Language", "Pragma", "Accept-Patch", "Accept-Post", "Alt-Svc", "Preference-Applied"])
@@ -114,8 +137,25 @@ def test_invalid_headers_have_sanitized_rule(tmp_path, monkeypatch, kind, target
     (b"HTTP/1.1 999 PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
     (b"HTTP/1.1 2x0 PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
     (b"HTTP/1.1 200 PRIVATE_STATUS\xff\r\n\r\n", "invalid_http_status", None),
-    (b"HTTP/1.1 200 OK\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\n\r\n", "missing_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type:\r\n\r\n", "empty_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: \t \r\n\r\n", "empty_http_content_type", 200),
     (b"HTTP/1.1 200 OK\r\nContent-Type: PRIVATE_MIME\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: {other_mime}\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: ; charset=utf-8\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}, {mime}\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: text / event-stream\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: application / json\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type:\r\ncontent-type: {mime}\r\n\r\n", "duplicate_http_header", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type:\r\nPRIVATE_HEADER\r\n\r\n", "invalid_http_header", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Encoding: PRIVATE_ENCODING\r\n\r\n", "missing_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type:\r\nContent-Encoding: PRIVATE_ENCODING\r\n\r\n",
+     "empty_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Length: PRIVATE_LENGTH\r\n\r\n", "missing_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type:\r\nContent-Length: PRIVATE_LENGTH\r\n\r\n",
+     "empty_http_content_type", 200),
+    (b"HTTP/1.1 403 PRIVATE_STATUS\r\nContent-Type:\r\n\r\n", "provider_rejected", 403),
     (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Encoding: PRIVATE_ENCODING\r\n\r\n",
      "unsupported_http_content_encoding", 200),
     (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Encoding:\r\n\r\n",
@@ -123,12 +163,16 @@ def test_invalid_headers_have_sanitized_rule(tmp_path, monkeypatch, kind, target
 ])
 def test_status_and_representation_rules_are_distinct(tmp_path, monkeypatch, kind, target, head, code, status):
     source, request = provider(tmp_path, kind)
+    before = (tmp_path / "auth.json").read_bytes()
     mime = b"text/event-stream" if kind == "codex" else b"application/json"
-    calls = http_responses(monkeypatch, kind, target=target, response_head=head.replace(b"{mime}", mime))
+    other_mime = b"application/json" if kind == "codex" else b"text/event-stream"
+    head = head.replace(b"{mime}", mime).replace(b"{other_mime}", other_mime)
+    calls = http_responses(monkeypatch, kind, target=target, response_head=head)
     with pytest.raises((CodexError, VertexError)) as caught:
         source.invoke(request)
     assert caught.value.code == code
     assert caught.value.provider_status == status
+    assert (tmp_path / "auth.json").read_bytes() == before
     assert "PRIVATE_" not in str(caught.value)
     assert caught.value.__context__ is None
     assert len(calls) == (2 if kind == "vertex" and target == "generation" else 1)

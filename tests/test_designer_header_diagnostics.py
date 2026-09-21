@@ -18,6 +18,8 @@ from tests.test_designer_server import running_server
     (b"HTTP/1.1 200 OK\r\nX-Private: PRIVATE_VALUE\r\nx-private: PRIVATE_COOKIE\r\n\r\n",
      "duplicate_http_header", 200),
     (b"HTTP/1.1 200 OK\r\nContent-Type: PRIVATE_MIME\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\n\r\n", "missing_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: \t\r\n\r\n", "empty_http_content_type", 200),
     (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Encoding: PRIVATE_ENCODING\r\n\r\n",
      "unsupported_http_content_encoding", 200),
 ])

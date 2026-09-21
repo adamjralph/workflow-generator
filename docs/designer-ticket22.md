@@ -1,5 +1,8 @@
 # Ticket 22 — independent Signal Guardian review
 
+**Accepted and closed:** Adam explicitly accepted ticket 22 ("accept 22").
+This does not authorize live smoke or implementation of ticket 23.
+
 Implementation of the [ticket-22 scope](../.scratch/workflow-generator/issues/22-independently-review-exact-linkedin-draft.md),
 not ticket 23's completed-pair replay or parent-ticket acceptance.
 
@@ -11,7 +14,7 @@ He then explicitly approved pinning the existing authorized-user credential file
 `~/.config/gcloud/application_default_credentials.json`. This is Google's credential
 file used by Hermes's Guardian, **not** `~/.hermes/auth.json`.
 In-memory token acquisition was already approved; no live smoke is authorized.
-Acceptance remains Adam's decision.
+Adam subsequently accepted this ticket on the offline evidence.
 
 ## Operator use
 
@@ -146,7 +149,7 @@ explicit. Future cleanup should preserve those boundaries.
 
 Independent review: **0 actionable findings**, with 141 focused offline checks
 rerun independently across drivers, adapters, HTTP and Chromium. The final policy
-assertion update changes no production behavior. Acceptance remains Adam's decision;
+assertion update changes no production behavior. Adam accepted this ticket;
 live availability is unverified and completed-pair replay remains ticket 23.
 
 **Review summary:** Standards 0 hard / 3 optional heuristics (duplication and metadata

@@ -1,10 +1,12 @@
 # Ticket 23 — completed-pair offline conformance
 
 Implementation of [ticket 23](../.scratch/workflow-generator/issues/23-check-completed-workflow-through-offline-replay.md).
+**Accepted and closed:** Adam explicitly accepted ticket 23 ("accept").
+
 Adam approved implementation, public replay/HTTP/Chromium/network-denying seams and
 review baseline `101aa2f21075e89f4c878923ad8e543e7900a9fb`. ADR 0010 and the ticket-19
-execution/replay contract remain authoritative. Acceptance remains Adam's decision;
-this does not close parent 19 or authorize a live smoke.
+execution/replay contract remain authoritative. Ticket-23 acceptance does not close
+parent 19 or authorize a live smoke.
 
 ## Operator use
 
@@ -98,6 +100,5 @@ suite above. The subsequent stale route assertion update was not independently
 re-reviewed; it changes no production behavior.
 
 **Review summary:** Standards 0 hard / 2 optional heuristics; Spec 0 actionable.
-Ticket 23 is ready for Adam's acceptance, not automatically closed. Parent 19 remains
-open. No production captures, real credential-content reads or live auth/model calls
+Adam accepted ticket 23; this slice is closed. Parent 19 remains open. No production captures, real credential-content reads or live auth/model calls
 were used. Live provider availability and editorial quality remain unverified.

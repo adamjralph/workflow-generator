@@ -6,7 +6,7 @@
 
 **Blocked by:** 22: Independently review the exact draft with Signal Guardian.
 
-**Status:** claimed
+**Status:** resolved
 
 ## Readiness
 
@@ -39,9 +39,9 @@ its identity-boundary assertion was updated, its 43-test file passed, then the f
 suite passed. No production changes followed the final suite. No live auth/model
 calls, real credential-content reads or production captures occurred.
 
-Implementation and verification are complete; **awaiting Adam's acceptance**.
-The ticket remains claimed, not resolved. This does not close parent 19 or authorize
-a live smoke, publication, source processing or general resume.
+**Accepted and closed:** Adam explicitly accepted ticket 23 ("accept") after
+implementation and verification. This does not close parent 19 or authorize a live
+smoke, publication, source processing or general resume.
 
 ## Scope boundary
 

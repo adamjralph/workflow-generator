@@ -1,5 +1,7 @@
 # Ticket 16 — custom support-request runs
 
+**Status:** accepted and closed by Adam ("accept"). Implementation: `0b87473`.
+
 Review baseline: `eabde12de4cda2c8e2040e6b568902ff75c608d7` (implementation starting HEAD).
 Scope: `.scratch/workflow-generator/issues/16-try-custom-support-requests.md`.
 

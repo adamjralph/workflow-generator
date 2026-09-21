@@ -1,6 +1,7 @@
 # Ticket 18 — controlled read-only source snapshots
 
-Implemented on `main` in `fce3a59`; awaiting user acceptance.
+Implemented on `main` in `fce3a59`; Adam explicitly accepted ("accept").
+Ticket 18 is accepted and closed. Verification documentation: `35b9a5d`.
 Approved contract: `.scratch/workflow-generator/issues/18-run-role-workflow-with-controlled-data-source.md`.
 Approved review baseline: `163c586517c724fcd5c202b92033893956f632f8`.
 

@@ -3,6 +3,14 @@
 User authorized ticket 04, the diagnosis/adapter/plugin seams, and review baseline
 `c3260ab95ecb80d37e0fd7546b288ea07dd6da52`. No tickets 05–06 are included.
 
+## Acceptance
+
+**Accepted and closed** at Adam's explicit approval. Installation without
+protected edits satisfies the plugin criterion. Activation remains a separate,
+explicit Hermes config opt-in; acceptance authorizes neither config changes nor
+bypassing the host activation gate. The verification and review below record the
+original implementation evidence.
+
 ## Read-only measurement
 
 A regression reproduced a write from the ticket-03 reader: connecting with
@@ -69,15 +77,15 @@ When already enabled by the host, the command is:
 /workflow-diagnose /path/to/hermes-home stillroom-research 2 "/path/to/project/artifacts"
 ```
 
-**Activation constraint — needs an operator decision:** the inspected Hermes
+**Activation constraint — accepted installation/activation distinction:** the inspected Hermes
 revision `5eb99eb2844b22ebb723711b8e6a0bbb80bb5f04` requires new standalone plugins
 in `plugins.enabled`. Its project-plugin environment switch only enables
 *discovery*, not activation. Installation does not edit config, but normal
 activation of a newly installed plugin cannot currently be promised without
 changing config. We did not enable it, invent an environment override, mislabel it
-as an auto-loaded backend, or bypass this gate in production. The ticket remains
-open pending acceptance of this distinction or a supported config-free activation
-path. The standalone terminal remains usable without this gate.
+as an auto-loaded backend, or bypass this gate in production. Adam accepted this
+distinction and closed the ticket; config-free normal activation is not claimed.
+The standalone terminal remains usable without this gate.
 
 ## Proof and verification
 
@@ -147,7 +155,9 @@ configuration, or authentication,” alongside the parent spec's “plug-and-pla
 The native directory plugin is compatible with the real loader and its registered
 command works, but normal activation still requires the host config opt-in. The
 test explicitly demonstrates this gate and uses isolated registration, not
-config-free normal activation. The criterion remains open, not falsely completed.
+config-free normal activation. The criterion was open at review time; Adam has
+since accepted installation separately from activation, resolving acceptance
+without changing the implementation or claiming config-free activation.
 
 No scope creep or additional incorrect implementation was identified. Reviewers
 used only repository code/fixtures, not live Hermes state.

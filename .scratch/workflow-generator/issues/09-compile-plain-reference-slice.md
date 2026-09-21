@@ -1,7 +1,7 @@
 # 09: Compile a deterministic spec slice to plain reference execution
 
 **Type:** task
-**Status:** ready-for-human
+**Status:** resolved
 **Blocked by:** 08 (accepted and closed).
 **Authorization:** Adam approved implementation, the execution policies, frozen
 Pydantic state/Transform-result contract, public test seam and review baseline
@@ -161,4 +161,7 @@ The hand-authored example and failure/immutability/freshness cases are in
 Verification: 26 focused tests; 264 full offline tests passed, 3 optional skips;
 mypy clean across 17 files. Review against approved baseline `e6c1c9b` found
 0 Standards violations and 0 Spec findings; one optional duplication improvement
-was addressed. Ready for Adam's acceptance; no follow-on work is authorized.
+was addressed. Adam explicitly accepted and closed ticket 09 in the ticket 10
+contract-confirmation conversation (“approve all”). Ticket 10's separately
+approved contract now governs follow-on work; no broader roadmap implementation
+is authorized.

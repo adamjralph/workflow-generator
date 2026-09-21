@@ -8,10 +8,16 @@ Adam approved the next sequence after ticket 09:
 before expanding node support or building the questionnaire.**
 
 This roadmap orders work; it does not authorize every milestone for implementation.
-Ticket 10 is implemented, reviewed, accepted and closed; M1 is complete for its
-restricted target. Next session: use `/to-tickets` to refine M2. Later milestones must be split into
-bounded tickets with agreed contracts, test seams and review baselines. No time or
-percentage-complete estimate is implied.
+Tickets 01–12 are accepted and closed. M1 is complete for its restricted target;
+M2 now includes restricted Intervention Judgment and bounded Loop + Route execution.
+
+**Plan the whole journey; implement in bounded vertical slices.** The
+[whole-product delivery map](.scratch/workflow-generator/map.md) connects the remaining
+capabilities, proposed ticket breakdown, independent work and decision blockers.
+Its P13–P32 identifiers are proposals, not published or approved implementation issues.
+Review that map before narrowing the next frontier. Later milestones still need
+agreed contracts, test seams and review baselines. No time or percentage-complete
+estimate is implied.
 
 Current implemented state and next-session instructions: [HANDOFF.md](HANDOFF.md).
 Full proposal: [.scratch/workflow-generator/spec.md](.scratch/workflow-generator/spec.md).
@@ -27,6 +33,8 @@ Closed domain decisions: [CONTEXT.md](CONTEXT.md), [ADRs](docs/adr/).
 | Typed in-memory workflow declarations and structural admission | Ticket 08 accepted |
 | Plain reference execution for Transform/Decision + Route | Ticket 09 accepted and closed |
 | In-memory graph generation and case-scoped structural/behavioral conformance | Ticket 10 accepted and closed |
+| Restricted offline Intervention Judgment + Route execution/conformance | Ticket 11 accepted and closed |
+| Bounded Loop + Route execution/conformance | Ticket 12 accepted and closed |
 
 Diagnosis is usable through terminal/plugin commands; this does not mean the
 visual workflow generator is complete. The foundation's existing graph business
@@ -63,8 +71,9 @@ persistent spec serialization remains deferred.
 
 Add separately scoped vertical slices for:
 
-- Judgment through the existing Jev/recorded/stub boundary.
-- Bounded Loop execution.
+- **Accepted:** restricted Intervention Judgment through the existing source boundary;
+  conformance uses independent offline sources. Arbitrary vocabularies remain future work.
+- **Accepted:** bounded Loop + Route execution and conformance.
 - Gate pause/rejection/resume, coordinated with M3's spec/bundle approval identity.
 - Forks, joins, reducers, shared step accounting and gates between parallel waves.
 

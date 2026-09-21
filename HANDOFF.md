@@ -30,6 +30,83 @@ Adam requested these after reviewing ticket-22 token consumption:
 These requirements reduce redundant context and delegation, not implementation
 scope, safety checks or acceptance evidence.
 
+## Latest handoff — 2026-09-22: D1 accepted, P13 published as ticket 28; implementation not started
+
+Adam approved the D1 parallel-wave contract and ADR 0011 as drafted (2026-09-22) and chose
+**P13** as the next implementation over the `ready-for-agent` browser-designer ticket 13.
+This session published P13 and stopped there at Adam's request ("we are running out of
+context — handover now, including the table of questions and approvals").
+**No implementation has started**: ticket 28 is `ready-for-agent`, no `agent_lab/` file
+changed, no wave test module exists, and no reviewer has run on an implementation hash.
+Adam also reported that he wanted to approve the earlier A-C decision items but was not
+offered that option; those items are carried forward in the open-decision table below.
+Nothing was pushed, and no Hermes store or live source was touched.
+
+**Commits (`main`, unpushed)**
+
+- `3f31c61` — Publish P13 parallel-wave contract, ADR 0011 and ticket 28 (documents only:
+  contract status flip, ADR front matter, new ticket, `map.md` P13 row and Decisions-so-far).
+- This handoff commit follows it. Earlier bookkeeping commits `63e9b88`, `d1314ca`,
+  `3c42b4f`, `0e12a9a` are detailed in the working-tree cleanup section below; previous HEAD
+  was `0e12a9a27cdd22252e9cb73c7b6f057a63e68d50`.
+- `main` is 69 commits ahead of `origin/main` (origin tip is the ticket-02 closure). Adam
+  chose to keep history local: **do not push without a fresh decision.**
+
+**Published artefacts (all committed in `3f31c61`)**
+
+| Artefact | State |
+|---|---|
+| `docs/parallel-wave-contract.md` | 413 lines, sha256 `54f062a22b36386fdf636e70b7979e4dfcb35b123d314e746100fb3eb422de95`, status "accepted by Adam on 2026-09-22", links ticket 28. Frozen reviewed text was 410 lines, sha256 `5d18c51f30c434e85d5e13ccbf70dfb3838e598baaa254f476200960797c6485`; after review only the status header changed. |
+| `docs/adr/0011-parallel-waves-are-declared-order-deterministic.md` | 97 lines, sha256 `0e7853d3012340f511ed3836c2dc94e5784712612d360d9bd65a119453be0253`, front matter `status: accepted`. Reviewed text was 95 lines, sha256 `0347caf62e937566259dcc288e09419d98e04bc28042bd2542aecd9e8e2e7115`. |
+| `.scratch/workflow-generator/issues/28-execute-and-check-one-parallel-wave.md` | sha256 `ba08de9b0dcda192bf08b24a84bfb78be640619832c6c3a1bbcd34223f868858`, `ready-for-agent`, review baseline `0e12a9a27cdd22252e9cb73c7b6f057a63e68d50` (publication commit adds documents only). Scope, accepted boundary and acceptance criteria restate contract §§2-8 plus the §7 rejection list. |
+| `.scratch/workflow-generator/map.md` | Decisions-so-far records D1 settled and points at the contract and ADR; the P13 row points at ticket 28; P14-P32 remain proposals, not authorization. |
+
+**Verification at handoff**
+
+- Offline regression at the publication commit: `.venv/bin/python -m pytest -q` →
+  **1,892 passed, 3 skipped, exit 0 in 367s**. Skips: the env-gated live JEV workflow
+  (`lessons/lesson_03_jev/test_jev.py:239`) and the optional real Hermes plugin loader check.
+  Full log: `/tmp/p13-baseline-suite.txt`.
+- No `mypy` run this session; no code changed, so the previous typecheck evidence stands.
+- The `ROADMAP.md` M2 line was not touched because the ticket is not delivered.
+
+**Open decisions Adam owns — none of these is decided**
+
+| ID | Item | State | What approval would mean |
+|---|---|---|---|
+| A2 | `wave_concurrency` default/cap | Open: contract §10 accepts range 1-16 and leaves the exact default to implementation (proposed `min(branch_count, 4)`, cap 16) | Pin default 4 / cap 16 as decided rather than implementation-tunable |
+| A3 | P14 loop multiplier | Open: handed forward to P14's contract; `agent_lab/reference.py:127-132` counts the extra `exhausted` visit | Fix `max_iterations + 1` as the wave worst case before P14 is published |
+| B5 | D2 identity/approval lifecycle (P17) | Not drafted | Approve drafting the executable identity plus approval/continuation contract (without reopening the parked public-format question) |
+| B6 | Offline transport / header-root-cause thread | Adam answered "handoff"; nothing decided: close the thread, scope an offline transport/evidence-boundary design, or park until after P13 | Pick one of the three |
+| B7 | Parent ticket 19 readiness | Unapproved: proposed observable contract, public test seams and review baseline `35b9a5d7` await approval; missing-date policy is proposed as "block selection when an otherwise eligible draft lacks a usable `date_created`", tie-break by exact filename ascending | Approve seams and baseline; decide block-versus-skip on a missing date |
+| C8-C11 | D3 Judgment vocabulary example, D4 role composition contract, D5 fresh-session permission test plan, D7 Kanban supported shape | Parked in `map.md` Fog; the parked-contracts question went unanswered | Pick any to draft next |
+| C12 | Distribution/naming/packaging and gated Hermes writes | Deferred by Adam's earlier instruction | Leave parked |
+| C13 | Live authorizations | All five consumed; no live model call or Hermes write is authorized | Requires fresh explicit permission plus a new private destination |
+
+**Next steps for a fresh session**
+
+1. Read ticket 28 for scope and acceptance criteria, then contract §§3-8; both are committed,
+   so no earlier contract context needs reloading. Implementation-relevant spans:
+   `agent_lab/spec.py` (`Fork`, `_joins`), `agent_lab/reference.py` (`compile_reference`,
+   `CompileFinding`, `_Execution.invoke`, `_snapshot`, `ReferencePlan._execute`),
+   `agent_lab/generation.py` (`GraphCandidate`, `make_step`, graph wiring),
+   `agent_lab/conformance.py` (`_structure`, comparison block, seam kwargs),
+   `agent_lab/accounting.py`, `agent_lab/runlog.py`.
+2. Implement in this order: shared branch-region helper in `spec.py`; `reducers` threading,
+   new compile findings and §7 admission in `compile_reference`; per-step reservation value in
+   `_Execution.invoke`; wave execution in `ReferencePlan._execute` (sequential, complete-all-
+   then-select, join charged once, run-level fork-dispatch/join events); graph wiring in
+   `generation.py` (`asyncio.to_thread` bounded by `wave_concurrency`, branch failures handed
+   to the join as items, one reducer call from the join step, failure path); Fork structure
+   field, canonical projection and wave comparison in `conformance.py`.
+3. Add the thirteen contract §8 cases as a new test module; iterate with focused tests, then
+   `.venv/bin/mypy agent_lab` and the full `.venv/bin/python -m pytest -q` (write the log to a
+   file and bring only the summary).
+4. Spawn the Standards and Spec reviewers on the frozen implementation hash, apply every
+   finding, and get both to confirm zero open items.
+5. Update this handoff, `ROADMAP.md` M2 and `map.md` (P13 delivered), commit, leave `main`
+   unpushed.
+
 ## Working-tree cleanup — 2026-09-22
 
 Adam asked whether the working tree needed cleaning up and approved three bookkeeping
@@ -47,8 +124,8 @@ commits. No code, tests, live calls or Hermes changes were involved; no push occ
 - `3c42b4f` — Track graft tooling config and agent instructions (`.gitignore`,
   `.ignore`, `opencode.json`, `AGENTS.md`).
 
-The only remaining untracked files are the two P13 documents described in the latest
-handoff below, which stay uncommitted until Adam approves P13. Baseline
+The two P13 documents that were left untracked here were published in `3f31c61` after
+Adam approved P13 (see the latest handoff above). Baseline
 `00807380b120f343780b26f697843dacfe054066` is now followed by these three commits;
 `main` is 66 commits ahead of `origin/main` (origin tip is the ticket-02 closure).
 Adam chose to keep the history local — do not push without a fresh decision.

@@ -87,7 +87,7 @@ def test_rejects_tool_calls_hidden_outside_message(auth: Path) -> None:
 
     with pytest.raises(VertexError) as failure:
         VertexSource(auth, "project-123", transport=transport).invoke(request())
-    assert failure.value.code == "invalid_response"
+    assert failure.value.code == "invalid_response_body"
     assert failure.value.auth_requests == 1
 
 
@@ -119,7 +119,7 @@ def test_invalid_request_never_reads_credentials_or_authenticates(tmp_path: Path
     transport = Exchange()
     with pytest.raises(VertexError) as failure:
         VertexSource(tmp_path / "missing", "project-123", transport=transport).invoke(request(**changes))
-    assert failure.value.code == "invalid_response"
+    assert failure.value.code == "invalid_request"
     assert failure.value.auth_requests == 0
     assert transport.calls == []
 
@@ -246,7 +246,7 @@ def test_malformed_or_secret_response_fails_closed(auth: Path, kind: str) -> Non
     with pytest.raises(VertexError) as caught:
         VertexSource(auth, "project-123", transport=transport).invoke(request())
     assert caught.value.auth_requests == 1
-    assert caught.value.code == ("response_limit" if kind == "oversize" else "invalid_response")
+    assert caught.value.code == ("response_limit" if kind == "oversize" else "invalid_response_body")
     assert len(transport.calls) == 2
     assert TOKEN not in str(caught.value)
 

@@ -7,7 +7,9 @@ from playwright.sync_api import expect
 from test_designer_browser import app, page  # noqa: F401
 from tests.test_designer_drafts import draft, operator  # noqa: F401
 from tests.test_designer_drafts_browser import capture_draft, open_drafts
-from tests.test_designer_review_server import GuardianSource, FixtureSource, POST, DETAIL
+from tests.test_designer_review_server import (
+    GuardianSource, FixtureSource, POST, DETAIL, DIAGNOSTIC_CODES, diagnostic_guardian,
+)
 
 
 @pytest.mark.parametrize("verdict", ["Approved", "Changes requested", "Blocked"])
@@ -67,6 +69,23 @@ def test_browser_guardian_failure_retains_unreviewed_exact_copy(page, tmp_path, 
         expect(result).not_to_contain_text("Approved")
         expect(page.locator("body")).not_to_contain_text("SECRET_PROVIDER_FAILURE")
         assert len(generator.requests) == len(guardian.requests) == 1
+
+
+@pytest.mark.parametrize("code", DIAGNOSTIC_CODES)
+def test_browser_displays_only_sanitized_diagnostic(page, tmp_path, operator, code):
+    config, folder, _ = operator
+    draft(folder, "old.md")
+    (config.parent / "guardian.yaml").write_text("model:\n  provider: vertex\n  default: guardian-model\n")
+    guardian, calls = diagnostic_guardian(tmp_path, code)
+    with app(tmp_path, draft_config=config, draft_model_source=FixtureSource(), guardian_model_source=guardian) as url:
+        open_drafts(page, url)
+        capture_draft(page)
+        page.locator("#draft-run").click()
+        expect(page.locator("#draft-run-status")).to_contain_text("Failed")
+        expect(page.locator("#draft-run-result")).to_contain_text(code)
+        expect(page.locator("body")).not_to_contain_text("SECRET_PROVIDER_COOKIE")
+        expect(page.locator("#draft-run")).to_be_disabled()
+        assert len(calls) == 1
 
 
 @pytest.mark.parametrize("change", ["recapture", "mode"])

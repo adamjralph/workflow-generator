@@ -55,7 +55,9 @@ class ModelFailure(BaseModel):
     status: Literal["failed", "uncertain"]
     code: Literal["credentials_unavailable", "provider_rejected", "invalid_response",
                   "response_limit", "transport_incomplete", "deadline_exceeded",
-                  "source_failure", "invalid_output", "evidence_failure", "preflight_failed"]
+                  "source_failure", "invalid_output", "evidence_failure", "preflight_failed",
+                  "invalid_request", "invalid_http_headers", "invalid_http_framing",
+                  "invalid_auth_response", "invalid_response_body"]
     provider_status: int | None = Field(default=None, ge=100, le=599)
 
 

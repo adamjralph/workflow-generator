@@ -2,6 +2,7 @@
 import hashlib
 import json
 import threading
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -10,6 +11,27 @@ from agent_lab.model_operation import ModelResponse
 from tests.test_designer_drafts import draft, operator  # noqa: F401
 from tests.test_designer_draft_run_server import FixtureSource, POST, RESULT, capture, post
 from tests.test_designer_server import running_server
+
+DIAGNOSTIC_CODES = ("invalid_request", "invalid_http_headers", "invalid_http_framing",
+                    "invalid_auth_response", "invalid_response_body")
+
+
+def diagnostic_guardian(tmp_path, code):
+    from agent_lab.designer.vertex import VertexError, VertexSource
+    from tests.test_designer_vertex import CREDENTIALS
+
+    auth = tmp_path / "synthetic-adc.json"
+    auth.write_text(json.dumps(CREDENTIALS))
+    auth.chmod(0o600)
+    calls = []
+
+    async def transport(url, body, headers, deadline):
+        calls.append(url)
+        raise VertexError("SECRET_PROVIDER_COOKIE", code=code, provider_status=200)
+        yield b""  # This transport always fails before returning a body.
+
+    return VertexSource(auth, "project-fixture", transport=transport), calls
+
 
 CRITERIA = ("brand_voice", "linkedin_fit", "strong_hook", "aida", "source_coherent_cta",
             "supported_claims", "privacy", "reader_fit", "one_point_clarity", "current_positioning")
@@ -109,6 +131,31 @@ def test_http_guardian_failure_retains_exact_generator_without_retry(operator, o
         assert "SECRET_PROVIDER_FAILURE" not in json.dumps(result)
         assert post(server, "/api/drafts/run", identity) == (status, result)
         assert len(generator.requests) == len(guardian.requests) == 1
+
+
+@pytest.mark.parametrize("code", DIAGNOSTIC_CODES)
+def test_http_sanitized_diagnostic_survives_receipt_and_duplicate(operator, tmp_path, code):
+    config, folder, evidence = operator
+    draft(folder, "old.md")
+    guardian, calls = diagnostic_guardian(tmp_path, code)
+    (config.parent / "guardian.yaml").write_text("model:\n  provider: vertex\n  default: guardian-model\n")
+    with running_server(evidence, draft_config=config, draft_model_source=FixtureSource(),
+                        guardian_model_source=guardian) as server:
+        identity = capture(server)
+        status, result = post(server, "/api/drafts/run", identity)
+        assert status == 200 and result["status"] == "failed"
+        assert result["failure"] == {"status": "failed", "code": code, "provider_status": 200}
+        assert code in result["message"]
+        assert result["result"] == RESULT and result["review"] is None
+        assert result["auth_requests"] == 1
+        receipt = json.loads(Path(result["evidence"][-1]).read_text())
+        assert receipt["view"] == result
+        exchange = json.loads((Path(result["evidence"][-1]).parent / receipt["exchanges"][-1]).read_text())
+        assert exchange["failure"] == result["failure"]
+        assert post(server, "/api/drafts/run", identity) == (status, result)
+        assert len(calls) == 1
+        assert "SECRET_PROVIDER_COOKIE" not in json.dumps(result)
+        assert all(b"SECRET_PROVIDER_COOKIE" not in p.read_bytes() for p in evidence.rglob("*") if p.is_file())
 
 
 @pytest.mark.parametrize("outcome", ["blocked", "invalid", "timeout"])

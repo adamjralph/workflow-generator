@@ -24,6 +24,7 @@ from typing import Any, Literal
 from urllib.parse import urlencode, urlsplit
 
 from agent_lab.model_operation import ModelRequest, ModelResponse
+from .http_response import REPEATABLE_METADATA, chunk_size, header_field, trailer_field
 
 REQUEST_TIMEOUT = 180.0
 RESPONSE_LIMIT = 65536
@@ -34,6 +35,11 @@ _MESSAGES = {
     "credentials_unavailable": "Vertex credentials unavailable or invalid; configure an owned authorized_user file separately.",
     "provider_rejected": "Vertex request rejected; check credentials, project and model selection.",
     "invalid_response": "Vertex request or response is invalid.",
+    "invalid_request": "Vertex request failed local validation.",
+    "invalid_auth_response": "Vertex OAuth response failed validation.",
+    "invalid_response_body": "Vertex model response failed validation.",
+    "invalid_http_headers": "Vertex HTTP response headers are invalid.",
+    "invalid_http_framing": "Vertex HTTP response framing is invalid.",
     "response_limit": "Vertex response exceeded the bounded envelope limit.",
     "transport_incomplete": "Vertex exchange incomplete; remote completion is unknown.",
     "deadline_exceeded": "Vertex deadline exceeded; remote completion is unknown.",
@@ -210,6 +216,8 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
         raise ValueError
     reader, writer = await asyncio.open_connection(host, 443, ssl=ssl.create_default_context(),
                                                    server_hostname=host, limit=RESPONSE_LIMIT)
+    failure_code = "invalid_http_headers"
+    status = None
     try:
         if time.monotonic() >= deadline:
             raise VertexUncertain(code="deadline_exceeded")
@@ -232,8 +240,9 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
         response_headers: dict[str, str] = {}
         for line in lines[1:]:
             if line:
-                key, value = line.split(":", 1)
-                key = key.lower()
+                key, value = header_field(line)
+                if key in REPEATABLE_METADATA:
+                    continue  # Repeatable metadata is unused and never retained.
                 if key in response_headers:
                     raise ValueError
                 response_headers[key] = value.strip()
@@ -241,9 +250,10 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
             raise ValueError
         if response_headers.get("content-encoding", "identity") != "identity":
             raise ValueError
+        failure_code = "invalid_http_framing"
         encoding = response_headers.get("transfer-encoding")
         length = response_headers.get("content-length")
-        if encoding:
+        if encoding is not None:
             if encoding != "chunked" or length is not None:
                 raise ValueError
             framing = 0
@@ -252,13 +262,11 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
                 framing += len(line_bytes)
                 if framing > RESPONSE_LIMIT:
                     raise VertexError(code="response_limit")
-                size_text = line_bytes.split(b";", 1)[0].strip()
-                if not re.fullmatch(rb"[0-9a-fA-F]+", size_text):
-                    raise ValueError
-                size = int(size_text, 16)
+                size = chunk_size(line_bytes)
                 if size > RESPONSE_LIMIT:
                     raise VertexError(code="response_limit")
                 if not size:
+                    seen_trailers: set[str] = set()
                     while True:
                         trailer = await reader.readuntil(b"\r\n")
                         framing += len(trailer)
@@ -266,6 +274,7 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
                             raise VertexError(code="response_limit")
                         if trailer == b"\r\n":
                             return
+                        trailer_field(trailer, seen_trailers)
                 yield await reader.readexactly(size)
                 if await reader.readexactly(2) != b"\r\n":
                     raise ValueError
@@ -282,6 +291,10 @@ async def _https(url: str, body: bytes, headers: dict[str, str], deadline: float
         else:
             while chunk := await reader.read(4096):
                 yield chunk
+    except (VertexError, VertexUncertain):
+        raise
+    except (ValueError, IndexError):
+        raise VertexError(code=failure_code, provider_status=status) from None
     finally:
         writer.close()
 
@@ -324,7 +337,7 @@ class VertexSource:
                         or not isinstance(message["content"], str) or not message["content"].strip()):
                     raise ValueError
         except Exception:
-            raise VertexError from None
+            raise VertexError(code="invalid_request") from None
         results: queue.Queue[ModelResponse | VertexError | VertexUncertain] = queue.Queue(maxsize=1)
         lock = threading.Lock()
         stopped = False
@@ -360,20 +373,26 @@ class VertexSource:
                            "Accept-Encoding": "identity"}
                 raw = await collect(TOKEN_ENDPOINT, urlencode({"grant_type": "refresh_token", **values}).encode(),
                                     headers, auth=True)
-                token_data = _json(raw)
-                token = token_data["access_token"]
-                if ("error" in token_data or not isinstance(token, str) or not token
-                        or any(ord(c) < 33 or ord(c) > 126 for c in token)
-                        or token_data.get("token_type", "").lower() != "bearer"
-                        or type(token_data.get("expires_in")) is not int or token_data["expires_in"] <= 0):
-                    raise ValueError
+                try:
+                    token_data = _json(raw)
+                    token = token_data["access_token"]
+                    if ("error" in token_data or not isinstance(token, str) or not token
+                            or any(ord(c) < 33 or ord(c) > 126 for c in token)
+                            or token_data.get("token_type", "").lower() != "bearer"
+                            or type(token_data.get("expires_in")) is not int or token_data["expires_in"] <= 0):
+                        raise ValueError
+                except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
+                    raise VertexError(code="invalid_auth_response") from None
                 headers = {"Content-Type": "application/json", "Accept": "application/json",
                            "Accept-Encoding": "identity", "Authorization": "Bearer " + token}
                 raw = await collect(self._url, request.request_json.encode("utf-8"), headers)
                 returned_secrets = tuple(value for key, value in token_data.items()
                                          if key in {"access_token", "refresh_token", "id_token", "client_secret"}
                                          and isinstance(value, str) and value)
-                response = _parse(raw, (*secrets, *returned_secrets))
+                try:
+                    response = _parse(raw, (*secrets, *returned_secrets))
+                except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
+                    raise VertexError(code="invalid_response_body") from None
                 check_deadline()
                 return response
 

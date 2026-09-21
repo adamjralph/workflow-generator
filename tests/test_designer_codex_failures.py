@@ -8,7 +8,7 @@ from tests.test_designer_codex import credentials, request
 
 
 @pytest.mark.parametrize("case, error, code, status", [
-    ("malformed", codex.CodexError, "invalid_response", None),
+    ("malformed", codex.CodexError, "invalid_response_body", None),
     ("limit", codex.CodexError, "response_limit", None),
     ("timeout", codex.CodexUncertain, "deadline_exceeded", None),
     ("unfinished", codex.CodexUncertain, "transport_incomplete", None),

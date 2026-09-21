@@ -20,6 +20,7 @@ import json
 import math
 import os
 import queue
+import re
 import ssl
 import stat
 import threading
@@ -29,6 +30,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from agent_lab.model_operation import ModelRequest, ModelResponse
+from .http_response import REPEATABLE_METADATA, chunk_size, header_field, trailer_field
 
 ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 REQUEST_TIMEOUT = 180.0
@@ -41,6 +43,10 @@ _FAILURE_MESSAGES = {
     "credentials_unavailable": "Codex credentials unavailable or invalid; run hermes auth separately and select a valid auth file.",
     "provider_rejected": "Codex request rejected; check subscription login and model selection.",
     "invalid_response": "Codex request failed or returned invalid output; check login/model and retry explicitly.",
+    "invalid_request": "Codex request failed local validation.",
+    "invalid_response_body": "Codex model response failed validation.",
+    "invalid_http_headers": "Codex HTTP response headers are invalid.",
+    "invalid_http_framing": "Codex HTTP response framing is invalid.",
     "response_limit": "Codex response exceeded the bounded envelope limit.",
     "transport_incomplete": "Codex exchange incomplete; remote completion is unknown. Retry only explicitly.",
     "deadline_exceeded": "Codex deadline exceeded; remote completion is unknown. Retry only explicitly.",
@@ -123,16 +129,21 @@ def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
 async def _https(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
     reader, writer = await asyncio.open_connection("chatgpt.com", 443, ssl=ssl.create_default_context(),
                                                    server_hostname="chatgpt.com", limit=STREAM_LIMIT)
+    failure_code = "invalid_http_headers"
+    status = None
     try:
         head = {**headers, "Host": "chatgpt.com", "Content-Length": str(len(body)), "Connection": "close"}
         wire = "POST /backend-api/codex/responses HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in head.items()) + "\r\n"
         writer.write(wire.encode("ascii") + body)
         await writer.drain()
         raw = await reader.readuntil(b"\r\n\r\n")
+        if len(raw) > STREAM_LIMIT:
+            raise CodexError(code="response_limit")
         lines = raw.decode("ascii").split("\r\n")
-        status = int(lines[0].split()[1])
-        if not 100 <= status <= 599:
+        status_line = lines[0].split(" ", 2)
+        if status_line[0] not in ("HTTP/1.0", "HTTP/1.1") or not re.fullmatch(r"[1-5][0-9]{2}", status_line[1]):
             raise ValueError
+        status = int(status_line[1])
         if status in (408, 504):
             raise CodexUncertain(code="deadline_exceeded", provider_status=status)
         if status != 200:
@@ -140,8 +151,9 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         response_headers: dict[str, str] = {}
         for line in lines[1:]:
             if line:
-                key, value = line.split(":", 1)
-                key = key.lower()
+                key, value = header_field(line)
+                if key in REPEATABLE_METADATA:
+                    continue  # Repeatable metadata is unused and never retained.
                 if key in response_headers:
                     raise ValueError
                 response_headers[key] = value.strip()
@@ -149,9 +161,10 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
             raise ValueError
         if response_headers.get("content-encoding", "identity") != "identity":
             raise ValueError
+        failure_code = "invalid_http_framing"
         encoding = response_headers.get("transfer-encoding")
         length = response_headers.get("content-length")
-        if encoding:
+        if encoding is not None:
             if encoding != "chunked" or length is not None:
                 raise ValueError
             framing = 0
@@ -160,13 +173,12 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                 framing += len(line_bytes)
                 if framing > STREAM_LIMIT:
                     raise CodexError(code="response_limit")
-                size = int(line_bytes.split(b";", 1)[0], 16)
-                if size < 0:
-                    raise ValueError
+                size = chunk_size(line_bytes)
                 if size > STREAM_LIMIT:
                     raise CodexError(code="response_limit")
                 if not size:
-                    # Trailer fields are not needed, but must be consumed and bounded.
+                    # Trailer fields are unused, but must be validated and bounded.
+                    seen_trailers: set[str] = set()
                     while True:
                         trailer = await reader.readuntil(b"\r\n")
                         framing += len(trailer)
@@ -174,13 +186,14 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                             raise CodexError(code="response_limit")
                         if trailer == b"\r\n":
                             return
+                        trailer_field(trailer, seen_trailers)
                 yield await reader.readexactly(size)
                 if await reader.readexactly(2) != b"\r\n":
                     raise ValueError
         elif length is not None:
-            remaining = int(length)
-            if remaining < 0:
+            if not re.fullmatch(r"[0-9]+", length):
                 raise ValueError
+            remaining = int(length)
             if remaining > STREAM_LIMIT:
                 raise CodexError(code="response_limit")
             while remaining:
@@ -190,6 +203,10 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         else:
             while chunk := await reader.read(4096):
                 yield chunk
+    except (CodexError, CodexUncertain):
+        raise
+    except (ValueError, IndexError):
+        raise CodexError(code=failure_code, provider_status=status) from None
     finally:
         writer.close()
         # Do not wait for a remote TLS close acknowledgement after the deadline.
@@ -430,7 +447,7 @@ class CodexSource:
                     or any(not isinstance(body[key], str) or not body[key] for key in ("model", "instructions"))):
                 raise ValueError
         except Exception:
-            raise CodexError("Codex requires a tool-free text request with store false and stream true.") from None
+            raise CodexError(_FAILURE_MESSAGES["invalid_request"], code="invalid_request") from None
         results: queue.Queue[ModelResponse | CodexError | CodexUncertain] = queue.Queue(maxsize=1)
 
         async def run() -> ModelResponse:
@@ -456,7 +473,7 @@ class CodexSource:
                 except CodexUncertain:
                     raise
                 except Exception:
-                    raise CodexError from None
+                    raise CodexError(code="invalid_response_body") from None
 
         def worker() -> None:
             try:

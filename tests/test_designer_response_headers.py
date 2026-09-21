@@ -22,7 +22,7 @@ def provider(tmp_path, kind):
 
 
 def http_responses(monkeypatch, kind, extra="", *, target="generation", body=None, framing=None,
-                   chunk_extension=None, trailers=b""):
+                   chunk_extension=None, trailers=b"", response_head=None):
     calls = []
 
     class Writer:
@@ -51,7 +51,8 @@ def http_responses(monkeypatch, kind, extra="", *, target="generation", body=Non
             headers = f"Content-Type: {mime}\r\nTransfer-Encoding: chunked\r\n"
             payload = (f"{len(payload):x}".encode() + chunk_extension + b"\r\n" + payload
                        + b"\r\n0\r\n" + trailers + b"\r\n")
-        wire = ("HTTP/1.1 200 OK\r\n" + headers + (extra if selected else "") + "\r\n").encode() + payload
+        head = ("HTTP/1.1 200 OK\r\n" + headers + (extra if selected else "") + "\r\n").encode()
+        wire = (response_head if selected and response_head is not None else head) + payload
         reader = asyncio.StreamReader()
         reader.feed_data(wire)
         reader.feed_eof()
@@ -76,25 +77,63 @@ def test_repeated_metadata_does_not_block_valid_response(tmp_path, monkeypatch, 
     assert (tmp_path / "auth.json").read_bytes() == before
 
 
-@pytest.mark.parametrize("kind", ["codex", "vertex"])
-@pytest.mark.parametrize("extra", [
-    "Content-Length: 1\r\n", "cOnTeNt-TyPe: text/plain\r\n",
-    "Content-Encoding: identity\r\nContent-Encoding: identity\r\n",
-    "Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n",
-    "Location: /a\r\nLocation: /b\r\n", "Content-Type : text/plain\r\n",
-    " folded: PRIVATE_HEADER\r\n", "Bad Header: PRIVATE_HEADER\r\n",
-    "X-Test: PRIVATE_HEADER\x00\r\n",
+@pytest.mark.parametrize("kind,target", [("codex", "generation"), ("vertex", "generation"), ("vertex", "oauth")])
+@pytest.mark.parametrize("extra,code", [
+    ("Content-Length: 1\r\n", "duplicate_http_header"),
+    ("cOnTeNt-TyPe: text/plain\r\n", "duplicate_http_header"),
+    ("Content-Encoding: identity\r\nContent-Encoding: identity\r\n", "duplicate_http_header"),
+    ("Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n", "duplicate_http_header"),
+    ("Location: /a\r\nLocation: /b\r\n", "duplicate_http_header"),
+    ("Content-Type : text/plain\r\n", "invalid_http_header"),
+    (" folded: PRIVATE_HEADER\r\n", "invalid_http_header"),
+    ("Bad Header: PRIVATE_HEADER\r\n", "invalid_http_header"),
+    ("X-Test: PRIVATE_HEADER\x00\r\n", "invalid_http_header"),
+    ("PRIVATE_HEADER\r\n", "invalid_http_header"),
+    ("X-Test: PRIVATE_HEADERé\r\n", "invalid_http_header"),
+    ("Set-Cookie: PRIVATE_HEADER\x7f\r\n", "invalid_http_header"),
 ])
-def test_invalid_headers_have_sanitized_stage(tmp_path, monkeypatch, kind, extra):
+def test_invalid_headers_have_sanitized_rule(tmp_path, monkeypatch, kind, target, extra, code):
     source, request = provider(tmp_path, kind)
-    calls = http_responses(monkeypatch, kind, extra)
+    calls = http_responses(monkeypatch, kind, extra, target=target)
     with pytest.raises((CodexError, VertexError)) as caught:
         source.invoke(request)
-    assert caught.value.code == "invalid_http_headers"
+    assert caught.value.code == code
     assert caught.value.provider_status == 200
     assert "PRIVATE_HEADER" not in str(caught.value)
     assert caught.value.__context__ is None
-    assert len(calls) == (1 if kind == "codex" else 2)
+    assert len(calls) == (2 if kind == "vertex" and target == "generation" else 1)
+    if kind == "vertex":
+        assert caught.value.auth_requests == 1
+
+
+@pytest.mark.parametrize("kind,target", [("codex", "generation"), ("vertex", "generation"), ("vertex", "oauth")])
+@pytest.mark.parametrize("head,code,status", [
+    (b"PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/1.1\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/2 200 PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/1.1 999 PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/1.1 2x0 PRIVATE_STATUS\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/1.1 200 PRIVATE_STATUS\xff\r\n\r\n", "invalid_http_status", None),
+    (b"HTTP/1.1 200 OK\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: PRIVATE_MIME\r\n\r\n", "unsupported_http_content_type", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Encoding: PRIVATE_ENCODING\r\n\r\n",
+     "unsupported_http_content_encoding", 200),
+    (b"HTTP/1.1 200 OK\r\nContent-Type: {mime}\r\nContent-Encoding:\r\n\r\n",
+     "unsupported_http_content_encoding", 200),
+])
+def test_status_and_representation_rules_are_distinct(tmp_path, monkeypatch, kind, target, head, code, status):
+    source, request = provider(tmp_path, kind)
+    mime = b"text/event-stream" if kind == "codex" else b"application/json"
+    calls = http_responses(monkeypatch, kind, target=target, response_head=head.replace(b"{mime}", mime))
+    with pytest.raises((CodexError, VertexError)) as caught:
+        source.invoke(request)
+    assert caught.value.code == code
+    assert caught.value.provider_status == status
+    assert "PRIVATE_" not in str(caught.value)
+    assert caught.value.__context__ is None
+    assert len(calls) == (2 if kind == "vertex" and target == "generation" else 1)
+    if kind == "vertex":
+        assert caught.value.auth_requests == 1
 
 
 @pytest.mark.parametrize("kind,target,code", [

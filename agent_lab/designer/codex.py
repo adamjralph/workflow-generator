@@ -46,6 +46,11 @@ _FAILURE_MESSAGES = {
     "invalid_request": "Codex request failed local validation.",
     "invalid_response_body": "Codex model response failed validation.",
     "invalid_http_headers": "Codex HTTP response headers are invalid.",
+    "invalid_http_status": "Codex HTTP response status syntax is invalid.",
+    "invalid_http_header": "Codex HTTP response header syntax is invalid.",
+    "unsupported_http_content_type": "Codex HTTP response content type is unsupported or missing.",
+    "unsupported_http_content_encoding": "Codex HTTP response content encoding is unsupported.",
+    "duplicate_http_header": "Codex HTTP response contains a rejected duplicate header.",
     "invalid_http_framing": "Codex HTTP response framing is invalid.",
     "response_limit": "Codex response exceeded the bounded envelope limit.",
     "transport_incomplete": "Codex exchange incomplete; remote completion is unknown. Retry only explicitly.",
@@ -129,7 +134,7 @@ def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
 async def _https(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
     reader, writer = await asyncio.open_connection("chatgpt.com", 443, ssl=ssl.create_default_context(),
                                                    server_hostname="chatgpt.com", limit=STREAM_LIMIT)
-    failure_code = "invalid_http_headers"
+    failure_code = "invalid_http_status"
     status = None
     try:
         head = {**headers, "Host": "chatgpt.com", "Content-Length": str(len(body)), "Connection": "close"}
@@ -139,8 +144,8 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         raw = await reader.readuntil(b"\r\n\r\n")
         if len(raw) > STREAM_LIMIT:
             raise CodexError(code="response_limit")
-        lines = raw.decode("ascii").split("\r\n")
-        status_line = lines[0].split(" ", 2)
+        lines = raw.split(b"\r\n")
+        status_line = lines[0].decode("ascii").split(" ", 2)
         if status_line[0] not in ("HTTP/1.0", "HTTP/1.1") or not re.fullmatch(r"[1-5][0-9]{2}", status_line[1]):
             raise ValueError
         status = int(status_line[1])
@@ -151,14 +156,18 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         response_headers: dict[str, str] = {}
         for line in lines[1:]:
             if line:
-                key, value = header_field(line)
+                failure_code = "invalid_http_header"
+                key, value = header_field(line.decode("ascii"))
                 if key in REPEATABLE_METADATA:
                     continue  # Repeatable metadata is unused and never retained.
                 if key in response_headers:
+                    failure_code = "duplicate_http_header"
                     raise ValueError
                 response_headers[key] = value.strip()
+        failure_code = "unsupported_http_content_type"
         if response_headers.get("content-type", "").split(";")[0].strip() != "text/event-stream":
             raise ValueError
+        failure_code = "unsupported_http_content_encoding"
         if response_headers.get("content-encoding", "identity") != "identity":
             raise ValueError
         failure_code = "invalid_http_framing"

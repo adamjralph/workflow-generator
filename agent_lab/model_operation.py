@@ -57,7 +57,9 @@ class ModelFailure(BaseModel):
                   "response_limit", "transport_incomplete", "deadline_exceeded",
                   "source_failure", "invalid_output", "evidence_failure", "preflight_failed",
                   "invalid_request", "invalid_http_headers", "invalid_http_framing",
-                  "invalid_auth_response", "invalid_response_body"]
+                  "invalid_auth_response", "invalid_response_body", "invalid_http_status",
+                  "invalid_http_header", "duplicate_http_header", "unsupported_http_content_type",
+                  "unsupported_http_content_encoding"]
     provider_status: int | None = Field(default=None, ge=100, le=599)
 
 

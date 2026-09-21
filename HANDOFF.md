@@ -30,6 +30,29 @@ Adam requested these after reviewing ticket-22 token consumption:
 These requirements reduce redundant context and delegation, not implementation
 scope, safety checks or acceptance evidence.
 
+## Working-tree cleanup — 2026-09-22
+
+Adam asked whether the working tree needed cleaning up and approved three bookkeeping
+commits. No code, tests, live calls or Hermes changes were involved; no push occurred.
+
+- `63e9b88` — Record accepted-ticket bookkeeping and session handoff (`HANDOFF.md`,
+  `ROADMAP.md`, acceptance flips in `.scratch/workflow-generator/issues/04` and
+  `09`, `docs/read-only-ticket04.md`, `docs/designer-ticket16.md`,
+  `docs/designer-ticket18.md`).
+- `d1314ca` — Commit tracker files and investigation evidence for closed tickets
+  (issue files 12, 13, 16, 18, 19; `.scratch/workflow-generator/map.md`,
+  `BUG_REPORT.md`, `docs/designer-ticket19-provider-feasibility.md` and the three
+  header/transport investigation reports). The map's P13-P32 rows remain proposals,
+  not authorization.
+- `3c42b4f` — Track graft tooling config and agent instructions (`.gitignore`,
+  `.ignore`, `opencode.json`, `AGENTS.md`).
+
+The only remaining untracked files are the two P13 documents described in the latest
+handoff below, which stay uncommitted until Adam approves P13. Baseline
+`00807380b120f343780b26f697843dacfe054066` is now followed by these three commits;
+`main` is 66 commits ahead of `origin/main` (origin tip is the ticket-02 closure).
+Adam chose to keep the history local — do not push without a fresh decision.
+
 ## Latest handoff — parallel-wave D1 contract drafted and reviewed; Adam will approve P13 next session
 
 Adam selected planning-map item **P13** (one complete parallel wave) and asked for a
@@ -1431,12 +1454,10 @@ contracts; do not interpret stale wording as new scope permission.
 
 ## Working-tree care
 
-Before this handoff update there were unrelated local edits to `.gitignore`,
-tickets 04 and 09, and `docs/read-only-ticket04.md`, plus untracked `.ignore`,
-`AGENTS.md`, `opencode.json` and the ticket-12 issue file. Leave these alone unless
-explicitly updating ticket bookkeeping with Adam; inspect `git status` before
-staging. Ticket-12 implementation commits deliberately excluded those files.
-Do not use `git add -A` or discard user changes.
+Those files were committed on 2026-09-22 (`63e9b88`, `d1314ca`, `3c42b4f`); see the
+cleanup section at the top of this file. The standing rules remain: inspect
+`git status` before staging, never use `git add -A`, and never discard user changes.
+Ticket-12 implementation commits deliberately excluded those files at the time.
 
 ## Historical evidence pointers
 

@@ -8,8 +8,14 @@ of the freshly fetched remote with no remote-only commits. Outgoing history incl
 real measurement fixtures, session/task identifiers, local paths and operational
 notes. A read-only heuristic scan of 400 outgoing blobs and 11 working documents
 found no matching credential patterns; this is not a comprehensive secret/privacy
-clearance. A local documentation checkpoint is authorized. Public push is held for
-Adam's informed visibility/content decision; do not silently rewrite earlier history.
+clearance. Adam subsequently approved public publication with “Approve”. The
+checkpoint was committed as `b3073d4` and the working tree was clean. `git push
+origin main` then failed with HTTP 403: permission to `adamjralph/workflow-generator`
+was denied to the authenticated account `stillroom`. A read-back with `git ls-remote`
+confirmed remote `main` remained `02e4f6db4176df10d2ea049ff98e681cb96f0d77`.
+Public-content approval is settled; **push is Blocked on repository write access**.
+Do not ask for publication approval again, switch accounts, repair credentials or
+rewrite history implicitly. This follow-up records the failed push for next session.
 The handover's earlier “nothing committed/pushed” statements describe its creation
 state, not a permanent prohibition overriding this later authorization.
 

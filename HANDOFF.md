@@ -1,5 +1,123 @@
 # Workflow Generator — next-session handoff
 
+## Checkpoint publication authorization — after handover
+
+Adam authorized a commit and push if appropriate. The pre-push check found that
+`origin` (`adamjralph/workflow-generator`) is PUBLIC and `main` is 71 commits ahead
+of the freshly fetched remote with no remote-only commits. Outgoing history includes
+real measurement fixtures, session/task identifiers, local paths and operational
+notes. A read-only heuristic scan of 400 outgoing blobs and 11 working documents
+found no matching credential patterns; this is not a comprehensive secret/privacy
+clearance. A local documentation checkpoint is authorized. Public push is held for
+Adam's informed visibility/content decision; do not silently rewrite earlier history.
+The handover's earlier “nothing committed/pushed” statements describe its creation
+state, not a permanent prohibition overriding this later authorization.
+
+## Session handover — stop requested by Adam
+
+Adam ended this session with “Do a handover and we will continue in the next
+session.” This is a handover request, not authorization for a live experiment,
+implementation, commit or push. No background task remains running from this work.
+
+### Resume in this order
+
+1. Read `AGENTS.md`, `CURRENT.md`, then `docs/provider-triage-2026-09-22.md`.
+   The earlier closeout assessment explains the whole-product gaps; do not reload
+   this entire historical handoff or repeat the completed discovery.
+2. Preserve the uncommitted documentation work listed below. Check current git
+   status before editing; do not reset, clean, blanket-stage or commit it implicitly.
+3. Retain the selected pair: Codex Generator `gpt-5.6-sol`, Vertex Guardian
+   `google/gemini-3.1-pro-preview`. Adam explicitly chose to investigate Codex,
+   not adopt DeepSeek. Do not ask him to choose the pair again.
+4. Resolve the validation-environment blocker before claiming runtime completion:
+   this session mandates scratch under `.hermes`, while project evidence guards
+   forbid evidence there. Use a genuinely permitted validation environment, not
+   weakened guards, changed HOME or an unauthorized temp-root workaround.
+5. If pursuing the proposed live Codex TLS comparison, first obtain explicit
+   approval for its request count, synthetic input, fresh private destination and
+   single transport variable. It is a hypothesis test, not a demonstrated fix.
+   Preserve truthful client identity; do not read beyond rejected headers, invoke
+   Guardian automatically, retry, refresh auth, change profiles or reuse old guards.
+6. Ticket 28 remains the next approved implementation, but was not started here.
+   D2 lifecycle-contract drafting remains approved; its identity/resume semantics
+   need direct acceptance. Standards/Spec implementation reviews remain required;
+   none were launched in this session. Do not declare the full product complete.
+
+### Exact saved state
+
+Repository: `/home/hermes/Projects/workflow-generator`.
+HEAD: `f5f620fec7c0bace8183611f48d10ae1be612244` (unchanged).
+
+Modified tracked documents:
+- `.scratch/workflow-generator/issues/13-build-browser-workflow-designer.md`
+- `.scratch/workflow-generator/issues/19-refine-and-review-oldest-linkedin-draft.md`
+- `.scratch/workflow-generator/map.md`
+- `BUG_REPORT.md`
+- `HANDOFF.md`
+- `README.md`
+- `ROADMAP.md`
+- `docs/designer-ticket13.md`
+
+New untracked documents, intentionally retained:
+- `CURRENT.md`
+- `docs/closeout-assessment-2026-09-22.md`
+- `docs/provider-triage-2026-09-22.md`
+
+Only project Markdown changed. Ticket 13 closed using prior implementation/review
+and Adam's current closure authorization; ticket 19 remains Blocked. B6/B7
+interpretations and the delivered browser decision are reconciled; consequential
+lifecycle/permission decisions remain explicit. Nothing was committed or pushed.
+
+### Evidence to carry forward
+
+- Fresh focused Codex/response-header tests: **329 passed in 2.25s**, exit 0.
+- Fresh mypy: **35 source files clean**; JS syntax and diff whitespace checks pass.
+- Fresh full regression: **876 failed, 1,016 passed, 3 skipped**, exit 1, dominated
+  by the protected-evidence-root conflict. Not every failure was separately
+  attributed. Historical **1,892 passed / 3 skipped** is not a fresh result.
+- One synthetic DeepSeek request used content-scout's route; research actually uses
+  Codex. HTTP 200, exact `OK`, 0.613s, 85 reported tokens. Requested
+  `deepseek-v4.1-flash:cloud`, reported `deepseek-v4.1-flash`; strict identity gate
+  returned `unexpected_result`, exit 1. No private content or agent session used.
+  Do not describe it as a completed workflow or a fully passing identity check.
+- Codex root cause remains unknown. Historical smoke 05 stopped at Generator,
+  HTTP 200 / missing Content-Type, before any Guardian invocation. Static endpoint
+  inspection and passing offline tests did not establish a live remedy.
+
+Temporary logs/probe receipt live under
+`/home/hermes/.hermes/profiles/astra-pinned/cache/scratch/`:
+`workflow-generator-closeout-pytest.log`, `workflow-codex-triage-tests.log`,
+`workflow-deepseek-probe.py`, and
+`workflow-deepseek-probe-20260922/result.json`. Scratch may be pruned after 72h;
+commands, outcomes and probe/receipt hashes are preserved in the project reports.
+The single probe allowance was consumed; do not rerun its invocation or remove its
+one-shot destination guard. Prior live-smoke stores remain untouched.
+
+## Current entry point — 2026-09-22 triage
+
+Read [`CURRENT.md`](CURRENT.md) first. It reconciles delivered capabilities,
+finished-ticket closure, remaining direct decisions and current validation limits.
+Adam authorized triage and closure of finished work: ticket 13's stale status is
+now closed on existing implementation/review evidence; ticket 19 is Blocked and
+ticket 28 remains unimplemented. The prior B6/B7 interpretation prompts are settled
+without changing their recorded safety/metadata policies. D2 design and permission
+semantics remain consequential, not falsely marked complete.
+
+One synthetic request used content-scout's DeepSeek route (research currently uses
+Codex). It returned HTTP 200 and exact `OK`; strict requested/reported model identity
+differed. See `docs/provider-triage-2026-09-22.md`. No private draft, Guardian call,
+Hermes session/profile modification or successful workflow pair was involved.
+Adam then chose to keep the Codex/Vertex pair and investigate Codex. Static inspection
+and 329 passing targeted offline tests found no proven live remedy; no further paid
+request or alternate adapter was made. The proposed live TLS comparison needs its
+own bounded authorization; CURRENT.md records this decision, not a pending model choice.
+
+The latest full test attempt is not green: the mandated session scratch path is
+inside `.hermes`, and evidence guards correctly reject it. Do not weaken the guards
+or use old results as new evidence. No runtime implementation or new review was
+attempted during this triage. All earlier “latest” and “next” sections below are
+historical; preserve them as evidence, not current instructions. No commit/push.
+
 ## Token-efficiency requirements — apply from ticket 23 onward
 
 Adam requested these after reviewing ticket-22 token consumption:

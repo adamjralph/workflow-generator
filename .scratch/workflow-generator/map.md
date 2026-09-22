@@ -7,21 +7,22 @@ accepting ticket 12. Plan broadly; implement in bounded, independently verifiabl
 vertical slices. A small implementation slice is not a small planning horizon.
 
 This map is a **proposal for discussion**, not authorization to implement. P13–P32
-are provisional planning identifiers, not issue numbers. Existing issues
-01–12 are accepted and closed. P26 is now published as
-[ticket 13](issues/13-build-browser-workflow-designer.md), now `ready-for-agent`:
-Adam approved its scope, threshold-routing demo and review baseline
-`2047f1afe177ab60a993b68a56762689aa35fb0e`.
+are provisional planning identifiers, not issue numbers. Current reconciled status
+is in [CURRENT.md](../../CURRENT.md). Issues 01–18 and 20–27 are closed; 19 is
+Blocked; 28 is ready-for-agent and unimplemented. P26's initial scope was delivered
+as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
+Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.
 Later outlines may split after contract design; this is not a delivery estimate.
 
-**Selected first checkpoint:** Adam chose the visual designer: multiple-choice
+**Historical first checkpoint (delivered):** Adam chose the visual designer: multiple-choice
 answers → inspect a graph → generate and check an already-supported workflow.
-**Selected first surface:** browser UI, not TUI. P26 is therefore the priority for
-contract refinement; parallel and Gate implementation do not block this checkpoint.
+**Selected first surface:** browser UI, not TUI. This decision and the initial
+P26 contract are settled; do not reopen them as a new implementation frontier.
 Adam also approved the initial Transform/Decision + Route scope: safe prebound
 operations, answer-based editing, real offline generation/checking, no drag-and-drop
 or persistent spec format. Ticket 13 records the approved scope and demo contract;
-it is the implementation frontier.
+it is delivered. The current implementation frontier is ticket 28; D2 lifecycle
+contract drafting is also authorized, but its substantive semantics remain open.
 
 Authoritative records: [CONTEXT](../../CONTEXT.md), [ADRs](../../docs/adr/),
 [roadmap](../../ROADMAP.md), [handoff](../../HANDOFF.md). The historical
@@ -47,7 +48,7 @@ and behavioral evidence, not semantic correctness, guaranteed savings or product
 **D1 is settled.** Adam accepted the parallel-wave contract and
 [ADR 0011](../../docs/adr/0011-parallel-waves-are-declared-order-deterministic.md) as
 drafted on 2026-09-22 and selected P13 as the next implementation over the
-`ready-for-agent` browser-designer ticket 13:
+then-stale `ready-for-agent` browser-designer ticket 13 (now closed):
 [ticket 28](issues/28-execute-and-check-one-parallel-wave.md). The contract is
 authoritative for wave concurrency, budget admission, reducer/join cost, failure
 selection and evidence semantics. Its §10 records the two items handed forward: P14's
@@ -154,12 +155,12 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 | P18 | Gate between parallel waves: approved continuation executes only the remaining wave with preserved budget, state and evidence | P16, P17 | Outline |
 | P19 | Regenerate an executable artifact into a new immutable version, preserve its user layer, re-check it and refuse old approval | P17; marker/conflict contract | Outline |
 | P20 | A caller-declared Judgment vocabulary executes and replays through reference, graph and checking; invalid options fail closed | D3 | Independent design frontier |
-| P21 | Select compatible role-registry contracts for one authored workflow, run fixture-backed bindings and reject incompatible compositions through the common spec seam | D4 | Independent design frontier |
-| P22 | Bind one controlled read-only data source to a role-bound workflow; replay recorded inputs and verify both drivers' evidence | P21; data snapshot contract | Outline |
+| P21 | Select compatible role-registry contracts for one authored workflow, run fixture-backed bindings and reject incompatible compositions through the common spec seam | D4 for broader role/agent/skill scope | Bounded registry-derived fixture composition delivered in ticket 17; reuse it, do not rebuild |
+| P22 | Bind one controlled read-only data source to a role-bound workflow; replay recorded inputs and verify both drivers' evidence | Broader compositions need separate cases | Bounded source capture/replay delivered in ticket 18 |
 | P23 | Emit one runnable role/agent bundle with SOUL and reused skills outside Hermes; inspect and check that exact version | P17, P21; skill matching contract | Outline |
 | P24 | For one unmatched capability, explicitly approve and audit new-skill creation, then emit/check a new role bundle | P23; creation approval contract | Outline |
 | P25 | Enforce one role's declared tool permissions and prove a denied operation fails in a fresh session | P23, D5 | Authorization-blocked outline |
-| P26 | Static multiple-choice authoring → typed spec → visual graph → generate/check for the accepted Route subset | D6 | Independent design frontier |
+| P26 | Static multiple-choice authoring → typed spec → visual graph → generate/check for the accepted Route subset | D6 settled | Initial scope delivered in tickets 13–14; expanded parallel/Gate authoring remains P27 |
 | P27 | Edit/inspect a parallel and gated design, show before/after structure, generate/check and present approval/continuation evidence | P18, P26 | Outline |
 | P28 | One bounded, user-selected regular-model completeness check on questionnaire output, with visible failures and usage | P26; model budget/output contract | Outline; offline first |
 | P29 | A measured internal dogfood workflow links an existing baseline to authored design, generated execution and attributable before/after results | P17, P22; generated-run attribution contract | Outline |
@@ -257,21 +258,21 @@ an identity-only layer ticket and imply it delivers Gate support.
 
 ### Other independent planning work
 
-P20, P21 and P26 have no unfinished code prerequisites, but each still needs a bounded
-contract. Choose one sample vocabulary, one role composition and one surface scenario,
-respectively. They can be sharpened alongside parallel and Gate planning rather than
-waiting for the execution track to finish. They are not `ready-for-agent` today.
+P20 still needs a bounded non-Intervention vocabulary contract. P21 and P26 have
+delivered bounded role/surface scenarios (tickets 17 and 13–14); reuse them and scope
+only their remaining generalization/integration gaps. Triage authorizes preparation,
+not a claim that D2 identity or D5 permission semantics are settled.
 
 ## Fog: decisions, ownership and authorization
 
 | Gate | Decision needed | Owner / proposed next action |
 |---|---|---|
 | D1 | Parallel reducer, scheduling, budget, join and evidence semantics | Settled 2026-09-22: contract accepted ([parallel-wave-contract.md](../../docs/parallel-wave-contract.md)) and published as [ticket 28](issues/28-execute-and-check-one-parallel-wave.md); no measurement prototype was needed |
-| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Settled 2026-09-22: drafting the lifecycle contract is approved; reopen the deferred format/community question only if executable identity requires it |
+| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Drafting approved, semantics NOT settled; direct acceptance needed for identity/continuation guarantees |
 | D3 | Typed vocabulary and confidence/probability validation, source compatibility | Propose one non-Intervention example and invalid-output behavior for approval |
 | D4 | Role composition representation, registry compatibility and verification policy | Inspect representative read-only registry fixtures and agree one composition contract |
 | D5 | Fresh-session permission verification without protected writes | Adam authorizes a concrete isolated integration plan; no live test is authorized now |
-| D6 | Browser UI selected; graph interaction and supported questionnaire subset still need agreement | Refine P26 first; no need to wait for full M2 |
+| D6 | Browser UI and initial bounded questionnaire/graph scenario | Settled and delivered in tickets 13–14; no repeat approval prompt |
 | D7 | Supported Kanban mapping and independent local checking harness | Agree one supported shape and explicit unsupported-shape failures; never activate it implicitly |
 
 Other decisions stay parked: public/internal distribution, naming, packaging and non-Hermes
@@ -281,9 +282,9 @@ Live model calls require separate authorization even when a ticket has offline f
 ## Promotion and working method
 
 1. Review this whole map with Adam: coverage, priorities, granularity and genuine blocking edges.
-2. Refine P26 first: Adam selected the visual designer checkpoint and browser UI.
-   Settle D1 and D2 alongside this planning where useful, not as blockers for P26.
-   Record approved domain changes through the normal ADR process.
+2. Follow CURRENT.md: P26's initial scenario is delivered; ticket 28 is the next
+   approved implementation, with D1 settled. Draft D2 without inventing lifecycle
+   semantics. Record approved domain changes through the normal ADR process.
 3. Publish approved slices as individual local issue files in dependency order. Provisional IDs
    may change. Use `ready-for-agent` only with settled scope, semantics, public test seam,
    review baseline and authorization; unresolved outlines stay here, not in the runnable frontier.

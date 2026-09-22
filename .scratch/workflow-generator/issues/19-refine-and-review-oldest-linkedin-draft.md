@@ -1,8 +1,14 @@
 # 19: Refine and review the oldest unprocessed LinkedIn draft
 
 **Type:** task
-**Status:** needs-info
-**Blocked by:** 18 (accepted and closed; dependency satisfied); readiness decisions below
+**Status:** blocked — successful live Generator/Guardian execution and parent acceptance remain missing.
+**Blocked by:** provider-path remedy/integration and separately bounded live acceptance; ticket 18 is accepted and closed and the readiness decisions below are settled.
+
+**Triage 2026-09-22:** the historical live failures stopped at Codex Generator,
+before Vertex Guardian. One newly authorized synthetic DeepSeek route probe returned
+HTTP 200 and `OK`, but requested/reported model identifiers differed. It was not a
+draft/review run or a production adapter test and does not close this parent. See
+`docs/provider-triage-2026-09-22.md` and `CURRENT.md`. No profile defaults changed.
 
 ## Goal
 

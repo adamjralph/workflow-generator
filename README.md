@@ -8,29 +8,26 @@ what was ruled out and why, and what is still open.
 
 ## Status
 
-Ticket 01 promotes the foundation into `agent_lab/` as the single local runtime core.
-Ticket 02 adds run-level budget reservations, atomic event numbering, and a
-return-value findings join; both tickets are accepted. Ticket 03 adds single-run
-Kanban diagnosis, immutable records and a minimal terminal UI; it is accepted and closed.
-Ticket 04 adds the read-only proof and a local plugin; normal plugin activation
-remains constrained by Hermes' config opt-in. Ticket 05 adds all four measurement
-units, task-separated worker/auxiliary/review traffic and reasoning counters;
-it is accepted and closed. Ticket 07 clears inherited mypy errors and makes
-malformed judgment failures explicit; it is accepted and closed. Ticket 06 adds
-per-role/per-run reports and digest-bound measured baseline comparisons;
-it is accepted and closed. See
-[ticket 06 usage and evidence](docs/report-ticket06.md).
-Ticket 08 adds the in-memory workflow spec and structural validation boundary;
-it is accepted and closed. It does not compile or execute
-specs or claim conformance. See [ticket 08 API and evidence](docs/spec-ticket08.md).
-Current offline suite: **238 passed, 3 optional skips** (two live Jev tests and
-the real Hermes loader check). See [ticket 05 measurement evidence](docs/measurement-ticket05.md),
-[ticket 04 evidence and activation limitation](docs/read-only-ticket04.md)
-and [ticket 03 evidence](docs/diagnosis-ticket03.md).
+**Current project state and next decisions: [CURRENT.md](CURRENT.md).**
 
-The product spec and ADRs record future work, not this ticket's build target.
-Spec serialization, distribution/packaging, product naming, and the community-plugin
-question remain undecided.
+Delivered: read-only diagnosis and baselines; restricted in-memory workflow
+execution/conformance; a local browser designer and questionnaire; bounded role/data
+snapshots; LinkedIn capture, generation/review plumbing and offline replay. Tickets
+01–18 and 20–27 are closed, including ticket 13's reconciled bookkeeping. This is
+not full-product completion: parallel execution, exact-version Gate/resume,
+regeneration, agent permissions and the integrated journey remain unfinished.
+
+Ticket 19 is **Blocked** on successful live execution; ticket 28 (one parallel wave)
+is the next approved implementation and has not started. The new synthetic DeepSeek
+probe establishes endpoint response, not a completed live workflow or exact-model
+acceptance. See [provider triage](docs/provider-triage-2026-09-22.md).
+
+Historical offline regression: **1,892 passed, 3 optional skips**. The fresh assessment
+run was **1,016 passed, 876 failed, 3 skipped**, predominantly because the current
+session's mandatory scratch root is inside Hermes and evidence guards reject it.
+Do not claim a new green suite or disable those guards. Details and remaining direct
+decisions are in `CURRENT.md`. Public format, distribution/naming and Hermes writes
+remain deferred.
 
 ## Local development
 

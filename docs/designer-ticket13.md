@@ -1,5 +1,10 @@
 # Ticket 13 — local browser workflow designer
 
+**Accepted and closed (2026-09-22):** reconciled under Adam's explicit authorization
+to close finished tickets, using the delivered implementation and independent review
+below. No runtime code changed. Historical results remain historical; see
+[`CURRENT.md`](../CURRENT.md) for the present validation environment blocker.
+
 ## Run
 
 Use the existing development environment (`requirements-dev.txt`). No frontend build,
@@ -82,5 +87,6 @@ request-origin and fixed-root boundaries.
   remain; no broad refactor was introduced.
 - Review prompted repeatable operator `--protected-root` support for additional
   Hermes installations, checked at startup and per generation/check.
-- No live model calls, Hermes edits or activation. User acceptance/closure remains
-  separate from implementation and verification.
+- No live model calls, Hermes edits or activation occurred in the implementation.
+  User acceptance/closure was separate from implementation and verification; it is
+  now reconciled under the authorization stated above.

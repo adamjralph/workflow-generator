@@ -5,7 +5,14 @@
 
 **Blocked by:** None (can start immediately). Tickets 01–12 are accepted and closed; parallel and Gate work do not block this slice.
 
-**Status:** ready-for-agent
+**Status:** accepted and closed — 2026-09-22 bookkeeping reconciliation under Adam's explicit authorization to close finished tickets.
+
+Implementation `0bad1d0` and reviewed follow-up `3e47b2b` were already delivered.
+`docs/designer-ticket13.md` records the public/HTTP/Chromium tests, historical full
+regression and independent Standards/Spec reviews. The historical handoff records
+Adam trying the UI and saying “good work. next”. This closure uses that evidence
+and his present authorization; it is not self-approval or a fresh green regression.
+Current test-environment limitations are recorded in `CURRENT.md`.
 
 **Scope approval:** Adam selected the visual designer as the first product checkpoint, selected browser UI, and approved this ticket's scope with “yes”. Adam subsequently approved the concrete threshold-routing demo and review baseline with “Approve”.
 
@@ -20,18 +27,21 @@
 - Editing means changing questionnaire answers and regenerating the graph. Drag-and-drop editing is deferred.
 - No live model calls, Hermes writes/activation changes, or persistent spec format.
 
-## Acceptance criteria
+## Acceptance criteria (satisfied by recorded delivery evidence)
 
-- [ ] A browser user completes one branching workflow design without writing code; the graph displays its nodes, labeled routes and terminals faithfully.
-- [ ] The questionnaire is deterministic and uses only the approved prebound catalog; invalid answers and unsupported declarations fail closed without running arbitrary code.
-- [ ] Generate/check invokes the existing core on the authored spec and actual generated candidate with explicit typed offline cases; the UI displays case scope, pass/failure findings and available evidence rather than claiming semantic correctness.
-- [ ] A deliberately nonconforming candidate fails through the common check seam; the browser surfaces a failed check rather than reporting success merely because generation completed.
-- [ ] Changing an answer changes the authored spec and graph; old generation/check results cannot be presented as evidence for the changed design.
-- [ ] Validation, generation, check and evidence-write failures are visible, and incomplete evidence never produces a passing result.
-- [ ] Evidence goes only to a caller-named permitted project directory/artifact store, never Hermes or protected source. Browser input cannot select arbitrary executable bindings or bypass output protection.
-- [ ] Local serving has an explicit loopback/request-origin boundary; visiting an unrelated website cannot trigger workflow execution through an unprotected local endpoint.
-- [ ] Public-seam tests prove questionnaire-to-spec and real generation/conformance behavior. A small real-browser smoke suite proves the complete answer → graph → generate/check path and answer-edit invalidation.
-- [ ] Existing offline tests and type checks remain green; independent Standards/Spec review uses the approved baseline. Preserve unrelated edits and use scoped commits.
+- [x] A browser user completes one branching workflow design without writing code; the graph displays its nodes, labeled routes and terminals faithfully.
+- [x] The questionnaire is deterministic and uses only the approved prebound catalog; invalid answers and unsupported declarations fail closed without running arbitrary code.
+- [x] Generate/check invokes the existing core on the authored spec and actual generated candidate with explicit typed offline cases; the UI displays case scope, pass/failure findings and available evidence rather than claiming semantic correctness.
+- [x] A deliberately nonconforming candidate fails through the common check seam; the browser surfaces a failed check rather than reporting success merely because generation completed.
+- [x] Changing an answer changes the authored spec and graph; old generation/check results cannot be presented as evidence for the changed design.
+- [x] Validation, generation, check and evidence-write failures are visible, and incomplete evidence never produces a passing result.
+- [x] Evidence goes only to a caller-named permitted project directory/artifact store, never Hermes or protected source. Browser input cannot select arbitrary executable bindings or bypass output protection.
+- [x] Local serving has an explicit loopback/request-origin boundary; visiting an unrelated website cannot trigger workflow execution through an unprotected local endpoint.
+- [x] Public-seam tests prove questionnaire-to-spec and real generation/conformance behavior. A small real-browser smoke suite proves the complete answer → graph → generate/check path and answer-edit invalidation.
+- [x] Existing offline tests and type checks remain green; independent Standards/Spec review uses the approved baseline. Preserve unrelated edits and use scoped commits.
+
+The final checkbox records the delivery-time evidence (474 passed, 3 expected
+skips; mypy 22 files clean), not a claim about the present session's blocked rerun.
 
 ## Approved demo and public test contract
 

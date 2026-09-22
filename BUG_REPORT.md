@@ -1,5 +1,20 @@
 # Bug report: Codex live generation stops at response-header validation
 
+## Current triage — 2026-09-22
+
+The incident remains open. Five historical live attempts are now recorded; the
+older four-attempt snapshot below is retained as historical evidence. Smoke 05
+(`0080738`) returned HTTP 200 / `missing_http_content_type` after about 1.11 seconds,
+with 35 header field lines and no Guardian invocation. It did not establish root cause.
+
+Adam has chosen to keep Codex Generator and Vertex Guardian. A separate synthetic
+DeepSeek connectivity observation is not a replacement workflow or a fix. Fresh
+Codex/response-header tests: **329 passed in 2.25 seconds**; full regression remains
+blocked by this session's temporary evidence-root policy. Current findings and the
+bounded next experiment proposal: [provider triage](docs/provider-triage-2026-09-22.md).
+See [CURRENT.md](CURRENT.md) for current status and permissions; do not execute old
+smoke scripts or infer a new paid-request allowance from this report.
+
 ## Summary
 
 Four separately authorized live smoke attempts stopped at the Codex Generator,

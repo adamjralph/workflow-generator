@@ -13,9 +13,19 @@ checkpoint was committed as `b3073d4` and the working tree was clean. `git push
 origin main` then failed with HTTP 403: permission to `adamjralph/workflow-generator`
 was denied to the authenticated account `stillroom`. A read-back with `git ls-remote`
 confirmed remote `main` remained `02e4f6db4176df10d2ea049ff98e681cb96f0d77`.
-Public-content approval is settled; **push is Blocked on repository write access**.
-Do not ask for publication approval again, switch accounts, repair credentials or
-rewrite history implicitly. This follow-up records the failed push for next session.
+Public-content approval is settled. Adam corrected the account selection: use his
+existing authentication, not `stillroom`, for this repository. Verified with
+`GH_CONFIG_DIR=/home/hermes/.config/gh-personal gh api user --jq .login` →
+`adamjralph`; repository permission is `ADMIN`. The default gh configuration only
+lists Stillroom; checking it alone does not discover the separately configured account.
+
+**Repository push command:**
+`GH_CONFIG_DIR=/home/hermes/.config/gh-personal git push origin main`
+
+Use this command-scoped configuration for Adam's repository. No global account
+switch, new credential, remote rewrite or authentication repair is needed. This
+follow-up records the verified account selection before the authorized push; verify
+remote HEAD after pushing rather than relying only on the command exit status.
 The handover's earlier “nothing committed/pushed” statements describe its creation
 state, not a permanent prohibition overriding this later authorization.
 

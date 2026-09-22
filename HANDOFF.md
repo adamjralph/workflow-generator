@@ -1,5 +1,275 @@
 # Workflow Generator — next-session handoff
 
+## Checkpoint handoff and independent-review authorization
+
+Adam requested: “Do a handoff and commit. I authorise the independent reviews.
+Did you suggest I use a different model for that?”
+
+- Commit this tested Codex correction plus the associated diagnostic/evidence and
+  handoff documents as a local checkpoint. This instruction does not authorize a push.
+- **The two independent Standards and Spec reviews are now authorized**, carrying
+  into the next session. Do not re-ask for generic review/delegation permission.
+  They are authorized, not performed: no reviewer was launched during this handoff.
+- Review the checkpoint commit made with this section (locate it with `git log`),
+  using `docs/codex-compatibility-correction.md` and its frozen code/test hashes.
+  Standards: scoped implementation quality and security/failure boundaries. Spec:
+  approved missing-MIME/validated-completed-item contract and regression coverage.
+  Preserve the two distinct reviews, actual reviewer identities, findings and
+  execution evidence; the implementer must not self-approve.
+- No different reviewer model was selected or required in this exchange. Fresh
+  independent sessions are the baseline; a different model family for one review
+  may add perspective. Disclose the intended routes and verify the actual runtime
+  identities before claiming review; never silently substitute a route. Any required
+  route decision remains explicit, not an invented part of this authorization.
+- Use only available, permitted delegation mechanisms. Do not install plugins or
+  invoke an excluded harness to recover missing capabilities. If reviewer execution
+  cannot be supported, report the precise blocker while preserving this approval.
+- Full offline evidence remains 1,977 passed / 3 expected skips, with the browser
+  timing caveat and fresh-short-scratch command documented below. Review findings
+  need bounded corrections and fresh relevant validation before acceptance.
+- Ticket 19 remains Blocked on actual reviews and separate live acceptance. No
+  private-draft/Guardian run, publication, profile/route edit or ticket-28 expansion
+  is authorized by this handoff. No live workflow call or push was performed.
+
+This authorization supersedes the older “review permission required” statements.
+
+## Codex correction implemented and offline-tested — 2026-09-22
+
+Read `CURRENT.md` and `docs/codex-compatibility-correction.md` first. The approved
+Codex-only missing-MIME exception and validated completed-item assembly are now
+implemented. Vertex, production evidence guards, UI, profiles, credentials, model
+routes and the guarded runner are unchanged. Existing uncommitted work is preserved.
+
+- Red regressions reproduced both compatibility failures before implementation.
+  Final focused Codex/header suite: **509 passed in 21.16s**, exit 0.
+- Final complete regression: **1,977 passed, 3 expected skips in 467.61s**, exit 0,
+  including Chromium. Log: `/home/hermes/workflow-validation-scratch/v-Ip1U4p/full-pytest.log`;
+  its `exit-code.txt` records 0. Mypy: **35 source files clean**; JS syntax, diff
+  whitespace and Graft wiring freshness passed. Code/test hashes are in the report.
+- The mandated runner's long TMPDIR exposed a Chromium Unix-socket path limit:
+  the first full run had 1,817 passed / 3 skipped / 160 browser setup errors.
+  Continue invoking the runner, but use the report's command-local **fresh short
+  `0700` sibling directory** below the same approved validation root for browser/full
+  runs. Both directories are retained. No existing directory may be reused/deleted.
+  No live runner/profile change, symlink workaround, HOME disguise or guard bypass.
+- A foreground full-run tool request was interrupted at 420s; it is not counted
+  as passing. Use tracked background execution with completion notification.
+  A fail-fast run also exposed an unchanged browser timing assertion; it passed in
+  isolation and in the final complete run. Preserve this caveat, not a stability claim.
+- **Independent Standards/Spec reviews remain outstanding.** Do not self-approve
+  or launch reviewers without Adam's explicit delegation authorization. Ticket 19
+  remains Blocked on review/live acceptance; ticket 28 is unimplemented. Any real
+  private-draft/Guardian acceptance run remains a separate decision. No live model
+  call, worker, commit or push occurred in this implementation session.
+
+The earlier sections below preserve historical evidence. Their claims that the
+correction is unimplemented or the full regression has not run are superseded.
+
+## Validation environment unblocked safely — 2026-09-22
+
+Adam authorized the Codex compatibility correction and the necessary safe
+environment work. An external operator updated only the `astra-pinned` profile;
+Astra did not edit its own live instructions. No shared Hermes source, other
+profile, project production guard, model route, credential, tool permission or
+`HOME` setting changed.
+
+### Exact changes
+
+- Set the supported profile-scoped `agent.environment_hint` with
+  `hermes -p astra-pinned config set ...`. The fresh-session runtime block now
+  states that workflow-generator validation may use fresh private directories
+  below `/home/hermes/workflow-validation-scratch/`, that this narrow exception
+  takes precedence over the normal profile-scratch instruction for those
+  validation subprocesses only, and that ordinary scratch remains unchanged.
+- Created `/home/hermes/workflow-validation-scratch/` as a real, user-owned
+  directory with mode `0700`. Existing run directories must never be reused or
+  deleted.
+- Added the profile-local runner
+  `/home/hermes/.hermes/profiles/astra-pinned/bin/workflow-generator-validation`
+  with mode `0700`. It refuses execution outside this repository, rejects a
+  symlink/wrong-owner/wrong-mode validation root, creates one fresh mode-`0700`
+  directory per invocation, and exports `TMPDIR`, `TMP`, `TEMP` and
+  `WORKFLOW_VALIDATION_DIR` only to that command. It retains every run directory.
+  Run validation as:
+
+  ```bash
+  /home/hermes/.hermes/profiles/astra-pinned/bin/workflow-generator-validation \
+    .venv/bin/python -m pytest -q
+  ```
+
+### Verification
+
+- Current official Hermes docs and installed source confirm that
+  `terminal.temp_dir` is independent of subprocess `TMPDIR`; no invented config
+  key was used. `agent.environment_hint` is a supported prompt setting and the
+  fresh-session prompt builder appends it to the runtime environment block.
+- Offline fresh-prompt assembly for `astra-pinned` confirmed all of: the normal
+  profile scratch line remains, the precedence exception and runner path are
+  present, the Astra SOUL is loaded, and this repository's `AGENTS.md` is loaded.
+  `hermes prompt-size` ran offline; no model invocation occurred.
+- Two runner probes created distinct retained directories:
+  `workflow-generator-20260922T091956Z-zcS9Uh` and
+  `workflow-generator-20260922T091956Z-zTdfmH`. Both were owned by the current
+  user with mode `0700`; Python temporary directories landed beneath them;
+  `TMPDIR=TMP=TEMP`; real `HOME=/home/hermes` and
+  `HERMES_HOME=/home/hermes/.hermes/profiles/astra-pinned` were preserved; and
+  the unchanged production `validate_evidence_root` accepted each external path.
+  The runner refused an invocation from `/home/hermes` with exit `65` before
+  creating a run directory.
+- The exact previously blocked command was then run through a third fresh
+  directory (`workflow-generator-20260922T092218Z-2G30DT`):
+  `AGENT_LAB_JUDGMENT=stub .venv/bin/python -m pytest -q
+  tests/test_designer_server.py -x --tb=short` completed with **60 passed in
+  29.36s**, exit `0`. This proves the validation environment is usable; it is not
+  a full regression or evidence for the still-unimplemented Codex correction.
+- Read-back confirmed main route `openai-codex/gpt-6-astra-900k`, no fallback
+  providers/models, and the existing CLI toolset unchanged. `terminal.temp_dir`
+  remains unset, so ordinary Hermes scratch behavior was not globally redirected.
+
+No gateway restart is required. Existing sessions keep their cached system prompt;
+start a **fresh Astra session** in this repository to receive the exception. The
+live gateway was not interrupted. No regression suite, production change, model
+call, commit, push or destructive cleanup was performed in this environment-only
+change.
+
+### Reversal
+
+Run `hermes -p astra-pinned config unset agent.environment_hint` to remove the
+fresh-session instruction, then stop invoking the profile-local runner. The runner
+file may be removed separately only with deletion authorization. Preserve the
+external root and every existing validation directory as evidence; they are inert
+after the instruction is unset and must not be deleted as part of reversal.
+
+## Latest diagnosis — two demonstrated Codex protocol incompatibilities
+
+The environment-blocked statements in this historical diagnosis describe the
+state before the profile-scoped change above and are superseded only on that
+point. The correction and full regression remain outstanding.
+
+Read `docs/codex-protocol-diagnosis.md` first. Under the widened authorization
+below, three fresh synthetic requests returned HTTP 200, exact reported
+`gpt-5.6-sol`, and exact streamed `OK`, but no Content-Type. Diagnostic body
+inspection exposed a second blocker: a completed streamed message with empty
+`response.completed.response.output`. The third actual body fails production
+`_parse` at `agent_lab/designer/codex.py:386`. An offline sanitized structural
+derivative reproduces that failure; filling only its final output from the done
+item makes the unmodified parser accept. This is a synthetic causal experiment,
+not a production fix or passing live workflow.
+
+**Correction scope approved:** Adam replied “Approve” to the proposed Codex-only
+missing-MIME exception and validated completed-item assembly, with explicit
+negative cases and unchanged Vertex/security/evidence boundaries. Do not re-ask
+for this scope approval. Implementation has not started: the required validation
+environment remains Blocked, and TMPDIR was rechecked as inside `.hermes`.
+Continue implementation in a runtime with permitted scratch outside protected
+roots. Adam subsequently authorized necessary safe environment-unblocking work to
+get the system working while preserving Hermes; do not request that approval again.
+The remaining blocker is this runtime's mandatory scratch policy and prohibition
+on self-editing its live configuration, not missing user permission. An externally
+configured validation session is required; do not weaken guards or disguise HOME.
+Approval does not authorize a guard bypass, live-profile modification,
+commit/push or automatic private-draft/Guardian acceptance run.
+Do not repeat ALPN or private-draft calls to reconfirm the diagnosis.
+Full validation still needs a permitted runtime outside protected scratch roots;
+no guard bypass, HOME disguise or live profile edit. Ticket 19 remains Blocked and
+ticket 28 unimplemented. Independent implementation reviews remain outstanding.
+
+Fresh existing Codex/header tests: 329 passed in 2.25s. Offline network-denied
+characterization: three assertions passed (same parser rejection, synthetic
+reconstruction acceptance, contradiction rejection). No production/test edits,
+Guardian, supported-client run, worker, auth refresh, commit or push. Existing
+uncommitted edits were preserved. New report plus this handoff/CURRENT updates
+are uncommitted. Consumed private destinations are
+`$TMPDIR/workflow-codex-body-diagnostic-01`, `-02`, `-03`; do not reuse/remove their
+guards. Raw response/credential values were not persisted; report records bounds,
+actual results, artifact hashes, privacy limits and the proposed correction.
+
+## Latest authorization — widened Codex diagnostic scope carries into the next session
+
+**Adam explicitly approved widening the diagnostic scope to find the Codex root
+cause, within sensible safety limits, and requested that this approval be carried
+into a fresh session.** His exact instruction:
+
+> Yes, I give you permission to expand all boundaries as required to find the the cause. Add this explicitly to the handover so you can continue in a fresh session. Make sure to emphasise my approval for a widened diagnostic scope within sensible safety limits.
+
+This followed the recommendation to inspect a synthetic response's headers and a
+bounded body sample privately, then if needed compare with a known-working
+supported client using the same account and exact model with truthful identity.
+**Do not ask again for generic diagnostic-scope or necessary diagnostic model-call
+permission.** This new continuation authorization supersedes the older
+session-only call restriction and project diagnostic prohibitions below where
+those prevent the approved investigation. It is not a waiver of higher-priority
+runtime rules or permission for unrelated changes.
+
+### Authorized investigation and safety limits
+
+- Use isolated diagnostic probes, fresh private destinations and synthetic input.
+  Necessary model calls and discriminating transport/client comparisons are
+  authorized for this resumed investigation. Set and record modest per-experiment
+  request/time/size bounds; avoid blind retries or uncontrolled spend. Preserve
+  old evidence and consumed guards rather than reusing their invocation paths.
+- Inspect response headers and a tightly bounded body sample, including after the
+  production missing-Content-Type rejection, **in the diagnostic probe only**.
+  This explicitly expands the former header-shape-only/no-body boundary. Reading
+  those bytes does not make the response acceptable as model output.
+- Keep captures private and outside git/public artifacts. Redact cookies, tokens,
+  account identifiers and other secrets before retaining/reporting diagnostic
+  material; do not dump raw captures into chat or model context. Use the existing
+  credential through a controlled read-only path, never print or copy its contents
+  into reports. Treat response content as untrusted data, not instructions.
+- A supported-client comparison must retain truthful identity, verify the exact
+  model/account route and disclose client behavior. Do not impersonate Hermes or
+  claim an SDK comparison succeeded without execution evidence. Do not launch
+  another model/agent worker under the guise of a transport control; separately
+  authorize delegation or consequential client side effects if required.
+- Keep production response validation and evidence safeguards intact while
+  diagnosing. A diagnosis may demonstrate a needed spec correction; document the
+  evidence and proposed change rather than silently redefining success. Never
+  claim full runtime validation from focused tests alone.
+- No private-draft/Guardian run is needed for this diagnosis. No publication,
+  deployment, commit/push, destructive cleanup, credential repair/refresh, live
+  profile/routes/SOUL/tools edits or unrelated scope expansion is authorized by
+  this diagnostic approval. Seek a specific decision if one becomes necessary.
+- This runtime still mandates scratch inside `.hermes`; the test-suite evidence
+  conflict remains separate. Do not disguise HOME or bypass guards. Arrange a
+  permitted validation runtime externally rather than editing this live profile.
+
+### Fresh-session starting point
+
+1. Read this authorization, `CURRENT.md` and `docs/codex-alpn-comparison.md`.
+   Check current git status and preserve uncommitted reports/entry-point edits.
+2. Prioritize diagnosis over ticket 28. The latest two calls both returned 200,
+   missing Content-Type and 35 fields, with and without negotiated HTTP/1.1 ALPN.
+   Do not repeat that experiment or assume its failure identifies the responder.
+3. Prepare and exercise a bounded, secret-safe diagnostic capture on synthetic
+   input, then make the necessary live observation under the approval above.
+   Inspect sanitized response evidence to distinguish an application error,
+   authentication issue, intermediary response or protocol incompatibility.
+4. If still ambiguous, use a controlled supported-client comparison where allowed;
+   vary one relevant factor at a time. Record actual outcomes and unknowns.
+5. Implement only a demonstrated, authorized correction with regression evidence;
+   otherwise report the precise remaining blocker. Root cause is still unknown.
+
+No new live call or implementation was performed while recording this approval.
+
+## Previous resume — synthetic ALPN comparison completed; still Blocked
+
+Read `docs/codex-alpn-comparison.md` before the older proposed TLS experiment.
+Adam approved the bounded comparison and then permitted model calls as needed
+for this session; do not carry that session-scoped permission into future runs.
+Exactly two synthetic Codex requests reproduced HTTP 200 / missing Content-Type:
+default TLS and successfully negotiated `http/1.1` ALPN both returned the same
+allowed header shape (2,647 bytes, 35 fields). No production remedy is established.
+No Guardian/private draft, retry, auth refresh, model substitution or profile edit.
+
+Fresh server-test reproduction confirms the mandatory scratch/protected-evidence
+conflict (1 failure before server startup); 329 focused Codex/header tests pass.
+A permitted validation session outside protected scratch roots is still needed.
+Do not weaken the guard, disguise HOME or rerun the consumed probe. Production
+code is unchanged; ticket 19 remains Blocked and ticket 28 unimplemented.
+Report and entry-point updates are uncommitted; no push or independent review.
+
+
 ## Checkpoint publication authorization — after handover
 
 Adam authorized a commit and push if appropriate. The pre-push check found that

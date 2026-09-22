@@ -34,7 +34,9 @@ def test_wire_rule_survives_run_receipt_duplicate_and_offline_check(
     originals = {p: p.read_bytes() for p in config.parent.rglob("*") if p.is_file()}
     auth_before = (tmp_path / "auth.json").read_bytes()
     mime = b"text/event-stream" if kind == "codex" else b"application/json"
-    calls = http_responses(monkeypatch, kind, target=target, response_head=head.replace(b"{mime}", mime))
+    missing_codex_mime = kind == "codex" and code == "missing_http_content_type"
+    body = b'data: {"type":"error","message":"PRIVATE_BODY"}\n\n' if missing_codex_mime else None
+    calls = http_responses(monkeypatch, kind, target=target, response_head=head.replace(b"{mime}", mime), body=body)
     guardian = GuardianSource() if kind == "codex" else source
     generator = source if kind == "codex" else FixtureSource()
     with running_server(evidence, draft_config=config, draft_model_source=generator,
@@ -42,7 +44,7 @@ def test_wire_rule_survives_run_receipt_duplicate_and_offline_check(
         identity = capture(server)
         http_status, result = post(server, "/api/drafts/run", identity)
         assert http_status == 200 and result["status"] == "failed"
-        assert result["failure"] == {
+        expected_failure = {
             "status": "failed", "code": code, "provider_status": status,
             "header_observation": {
                 "version": 1, "section_bytes": len(head.replace(b"{mime}", mime)),
@@ -54,6 +56,9 @@ def test_wire_rule_survives_run_receipt_duplicate_and_offline_check(
                 "content_encoding": code == "unsupported_http_content_encoding",
             },
         }
+        if missing_codex_mime:
+            expected_failure = {"status": "failed", "code": "invalid_response_body", "provider_status": None}
+        assert result["failure"] == expected_failure
         assert result["auth_requests"] == (0 if kind == "codex" else 1)
         assert result["review"] is None
         assert (result["result"] is None) == (kind == "codex")

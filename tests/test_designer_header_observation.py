@@ -27,6 +27,10 @@ def test_missing_type_reports_empty_first_section(tmp_path, monkeypatch, kind, t
     source, request = provider(tmp_path, kind)
     calls = http_responses(monkeypatch, kind, target=target,
                            response_head=b"HTTP/1.1 200 OK\r\n\r\n")
+    if kind == "codex":
+        assert source.invoke(request).body == " Exact text\n"
+        assert calls == ["chatgpt.com"]
+        return
     with pytest.raises((CodexError, VertexError)) as caught:
         source.invoke(request)
     assert caught.value.code == "missing_http_content_type"
@@ -104,6 +108,14 @@ def test_rejection_observes_only_first_section(tmp_path, monkeypatch, kind, targ
     with pytest.raises((CodexError, VertexError, CodexUncertain, VertexUncertain)) as caught:
         source.invoke(request)
     failure = caught.value
+    if kind == "codex" and code == "missing_http_content_type":
+        # Accepted absent MIME, but declared zero-length body cannot complete SSE.
+        assert (failure.code, failure.provider_status) == ("transport_incomplete", None)
+        assert failure.header_observation is None
+        assert len(reads) == len(closed) == len(writes) == len(calls) == 1
+        assert "PRIVATE_" not in str(failure)
+        assert (tmp_path / "auth.json").read_bytes() == auth
+        return
     assert (failure.code, failure.provider_status) == (code, status)
     assert failure.header_observation.model_dump() == {
         "version": 1, "section_bytes": len(head), "field_lines": count,
@@ -147,13 +159,18 @@ def test_no_observation_outside_rejected_bounded_headers(tmp_path, monkeypatch, 
 @pytest.mark.parametrize("kind,target", [("codex", "generation"), ("vertex", "generation"), ("vertex", "oauth")])
 @pytest.mark.parametrize("size", [65536, 65537])
 def test_header_observation_limit_is_inclusive(tmp_path, monkeypatch, kind, target, size):
+    from agent_lab.designer.codex import CodexUncertain
+
     source, request = provider(tmp_path, kind)
     head = b"HTTP/1.1 200 OK\r\nX: " + b"x" * (size - 24) + b"\r\n\r\n"
     assert len(head) == size
     http_responses(monkeypatch, kind, target=target, response_head=head, body=b"")
-    with pytest.raises((CodexError, VertexError)) as caught:
+    with pytest.raises((CodexError, VertexError, CodexUncertain)) as caught:
         source.invoke(request)
-    if size == 65536:
+    if size == 65536 and kind == "codex":
+        assert caught.value.code == "transport_incomplete"
+        assert caught.value.header_observation is None
+    elif size == 65536:
         assert caught.value.code == "missing_http_content_type"
         assert caught.value.header_observation.model_dump() == {
             "version": 1, "section_bytes": 65536, "field_lines": 1,

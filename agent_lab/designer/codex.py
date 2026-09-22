@@ -172,15 +172,16 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
                     failure_code = "duplicate_http_header"
                     raise ValueError
                 response_headers[key] = value.strip()
-        failure_code = "missing_http_content_type"
-        if "content-type" not in response_headers:
-            raise ValueError
-        failure_code = "empty_http_content_type"
-        if not response_headers["content-type"]:
-            raise ValueError
-        failure_code = "unsupported_http_content_type"
-        if response_headers["content-type"].split(";")[0].strip().lower() != "text/event-stream":
-            raise ValueError
+        # This pinned Codex endpoint can omit MIME on valid SSE responses.
+        # Only absence is exempt: explicit values still have to declare SSE,
+        # and the bounded body must pass the same strict completed-stream parser.
+        if "content-type" in response_headers:
+            failure_code = "empty_http_content_type"
+            if not response_headers["content-type"]:
+                raise ValueError
+            failure_code = "unsupported_http_content_type"
+            if response_headers["content-type"].split(";")[0].strip().lower() != "text/event-stream":
+                raise ValueError
         failure_code = "unsupported_http_content_encoding"
         if response_headers.get("content-encoding", "identity") != "identity":
             raise ValueError
@@ -264,6 +265,8 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
     terminal_texts: list[str] = []
     seen: set[tuple[Any, ...]] = set()
     item_events: list[dict[str, Any]] = []
+    completed_items: dict[int, dict[str, Any]] = {}
+    event_response_ids: set[str] = set()
     message_indices: set[int] = set()
     summary_deltas: dict[tuple[int, int], list[str]] = {}
     summary_done: set[tuple[int, int]] = set()
@@ -296,6 +299,12 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
         for index_field in ("output_index", "content_index", "summary_index"):
             if index_field in obj and (type(obj[index_field]) is not int or obj[index_field] < 0):
                 raise ValueError
+        if "response_id" in obj:
+            if not isinstance(obj["response_id"], str) or not obj["response_id"]:
+                raise ValueError
+            event_response_ids.add(obj["response_id"])
+        if obj.get("output_index") in completed_items:
+            raise ValueError  # No item/content event can follow that item's completion.
         if kind not in ("response.output_text.delta", "response.reasoning_summary_text.delta", "response.in_progress"):
             event_key = (kind, obj.get("output_index"), obj.get("content_index"), obj.get("summary_index"))
             if event_key in seen:
@@ -316,6 +325,8 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
         elif kind in ("response.output_item.added", "response.output_item.done"):
             item = obj["item"]
             item_events.append(obj)
+            if kind.endswith("done"):
+                completed_items[obj["output_index"]] = item
             if item["type"] == "reasoning":
                 _reasoning_item(item, final=kind.endswith("done"))
                 continue
@@ -374,8 +385,25 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
     output = final["output"]
     if not isinstance(output, list):
         raise ValueError
+    if not output:
+        # Assemble only terminal items, never deltas or added/in-progress items.
+        # Comparing sorted keys avoids allocation from an untrusted large index.
+        if (response_id is None or final.get("id") != response_id
+                or not completed_items
+                or sorted(completed_items) != list(range(len(completed_items)))):
+            raise ValueError
+        output = [completed_items[index] for index in range(len(completed_items))]
+        if any(not isinstance(item.get("id"), str) or not item["id"] for item in output):
+            raise ValueError
+    if event_response_ids and event_response_ids != {final.get("id", response_id)}:
+        raise ValueError
     messages = []
+    item_ids: set[str] = set()
     for index, item in enumerate(output):
+        if "id" in item:
+            if not isinstance(item["id"], str) or not item["id"] or item["id"] in item_ids:
+                raise ValueError
+            item_ids.add(item["id"])
         if item["type"] == "reasoning":
             _reasoning_item(item, final=True)
         elif item["type"] == "message":
@@ -396,8 +424,18 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
                 raise ValueError
             if observed["type"].endswith("done") and streamed != item:
                 raise ValueError
+            if streamed["type"] == "message" and observed["type"].endswith("added"):
+                for part in streamed["content"]:
+                    if (not isinstance(part.get("text"), str)
+                            or not item["content"][0]["text"].startswith(part["text"])):
+                        raise ValueError
         if "item_id" in observed and observed["item_id"] != item.get("id"):
             raise ValueError
+        if observed["type"] == "response.content_part.added":
+            initial_text = observed["part"].get("text")
+            if (not isinstance(initial_text, str)
+                    or not item["content"][0]["text"].startswith(initial_text)):
+                raise ValueError
         if observed["type"].startswith("response.reasoning_summary_"):
             if item["type"] != "reasoning":
                 raise ValueError

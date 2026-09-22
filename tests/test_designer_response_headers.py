@@ -168,6 +168,17 @@ def test_status_and_representation_rules_are_distinct(tmp_path, monkeypatch, kin
     other_mime = b"application/json" if kind == "codex" else b"text/event-stream"
     head = head.replace(b"{mime}", mime).replace(b"{other_mime}", other_mime)
     calls = http_responses(monkeypatch, kind, target=target, response_head=head)
+    if kind == "codex" and code == "missing_http_content_type":
+        # Only Codex absence is exempt; malformed encoding/framing still fail.
+        if b"Content-Encoding:" in head:
+            code = "unsupported_http_content_encoding"
+        elif b"Content-Length:" in head:
+            code = "invalid_http_framing"
+        else:
+            assert source.invoke(request).body == " Exact text\n"
+            assert calls == ["chatgpt.com"]
+            assert (tmp_path / "auth.json").read_bytes() == before
+            return
     with pytest.raises((CodexError, VertexError)) as caught:
         source.invoke(request)
     assert caught.value.code == code

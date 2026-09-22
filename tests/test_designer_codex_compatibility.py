@@ -71,7 +71,8 @@ def test_completed_items_and_missing_mime(tmp_path, monkeypatch, empty, reasonin
     "duplicate-done", "duplicate-added", "wrong-item-id", "wrong-added-id", "wrong-response-id",
     "event-response-id", "gap", "negative-index", "bool-index", "wrong-content-index",
     "delta-conflict", "text-done-conflict", "part-done-conflict", "incomplete-item",
-    "tool", "refusal", "failed", "interrupted", "late-item-event", "late-response-event",
+    "tool", "refusal", "failed", "interrupted", "late-item-event", "late-item-content-event",
+    "late-response-event",
     "malformed-sse", "duplicate-item-id", "second-message", "secret-text",
     "final-conflict", "added-text-conflict", "added-part-conflict",
 ])
@@ -116,6 +117,9 @@ def test_invalid_streams_fail_closed(tmp_path, monkeypatch, empty, invalid):
         expected = CodexUncertain
     elif invalid == "late-item-event":
         stream.insert(-1, stream.pop(3))
+    elif invalid == "late-item-content-event":
+        # The part text is consistent, so only item completion can reject this.
+        stream.insert(-1, stream.pop(2))
     elif invalid == "late-response-event":
         stream.append(copy.deepcopy(delta))
     elif invalid == "duplicate-item-id":
@@ -158,7 +162,8 @@ def test_invalid_streams_fail_closed(tmp_path, monkeypatch, empty, invalid):
 
 
 @pytest.mark.parametrize("invalid", ["missing-done", "unfinished-reasoning", "missing-created-id",
-                                      "missing-final-id", "missing-item-id", "empty-item-id", "no-items"])
+                                      "missing-final-id", "missing-item-id", "empty-item-id", "no-items",
+                                      "created-id-via-in-progress", "created-without-id"])
 def test_empty_output_needs_complete_identified_items(tmp_path, monkeypatch, invalid):
     source, request = provider(tmp_path, "codex")
     stream = events()
@@ -175,10 +180,61 @@ def test_empty_output_needs_complete_identified_items(tmp_path, monkeypatch, inv
         del stream[-2]["item"]["id"]
     elif invalid == "empty-item-id":
         stream[-2]["item"]["id"] = ""
+    elif invalid == "created-id-via-in-progress":
+        # No response.created at all: an in-progress event must not stand in for it.
+        stream[0] = {"type": "response.in_progress",
+                     "response": {"id": "resp_1", "status": "in_progress"}}
+    elif invalid == "created-without-id":
+        # A created event without an id cannot have its identity supplied later.
+        del stream[0]["response"]["id"]
+        stream.insert(1, {"type": "response.in_progress",
+                          "response": {"id": "resp_1", "status": "in_progress"}})
     else:
         stream = [stream[0], stream[-1]]
     calls = http_responses(monkeypatch, "codex", body=wire(stream))
     with pytest.raises(CodexError) as caught:
         source.invoke(request)
     assert caught.value.code == "invalid_response_body"
+    assert calls == ["chatgpt.com"]
+
+
+def _reasoning_events(*, empty, added_text, part_text):
+    """A reasoning stream whose initial added/summary-part text is caller-controlled.
+
+    The completed summary is always ``Final reasoning``, so any valid initial text
+    is a prefix of it. ``empty`` selects which final-output form is under test.
+    """
+    stream = events(empty=empty, reasoning=True)
+    item_added, item_done = stream[1], stream[2]
+    item_added["item"]["summary"] = [{"type": "summary_text", "text": added_text}]
+    item_done["item"]["summary"] = [{"type": "summary_text", "text": "Final reasoning"}]
+    if not empty:
+        stream[-1]["response"]["output"][0]["summary"] = [{"type": "summary_text", "text": "Final reasoning"}]
+    stream.insert(2, {"type": "response.reasoning_summary_part.added", "output_index": 0, "summary_index": 0,
+                      "item_id": "rs_1", "part": {"type": "summary_text", "text": part_text}})
+    return stream
+
+
+@pytest.mark.parametrize("empty", [False, True])
+@pytest.mark.parametrize("contradiction", ["added", "part"])
+def test_contradictory_initial_reasoning_text_fails_closed(tmp_path, monkeypatch, empty, contradiction):
+    source, request = provider(tmp_path, "codex")
+    contradictory = {"added": ("CONTRADICTORY_INITIAL", ""), "part": ("", "CONTRADICTORY_INITIAL")}
+    added_text, part_text = contradictory[contradiction]
+    stream = _reasoning_events(empty=empty, added_text=added_text, part_text=part_text)
+    calls = http_responses(monkeypatch, "codex", body=wire(stream))
+    with pytest.raises(CodexError) as caught:
+        source.invoke(request)
+    assert caught.value.code == "invalid_response_body"
+    assert "CONTRADICTORY" not in str(caught.value)
+    assert calls == ["chatgpt.com"]
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_prefix_initial_reasoning_text_is_accepted(tmp_path, monkeypatch, empty):
+    source, request = provider(tmp_path, "codex")
+    stream = _reasoning_events(empty=empty, added_text="Final", part_text="Final")
+    calls = http_responses(monkeypatch, "codex", body=wire(stream))
+    result = source.invoke(request)
+    assert result.body == " Exact text\n"
     assert calls == ["chatgpt.com"]

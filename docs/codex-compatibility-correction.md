@@ -25,10 +25,9 @@ Codex-only correction, not ticket 28 or live workflow acceptance.
 
 Validation must use the profile-scoped runner and retain each fresh external
 scratch directory. Full pytest, mypy, JavaScript syntax and final diff checks are
-required. Independent Standards and Spec reviews remain outstanding and cannot
-be self-approved or launched without Adam's explicit authorization. No live calls,
-private-draft/Guardian acceptance, Hermes changes, commit or push are part of this
-implementation.
+required. Adam subsequently authorized independent Standards and Spec reviews;
+their confirmation results are recorded below. No live calls, private-draft/Guardian
+acceptance, Hermes changes or push are part of this correction.
 
 ## Implementation
 
@@ -128,18 +127,16 @@ two opt-in live Jev tests and optional real Hermes plugin-loader integration.
 This green run does not erase the earlier timing failure or prove it is fixed.
 The isolated browser retest is `v-rgnhi7/browser-isolation.log`: 1 passed in 1.67s.
 
-**Implemented and offline-tested, not independently reviewed or accepted live.**
-Independent Standards/Spec reviews and separate live acceptance remain outstanding;
-no self-approval is claimed. Ticket 19 remains Blocked on review/live acceptance,
-and ticket 28 remains unimplemented. Adam subsequently explicitly authorized the
-two independent reviews and requested a handoff/local checkpoint commit. That
-review authorization carries into the next session; no reviewer model has been
-selected and no additional model/worker was launched during this handoff. See the
-latest HANDOFF section. Commit authorization is not push or live-acceptance permission.
+This was the initial implementation checkpoint. The later reviews requested changes;
+the confirmed corrections and newer full regression are recorded below. Live
+acceptance remains separate. Ticket 19 remains Blocked on that acceptance and
+Adam's parent-ticket decision; ticket 28 remains unimplemented. Commit authorization
+is not push or live-acceptance permission.
 
 ## Review baseline and unchanged boundaries
 
-The working-tree code/test SHA-256 values (not a commit or independent review):
+Initial checkpoint code/test SHA-256 values at `2d32a4a` (superseded by the
+confirmed correction below):
 
 - `agent_lab/designer/codex.py`: `e1c6699599eded1a05deb61d3cf91797a840fe1a96260dbc8da970c4605907b5`
 - `tests/test_designer_codex_compatibility.py`: `442f3f7929a2440aa759c5534938e5c42dcd112e76d959d8aec4d25f27fbf09f`
@@ -153,3 +150,45 @@ and credentials are synthetic. Vertex implementation, production evidence guards
 UI, profiles, routes, live credentials, tools and runner remain unchanged. Existing
 uncommitted handoff/current/diagnostic work was preserved. No model calls, worker,
 private-draft/Guardian acceptance, commit, push or ticket-28 work occurred.
+
+## Independent review corrections and confirmation — 2026-09-23
+
+Two independent reviews of `2d32a4a` returned `changes_requested`: the
+created-response identity could be supplied by `response.in_progress`, initial
+reasoning text could contradict completed text, and the late-item test did not
+actually protect the completion guard. See `HANDOFF.md` for the finding detail.
+The corrections track `created_response_id` only from `response.created`, compare
+initial reasoning-item and summary-part prefixes to completed summaries, and add a
+late-item-content fixture independent of the existing done-text rule. Only
+`agent_lab/designer/codex.py` and `tests/test_designer_codex_compatibility.py`
+changed from the initial code/test checkpoint.
+
+Corrected SHA-256 values, verified again before this record update:
+
+- `agent_lab/designer/codex.py`: `21fa260a043c657f917bc5853827c48b527eedaa9b8b13c4f61e7fc33c74dcad`
+- `tests/test_designer_codex_compatibility.py`: `44a52b344d2869757e4382c9e6306101900f646f45dec1ee7e73616e177f58af`
+
+Offline validation after corrections: six-module focused suite **519 passed**;
+full regression `/home/hermes/workflow-validation-scratch/v-T3v09l/full-pytest.log`
+**1,987 passed, 3 skipped in 480.41s**, with retained `exit-code.txt` = 0.
+Mypy checked 35 source files; JS syntax and diff whitespace checks passed.
+An earlier full-suite rerun at `2d32a4a` hit two browser polling-timing failures
+which passed 5/5 in isolation; this is not a stability-fix claim.
+
+Fresh independent Hermes Standards and Spec confirmation reviews both returned
+**approved, zero open findings** against the corrected hashes. Observed reviewer
+route: `openai-codex/gpt-6-astra` (different from the parent session's planned
+inherited route, disclosed here). Each independently ran the focused suite:
+**519 passed in 15.99s** (Standards) and **519 passed in 16.03s** (Spec).
+Both used isolated copies and killed one-at-a-time mutations of the created-ID,
+reasoning-item prefix, reasoning-summary-part prefix and late-item completion
+guards with the intended tests. Retained evidence:
+
+- `/home/hermes/workflow-validation-scratch/standards-confirm-jsat9j1g/results.json`
+- `/home/hermes/workflow-validation-scratch/spec-confirm-bczgeouo/mutations.json`
+- `/home/hermes/workflow-validation-scratch/spec-confirm-bczgeouo/integrity.json`
+- Both reviewers inspected (but did not themselves rerun) the retained full-suite log.
+
+This establishes **offline correction and independent review**, not live provider
+availability, a successful private-draft/Guardian pair, editorial quality or
+parent-ticket acceptance. No push or live acceptance was performed for this stage.

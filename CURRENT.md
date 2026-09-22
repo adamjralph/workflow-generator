@@ -4,7 +4,7 @@ Updated 2026-09-22 after Adam authorized triage, closure of finished tickets and
 
 **Start here for current status.** `HANDOFF.md` retains historical session evidence; old “next” instructions do not override this file. `ROADMAP.md` defines capability completion, not ticket authorization. The delivery map's P-identifiers are not issue numbers.
 
-## Latest implementation — Codex correction offline-tested, reviews outstanding
+## Latest implementation — Codex correction offline-tested and independently confirmed
 
 See `docs/codex-protocol-diagnosis.md`. Three authorized synthetic requests returned
 HTTP 200, exact reported `gpt-5.6-sol` and exact streamed `OK`, but lacked
@@ -22,30 +22,41 @@ all other validation/evidence boundaries described in the diagnosis report.
 Do not re-ask for this scope approval. Adam subsequently explicitly authorized
 necessary safe work to unblock the environment and get the system working,
 while preserving Hermes. This is not a remaining user-permission question.
-The correction is now **implemented and offline-tested**, not independently
-reviewed or accepted live. See `docs/codex-compatibility-correction.md` for frozen
-regression seams, red/green evidence, code hashes and exact validation commands.
-Only Codex permits absent MIME; explicit MIME and Vertex rules remain enforced.
-Empty final output assembles validated completed items with identity/index/text
-agreement and fail-closed lifecycle checks. Production evidence guards are unchanged.
+The correction was **implemented and offline-tested** at commit `2d32a4a`, then
+independently reviewed. Both required reviews returned **changes_requested** with
+the same two substantive defects, and the implementer applied bounded corrections
+which remain **uncommitted** (see the latest `HANDOFF.md` section). Only Codex
+permits absent MIME; explicit MIME and Vertex rules remain enforced. Production
+evidence guards are unchanged.
 
-Final full regression: **1,977 passed, 3 expected skips in 467.61s**, exit 0;
-focused Codex/header suite: **509 passed**; mypy: **35 source files clean**;
-JavaScript syntax and diff checks passed. All validation ran through the mandated
-runner. Its long temporary path caused 160 Chromium setup errors in the first
-full run; fresh short `0700` sibling directories under the same approved root
-resolved that without modifying the runner, HOME, profiles or guards. Retain both
-directories. The report documents this command-local adjustment and an existing
-browser timing failure that passed in isolation and in the final complete run;
-the browser tests were not changed. No stability-fix claim is made.
+Reviewed at `2d32a4a`: full regression **1,977 passed, 3 expected skips in 467.61s**;
+focused Codex/header suite **509 passed**; mypy **35 source files clean**. A
+re-run at that same commit for this session returned **2 failed, 1,975 passed,
+3 skipped** — both failures in the known browser-polling timing family
+(`assert held` / `assert []`), both passing 5/5 in isolation at the same commit.
+That reproduces the recorded timing caveat; it is not a new defect and no
+stability-fix claim is made. All validation ran through the mandated runner; its
+long temporary path caused 160 Chromium setup errors in an early full run, and
+fresh short `0700` sibling directories under the same approved root resolved that
+without modifying the runner, HOME, profiles or guards. Retain every directory.
 
-**Next: independent Standards/Spec reviews — now explicitly authorized by Adam**
-for the next session; none was launched during handoff. See the latest HANDOFF
-section for scope and route-verification requirements. No different reviewer model
-has been selected. Adam also authorized a local checkpoint commit, not a push.
-A private-draft/Guardian live acceptance run is still a separate decision. Ticket 19
-remains **Blocked** on actual reviews/live acceptance; ticket 28 remains unimplemented.
-No live model call or profile edit occurred.
+After the corrections: full regression **1,987 passed, 3 expected skips in 480.41s**,
+exit 0 (adds the 10 new regression cases); focused suite **519 passed in 16.48s**;
+mypy **35 source files clean**; JavaScript syntax and diff whitespace checks passed.
+Four mutation probes each killed by exactly the intended new tests, including a
+late-item completion guard that the reviewers showed had previously been
+unprotected while the suite still passed.
+
+The first confirmation attempt was interrupted, but a subsequent fresh Standards
+and Spec review each returned **approved, zero open findings** against the corrected
+hashes. Each independently passed the 519-test focused suite and killed the four
+relevant guard mutations in a separate copy. Reviewer runtime was observed as
+`openai-codex/gpt-6-astra`. Evidence and corrected hashes:
+`docs/codex-compatibility-correction.md`. The correction is independently confirmed
+offline, not accepted live. Adam authorized a local checkpoint commit, not a push.
+A private-draft/Guardian live acceptance run remains a separate decision. Ticket 19
+stays **Blocked on live acceptance and Adam's parent-ticket decision**; ticket 28
+remains unimplemented. No live workflow call or profile edit occurred.
 Older diagnostic/validation statements below are historical and do not override
 this latest section.
 

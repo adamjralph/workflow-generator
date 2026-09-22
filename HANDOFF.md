@@ -1,5 +1,166 @@
 # Workflow Generator — next-session handoff
 
+## Correction confirmation completed — 2026-09-23
+
+Fresh independent Standards and Spec reviewers each returned **approved, zero open
+findings** for the corrected working-tree hashes below. Both re-ran the six-module
+suite (519 passed each) and killed one-at-a-time mutations of the created-ID,
+reasoning-item/summary-part prefix and late-item completion guards in isolated
+copies. The retained full regression (not reviewer-rerun) is **1,987 passed,
+3 skipped**, exit 0: `/home/hermes/workflow-validation-scratch/v-T3v09l/`.
+Reviewer artifacts and the updated evidence are in
+`docs/codex-compatibility-correction.md`. Reviewer observed runtime:
+`openai-codex/gpt-6-astra`, despite the parent session's disclosed planned
+`openai-codex/gpt-6-sol` inheritance; no route was silently represented as another.
+
+Corrected source hashes: `agent_lab/designer/codex.py`
+`21fa260a043c657f917bc5853827c48b527eedaa9b8b13c4f61e7fc33c74dcad`;
+`tests/test_designer_codex_compatibility.py`
+`44a52b344d2869757e4382c9e6306101900f646f45dec1ee7e73616e177f58af`.
+The prior section's "not independently confirmed" status is historical and
+superseded. Do not repeat the reviews without a new reason. The local checkpoint
+commit was authorized; no push or private-draft/Guardian live acceptance was
+authorized. Ticket 19 remains Blocked on live acceptance and Adam's decision;
+ticket 28 remains unimplemented. Next: decide a bounded live acceptance plan and
+fresh private destination with Adam before any real provider/draft execution.
+
+## Independent reviews returned changes_requested; fixes applied, fixes NOT yet confirmed — 2026-09-23
+
+Adam asked for a handoff after the two authorized reviews completed. The reviews
+**were** run this session (authorized by the previous handoff). Their fixes are
+applied in the working tree but **uncommitted and not independently confirmed**.
+
+### What actually happened this session
+
+1. Verified the checkpoint: HEAD `2d32a4a` (message "Fix Codex stream compatibility
+   and hand off authorized reviews"), working tree clean, and all five frozen
+   SHA-256 values from `docs/codex-compatibility-correction.md` matching exactly.
+2. Re-ran the full regression at `2d32a4a`: **2 failed, 1,975 passed, 3 skipped in
+   479.63s**. Both failures are in the recorded browser-polling timing family
+   (`tests/test_designer_draft_check_browser.py::test_late_check_cannot_restore_invalidated_result[error-mode]`
+   and `tests/test_designer_drafts_browser.py::test_late_draft_responses_cannot_restore_stale_state[recapture-success]`,
+   both `assert held` / `assert []`). Both passed 5/5 in isolation at the same
+   commit. This reproduces the known caveat; it is not a new defect and no
+   stability fix is claimed. Logs: `.../v-dGzFpN/full-pytest.log`, `.../v-ktCMM6/repeat.log`.
+3. Ran the two authorized independent reviews as fresh subagents against the frozen
+   baseline. **Both returned `changes_requested`** and independently converged on
+   the same two substantive defects; the Spec review added a third.
+4. Implemented bounded corrections with red-first tests, verified them, and ran the
+   full regression plus mutation probes.
+
+### Reviewer findings (recorded, not discarded)
+
+- **F1/S2 (medium, hard contract breach)** — empty-output assembly did not require
+  the documented *created*-response identity. `response.created` and
+  `response.in_progress` populated one shared variable, so a stream with no
+  `response.created` was accepted, as was a `response.created` carrying no id
+  followed by an identified `response.in_progress`. Spec:
+  `docs/codex-compatibility-correction.md` lines 12-15.
+- **F2/S1 (medium, hard contract breach)** — reasoning-text agreement was
+  incomplete. The added-text prefix check covered message items only, and reasoning
+  summary reconciliation ran only for events ending in `done`. Contradictory
+  initial reasoning text was accepted, in both output forms.
+- **F3/S3 (under-tested)** — the existing `late-item-event` negative was also
+  rejected by a pre-existing `done_text` rule, so deleting the new
+  `completed_items` guard left the module green (85 passed). That guard was
+  effectively unprotected.
+- One low-severity judgement-call smell (`Repeated Switches` across three test
+  modules) was reported as **optional and non-blocking**; it was deliberately not
+  actioned.
+
+### Corrections applied (uncommitted)
+
+`agent_lab/designer/codex.py`:
+- tracks a distinct `created_response_id` from `response.created` only, and the
+  empty-output guard now requires `isinstance(created_response_id, str)` and a match
+  with the final response id — so an in-progress event cannot substitute;
+- enforces reasoning prefix agreement for added reasoning items and for
+  `response.reasoning_summary_part.added`.
+
+`tests/test_designer_codex_compatibility.py`: new negatives
+`created-id-via-in-progress`, `created-without-id`, `late-item-content-event`, plus
+contradictory-text and valid-prefix reasoning tests for both final-output forms.
+
+### Verified evidence for the corrections
+
+- RED first: 8 failing (2 confirmed as fixture-index mistakes in the test helper and
+  fixed; the remaining failures were genuine `DID NOT RAISE`).
+- Focused six-module suite: **519 passed in 16.48s**, exit 0 (was 509 pre-fix).
+- Full regression: **1,987 passed, 3 expected skips in 480.41s**, exit 0.
+- mypy: **35 source files clean**; `node --check` and `git diff --check` clean.
+- Four mutation probes, each killed by exactly the intended new tests — including
+  the previously-unprotected late-item completion guard.
+
+### Current working-tree hashes (uncommitted; supersede the report's frozen values)
+
+- `agent_lab/designer/codex.py`: `21fa260a043c657f917bc5853827c48b527eedaa9b8b13c4f61e7fc33c74dcad`
+- `tests/test_designer_codex_compatibility.py`: `44a52b344d2869757e4382c9e6306101900f646f45dec1ee7e73616e177f58af`
+- `git diff` sha256: `15493521863e9c7eac3d0b07201dd1788dd577b7222f78db84051563cbc73b73`
+- Superseded frozen baseline (commit `2d32a4a`): codex.py
+  `e1c6699599eded1a05deb61d3cf91797a840fe1a96260dbc8da970c4605907b5`;
+  compatibility tests `442f3f7929a2440aa759c5534938e5c42dcd112e76d959d8aec4d25f27fbf09f`.
+  `docs/codex-compatibility-correction.md` still records the old values and must be
+  updated when the corrections are accepted.
+
+### Confirmation reviews did NOT complete
+
+The implementer asked both reviewers to verify the fixes. **Each confirmation
+subagent was interrupted before returning a verdict.** There is therefore **no
+independent confirmation** that F1/F2/F3 are resolved. The corrections must not be
+described as reviewed, approved, or final, and the implementer must not self-approve.
+
+Review briefs are already written and on disk for the confirmation round:
+- `/home/hermes/workflow-validation-scratch/review-brief-standards.md`
+- `/home/hermes/workflow-validation-scratch/review-brief-spec.md`
+Both cite the corrected hashes above and require mutation testing in a copy of the
+repo. They are durable and reusable.
+
+Interrupted-transcript caveat: `/home/hermes/.hermes/profiles/hermes_engineer/cache/delegation/live/`
+is agent-harness cache and may be pruned; the briefs above live under the retained
+`workflow-validation-scratch` root instead.
+
+### Route disclosure (required by the previous authorization)
+
+- Both review rounds ran as fresh independent Hermes subagents; each reported its
+  runtime as `openai-codex` / `gpt-6-astra`. Routes were disclosed and not silently
+  substituted. No reviewer model was pinned by Adam.
+- Confirmation-round routes: the Standards brief was dispatched and interrupted
+  after 28s; the Spec brief was dispatched and interrupted after 24s. Neither
+  returned a verdict. No alternate or excluded harness was used at any point.
+- The confirmation round was dispatched because Adam's instruction was read as
+  "ask the reviewer to confirm your fixes". He then clarified that a **handoff** was
+  requested and that the session lacked sufficient context to run the reviews.
+  Treat the review authorization as still carrying forward; do not re-ask for
+  generic review permission, but do not dispatch further reviews without a fresh
+  instruction.
+
+### Adam's authorization boundary
+
+- Local checkpoint commit: **authorized** (previous session, recorded above). **Push
+  is not authorized.**
+- The corrections are **not committed**. Whether to commit them now, before
+  confirmation, is a decision Adam owns.
+- No live model call, no private-draft/Guardian acceptance run, no profile, route,
+  SOUL or tool edit, and no ticket-28 work is authorized by this handoff.
+- Ticket 19 remains **Blocked** on actual reviews and separate live acceptance.
+
+### Next actions
+
+1. Decide whether to run the confirmation reviews now. The briefs are ready; the
+   intended routes are fresh independent subagents (`openai-codex`/`gpt-6-astra`).
+   Do not commit as "reviewed" before that verdict exists.
+2. If confirmed: apply any residual findings, update
+   `docs/codex-compatibility-correction.md` (frozen values, hashes, new evidence),
+   then commit with the recorded offline evidence.
+3. Live acceptance remains a separate, explicitly authorized decision.
+
+### Definition of done for this stage
+
+Both confirmation reviews return `approved` with zero open items against the
+corrected hashes, the full regression is green in a retained log, and the report's
+frozen hashes are updated to the committed values. Until then the state is
+"corrections applied and offline-verified, independently unconfirmed".
+
 ## Checkpoint handoff and independent-review authorization
 
 Adam requested: “Do a handoff and commit. I authorise the independent reviews.

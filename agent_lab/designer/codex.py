@@ -260,6 +260,7 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
         raise CodexUncertain
     final: dict[str, Any] | None = None
     response_id: str | None = None
+    created_response_id: str | None = None
     deltas: list[str] = []
     done_text: str | None = None
     terminal_texts: list[str] = []
@@ -322,6 +323,10 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
                 if response_id is not None and response_id != response["id"]:
                     raise ValueError
                 response_id = response["id"]
+            if kind == "response.created":
+                # Empty-output assembly needs the identity the creation event itself
+                # carried; a later in-progress event must not supply it retroactively.
+                created_response_id = response.get("id")
         elif kind in ("response.output_item.added", "response.output_item.done"):
             item = obj["item"]
             item_events.append(obj)
@@ -388,7 +393,7 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
     if not output:
         # Assemble only terminal items, never deltas or added/in-progress items.
         # Comparing sorted keys avoids allocation from an untrusted large index.
-        if (response_id is None or final.get("id") != response_id
+        if (not isinstance(created_response_id, str) or final.get("id") != created_response_id
                 or not completed_items
                 or sorted(completed_items) != list(range(len(completed_items)))):
             raise ValueError
@@ -429,6 +434,13 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
                     if (not isinstance(part.get("text"), str)
                             or not item["content"][0]["text"].startswith(part["text"])):
                         raise ValueError
+            if streamed["type"] == "reasoning" and observed["type"].endswith("added"):
+                # Initial reasoning text must be a prefix of the completed summary,
+                # exactly as message text is; a contradictory start is not filled in.
+                for summary_index, part in enumerate(streamed["summary"]):
+                    if (summary_index >= len(item["summary"])
+                            or not item["summary"][summary_index]["text"].startswith(part["text"])):
+                        raise ValueError
         if "item_id" in observed and observed["item_id"] != item.get("id"):
             raise ValueError
         if observed["type"] == "response.content_part.added":
@@ -443,6 +455,10 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
             if observed["type"].endswith("done"):
                 observed_text = observed["part"]["text"] if "part" in observed else observed["text"]
                 if observed_text != summary_text:
+                    raise ValueError
+            elif observed["type"] == "response.reasoning_summary_part.added":
+                # The announced summary part must be a prefix of the completed text.
+                if not summary_text.startswith(observed["part"]["text"]):
                     raise ValueError
     for (index, summary_index), chunks in summary_deltas.items():
         if "".join(chunks) != output[index]["summary"][summary_index]["text"]:

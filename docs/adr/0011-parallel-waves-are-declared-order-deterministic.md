@@ -26,7 +26,9 @@ scheduler decide them:
   step or model call, and identical in both drivers.
 - **Reducer input is declared order.** Branches run in whatever order they finish;
   the reducer sees the branch results in declared order and is invoked exactly once,
-  as the join node's own single step.
+  as the join node's own single step. For supplied cases, conformance also rejects
+  identical captured inputs at a join producing divergent admitted outputs within
+  either driver; the mapping API does not isolate callable state or prove purity.
 - **Failure is complete-all-then-select.** Every branch path, success or failure,
   converges on the join. No sibling is cancelled. The wave fails closed on the
   first failing branch in declared order after all branches have stopped, so the
@@ -94,4 +96,6 @@ The reducer-bound join is a declared variant of ADR 0007's Transform mapping, in
 the sense of that ADR's own "Accepted amendment" section: it is a `TransformNode`
 whose binding is the wave's reducer, its `operation` is a required label that need
 not appear in `bindings`, it declares no model operation, it is invoked once, and
-it introduces no sixth node kind.
+it introduces no sixth node kind. The observed-case boundary in the contract's §3
+and §8 replaces the original fresh-mapping-per-case wording; reducer factories
+and guarantees about hidden mutable callable state are not part of P13.

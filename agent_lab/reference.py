@@ -12,7 +12,8 @@ from .accounting import RunAccounting
 from .judgment import JudgmentSource
 from .model_operation import ModelOperation, validate_request, validate_response
 from .runlog import RunEvent, RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec, validate_spec
+from .spec import (DecisionNode, Finding, Fork, JudgmentNode, LoopNode, Route,
+                   TransformNode, WorkflowSpec, branch_regions, validate_spec)
 from .state import Budget, BudgetExceeded, Intervention, Judgment
 
 S = TypeVar("S", bound=BaseModel)
@@ -37,18 +38,27 @@ class TransformResult(Generic[S]):
 
 
 @dataclass(frozen=True)
+class ReducerObservation:
+    """Detached Python-mode inputs and admitted join result, not a purity proof."""
+    join: str
+    inputs: object
+    output: object
+
+
+@dataclass(frozen=True)
 class ReferenceResult(Generic[S]):
     state: S
     terminal: str
     used_steps: int
     trace: tuple[RunEvent, ...]
+    reducer_observations: tuple[ReducerObservation, ...] = ()
 
 
 @dataclass(frozen=True)
 class CompileFinding:
     code: Literal["unsupported_node", "unsupported_edge", "unbound_reference",
                   "missing_safety_terminal", "invalid_state_type", "unsupported_options",
-                  "invalid_model_operation"]
+                  "invalid_model_operation", "invalid_wave", "invalid_reducer", "invalid_wave_concurrency"]
     path: tuple[str | int, ...]
     message: str
 
@@ -87,10 +97,11 @@ class _Execution(Generic[S]):
     accounting: RunAccounting = field(default_factory=RunAccounting)
 
     repeat_counts: dict[str, int] = field(default_factory=dict)
+    reducer_observations: list[ReducerObservation] = field(default_factory=list)
 
     def invoke(self, node: TransformNode | DecisionNode | JudgmentNode | LoopNode,
                binding: Callable[[S], object] | JudgmentBinding[S], routes: Mapping[str, str],
-               terminals: tuple[str, ...]) -> str:
+               terminals: tuple[str, ...], observation: Mapping[str, object] | None = None) -> str:
         selected: str | None = None
         judgment: Judgment | None = None
         assessment_sha: str | None = None
@@ -143,7 +154,7 @@ class _Execution(Generic[S]):
         self.log.append_next(RunEvent(
             self.run_id, 0, node.id, node.kind, selected,
             target if target in terminals else None,
-            {"target": target, "failure": failure,
+            {**(observation or {}), "target": target, "failure": failure,
              "used_steps": self.budget.used_steps, "max_steps": self.budget.max_steps,
              **({"repeat_count": self.repeat_counts.get(node.id, 0),
                  "max_iterations": node.max_iterations}
@@ -156,11 +167,12 @@ class _Execution(Generic[S]):
 
     def record_model(self, node: TransformNode, target: str, selected: str | None,
                      failure: str | None, request_digest: str | None,
-                     response_digest: str | None, terminals: tuple[str, ...]) -> str:
+                     response_digest: str | None, terminals: tuple[str, ...],
+                     observation: Mapping[str, object] | None = None) -> str:
         self.log.append_next(RunEvent(
             self.run_id, 0, node.id, node.kind, selected,
             target if target in terminals else None,
-            {"target": target, "failure": failure, "used_steps": self.budget.used_steps,
+            {**(observation or {}), "target": target, "failure": failure, "used_steps": self.budget.used_steps,
              "max_steps": self.budget.max_steps, "operation": node.operation,
              "operation_version": node.operation_version, "schema_version": node.schema_version,
              "request_digest": request_digest, "response_digest": response_digest},
@@ -169,7 +181,8 @@ class _Execution(Generic[S]):
 
     def result(self, terminal: str) -> ReferenceResult[S]:
         return ReferenceResult(self.state, terminal, self.budget.used_steps,
-                               tuple(event for event in self.log.read() if event.run_id == self.run_id))
+                               tuple(event for event in self.log.read() if event.run_id == self.run_id),
+                               tuple(self.reducer_observations))
 
 
 @dataclass(frozen=True)
@@ -179,6 +192,8 @@ class ReferencePlan(Generic[S]):
     bindings: Mapping[str, Callable[[S], object]]
     judgments: Mapping[str, JudgmentBinding[S]]
     model_operations: Mapping[str, ModelOperation[S]]
+    reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult[S]]]
+    wave_concurrency: int | None
 
     def run(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
         """Fresh single-pass execution; each invocation reserves one step."""
@@ -194,8 +209,28 @@ class ReferencePlan(Generic[S]):
         nodes = {node.id: node for node in self.spec.nodes}
         routes = {(edge.source, edge.outcome): edge.target for edge in self.spec.edges
                   if isinstance(edge, Route)}
+        forks = {edge.join: edge for edge in self.spec.edges if isinstance(edge, Fork)}
+        routes.update({(edge.source, edge.outcome): edge.join for edge in forks.values()})
         current = self.spec.entry
         while current not in self.spec.terminals:
+            if current in forks:
+                fork = forks[current]
+                if not admit_wave(execution, self.spec, fork):
+                    return execution.result("FAILED_BUDGET")
+                items = []
+                for index, branch in enumerate(fork.branches):
+                    holder = branch_execution(execution)
+                    target = branch
+                    while target != fork.join and target not in self.spec.terminals:
+                        declaration = nodes[target]
+                        assert isinstance(declaration, TransformNode)
+                        target = holder.invoke(declaration, self.bindings[declaration.operation],
+                                               {label: routes[(target, label)]
+                                                for label in declaration.route_labels}, self.spec.terminals)
+                    items.append(BranchItem(index, holder.state,
+                                            target if target in self.spec.terminals else None))
+                current = finish_wave(execution, self.spec, fork, items, self.reducers[fork.join])
+                continue
             node = nodes[current]
             assert isinstance(node, (TransformNode, DecisionNode, JudgmentNode, LoopNode))
             if isinstance(node, TransformNode) and node.model_operation:
@@ -223,7 +258,8 @@ class ReferencePlan(Generic[S]):
                     except Exception:
                         target, failure = "FAILED_VALIDATION", "invalid_binding_result"
                 current = execution.record_model(node, target, selected, failure, request_digest,
-                                                 response_digest, self.spec.terminals)
+                                                 response_digest, self.spec.terminals,
+                                                 wave_observation(self.spec, node.id, self.wave_concurrency))
                 continue
             binding: Callable[[S], object] | JudgmentBinding[S]
             if isinstance(node, JudgmentNode):
@@ -235,7 +271,7 @@ class ReferencePlan(Generic[S]):
             current = execution.invoke(
                 node, binding,
                 {label: routes[(current, label)] for label in node.route_labels},
-                self.spec.terminals,
+                self.spec.terminals, wave_observation(self.spec, node.id, self.wave_concurrency),
             )
         return execution.result(current)
 
@@ -243,7 +279,9 @@ class ReferencePlan(Generic[S]):
 def compile_reference(candidate: object, *, state_type: type[S],
                       bindings: Mapping[str, Callable[[S], object]],
                       judgments: Mapping[str, JudgmentBinding[S]] | None = None,
-                      model_operations: Mapping[str, ModelOperation[S]] | None = None) -> Compilation[S]:
+                      model_operations: Mapping[str, ModelOperation[S]] | None = None,
+                      reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult[S]]] | None = None,
+                      wave_concurrency: int | None = None) -> Compilation[S]:
     """References are opaque explicit keys, never import paths or expressions."""
     admitted = validate_spec(candidate)
     if admitted.spec is None:
@@ -253,6 +291,9 @@ def compile_reference(candidate: object, *, state_type: type[S],
     resolved = dict(bindings)
     resolved_judgments = dict(judgments or {})
     resolved_models = dict(model_operations or {})
+    resolved_reducers = dict(reducers or {})
+    joins = {edge.join for edge in spec.edges if isinstance(edge, Fork)}
+    findings.extend(_wave_findings(spec, resolved_reducers, wave_concurrency))
     if not isinstance(state_type, type) or not issubclass(state_type, BaseModel) or not state_type.model_config.get("frozen"):
         findings.append(CompileFinding("invalid_state_type", ("state_type",), "State must be a frozen Pydantic model"))
     for index, node in enumerate(spec.nodes):
@@ -274,6 +315,10 @@ def compile_reference(candidate: object, *, state_type: type[S],
                node.exit_predicate if isinstance(node, LoopNode) else node.value)
         if isinstance(node, TransformNode):
             operation = resolved_models.get(key)
+            if node.id in joins:
+                if node.model_operation or operation is not None or node.operation_version or node.schema_version:
+                    findings.append(CompileFinding("invalid_model_operation", ("nodes", index), key))
+                continue
             if node.model_operation:
                 if (key in resolved or key not in {"draft_linkedin", "review_linkedin"}
                         or not isinstance(operation, ModelOperation)
@@ -291,13 +336,143 @@ def compile_reference(candidate: object, *, state_type: type[S],
             findings.append(CompileFinding("invalid_model_operation", ("nodes", index), key))
         if key not in resolved or not callable(resolved[key]):
             findings.append(CompileFinding("unbound_reference", ("nodes", index, field), key))
-    for index, edge in enumerate(spec.edges):
-        if not isinstance(edge, Route):
-            findings.append(CompileFinding("unsupported_edge", ("edges", index), edge.kind))
+
     for terminal in ("FAILED_VALIDATION", "FAILED_BUDGET"):
         if terminal not in spec.terminals:
             findings.append(CompileFinding("missing_safety_terminal", ("terminals", terminal), terminal))
     if findings:
         return Compilation(None, tuple(findings))
     return Compilation(ReferencePlan(spec.model_copy(deep=True), state_type, MappingProxyType(resolved),
-                                     MappingProxyType(resolved_judgments), MappingProxyType(resolved_models)))
+                                     MappingProxyType(resolved_judgments), MappingProxyType(resolved_models),
+                                     MappingProxyType(resolved_reducers), wave_concurrency))
+
+
+def _wave_findings(spec: WorkflowSpec, reducers: Mapping[str, object],
+                   concurrency: int | None) -> list[CompileFinding]:
+    forks = tuple(edge for edge in spec.edges if isinstance(edge, Fork))
+    findings: list[CompileFinding] = []
+    if not forks:
+        return findings
+    joins = {fork.join for fork in forks}
+    for key in reducers.keys() | joins:
+        if key not in joins or not callable(reducers.get(key)):
+            findings.append(CompileFinding("invalid_reducer", ("reducers", key), "Expected one callable per join"))
+    if concurrency is not None and (type(concurrency) is not int or not 1 <= concurrency <= 16):
+        findings.append(CompileFinding("invalid_wave_concurrency", ("wave_concurrency",), "Expected integer 1-16"))
+    if len(forks) != 1:
+        findings.append(CompileFinding("invalid_wave", ("edges",), "Only one wave is supported"))
+    nodes = {node.id: node for node in spec.nodes}
+    graph = {node.id: set[str]() for node in spec.nodes}
+    for edge in spec.edges:
+        graph[edge.source].update(edge.targets)
+
+    def reachable(start: str) -> set[str]:
+        seen: set[str] = set()
+        pending = [start]
+        while pending:
+            current = pending.pop()
+            if current not in seen:
+                seen.add(current)
+                pending.extend(graph.get(current, ()))
+        return seen
+
+    reached = reachable(spec.entry)
+    for fork in forks:
+        regions = branch_regions(spec, fork)
+        region = set().union(*regions)
+        invalid = (
+            not isinstance(nodes[fork.join], TransformNode)
+            or not ({fork.source, fork.join} | region) <= reached
+            or any(regions[i] & regions[j] for i in range(len(regions)) for j in range(i))
+            or any(not isinstance(nodes.get(key), TransformNode)
+                   or getattr(nodes.get(key), "model_operation", False) for key in region | {fork.join})
+            or any(other.source in region for other in forks)
+            or sum(other.join == fork.join for other in forks) != 1
+            or any(isinstance(node, LoopNode) and fork.source in reachable(node.id)
+                   and node.id in reachable(fork.source) for node in spec.nodes)
+            or spec.entry in region | {fork.join}
+            or any(edge.source not in region and any(target in region | {fork.join} for target in edge.targets)
+                   for edge in spec.edges if edge is not fork)
+        )
+        if invalid:
+            findings.append(CompileFinding("invalid_wave", ("edges", spec.edges.index(fork)),
+                                           "Unsupported, overlapping, model-backed or unreachable wave"))
+    return findings
+
+
+@dataclass(frozen=True)
+class BranchItem(Generic[S]):
+    index: int
+    state: S
+    failure: str | None
+
+
+def branch_execution(execution: _Execution[S]) -> _Execution[S]:
+    return _Execution(_snapshot(execution.state_type, execution.state), execution.state_type,
+                      execution.budget, execution.run_id, execution.log, execution.accounting)
+
+
+def wave_observation(spec: WorkflowSpec, source: str, concurrency: int | None) -> dict[str, object]:
+    fork = next((edge for edge in spec.edges if isinstance(edge, Fork) and edge.source == source), None)
+    return {"wave_concurrency": concurrency or min(len(fork.branches), 4)} if fork else {}
+
+
+def admit_wave(execution: _Execution[S], spec: WorkflowSpec, fork: Fork) -> bool:
+    worst = tuple(len(region) for region in branch_regions(spec, fork))
+    required = sum(worst) + 1
+    remaining = execution.budget.max_steps - execution.budget.used_steps
+    if remaining >= required:
+        return True
+    execution.log.append_next(RunEvent(
+        execution.run_id, 0, fork.source, next(node.kind for node in spec.nodes if node.id == fork.source),
+        "FAILED_BUDGET", "FAILED_BUDGET",
+        {"target": "FAILED_BUDGET", "failure": "wave_budget_refused", "required": required,
+         "remaining_steps": remaining, "branch_worst": list(worst),
+         "used_steps": execution.budget.used_steps, "max_steps": execution.budget.max_steps},
+    ))
+    return False
+
+
+def finish_wave(execution: _Execution[S], spec: WorkflowSpec, fork: Fork,
+                items: list[BranchItem[S]], reducer: Callable[[S, tuple[S, ...]], TransformResult[S]]) -> str:
+    ordered = sorted(items, key=lambda item: item.index)
+    if [item.index for item in ordered] != list(range(len(fork.branches))):
+        raise ValueError("Wave collector requires exactly one item per branch")
+    node = next(node for node in spec.nodes if node.id == fork.join)
+    assert isinstance(node, TransformNode)
+    failed = next((item for item in ordered if item.failure is not None), None)
+    if failed is not None:
+        target = failed.failure
+        assert target is not None
+        failure = "wave_branch_failure"
+        try:
+            execution.budget = execution.accounting.reserve(execution.run_id, execution.budget)
+        except BudgetExceeded:
+            target, failure = "FAILED_BUDGET", "budget_exhausted"
+        execution.log.append_next(RunEvent(
+            execution.run_id, 0, node.id, node.kind, target, target,
+            {"target": target, "failure": failure, "branch_index": failed.index,
+             "used_steps": execution.budget.used_steps, "max_steps": execution.budget.max_steps},
+        ))
+        return target
+    inputs: object = None
+
+    def reduce(entry: S) -> TransformResult[S]:
+        nonlocal inputs
+        branches = tuple(_snapshot(execution.state_type, item.state) for item in ordered)
+        # Capture before caller mutation; never copy or replay the callable itself.
+        inputs = deepcopy(tuple(state.model_dump(mode="python", round_trip=True)
+                                for state in (entry, *branches)))
+        return reducer(entry, branches)
+
+    target = execution.invoke(
+        node, reduce,
+        {edge.outcome: edge.target for edge in spec.edges if isinstance(edge, Route) and edge.source == node.id},
+        spec.terminals, {"reducer_branches": [item.index for item in ordered]},
+    )
+    if inputs is not None:
+        event = execution.log.read()[-1]
+        output = deepcopy((execution.state.model_dump(mode="python", round_trip=True),
+                           event.transition, target, event.detail["failure"]))
+        execution.reducer_observations.append(ReducerObservation(fork.join, inputs, output))
+    return target

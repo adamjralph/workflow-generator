@@ -8,16 +8,18 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
 import hashlib
+import asyncio
 from typing import Generic, Literal, NamedTuple
 
-from pydantic_graph import GraphBuilder, StepContext
+from pydantic_graph import GraphBuilder, StepContext, reduce_list_append
 
 from .reference import (
     S, AuditError, CompileFinding, JudgmentBinding, ReferenceResult, _Execution, _initial_snapshot,
     compile_reference, _snapshot, TransformResult,
+    BranchItem, admit_wave, branch_execution, finish_wave, wave_observation,
 )
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, Fork, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
 from .state import Budget, BudgetExceeded
 from .model_operation import ModelOperation, validate_request, validate_response
 
@@ -64,6 +66,9 @@ class GraphCandidate(Generic[S]):
     _bindings: Mapping[str, Callable[[S], object]]
     _judgments: Mapping[str, JudgmentBinding[S]]
     _model_operations: Mapping[str, ModelOperation[S]]
+    _forks: tuple[Fork, ...]
+    _reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult[S]]]
+    _wave_concurrency: int | None
     _seal: tuple[object, ...] = field(repr=False)
 
     def inspect_structure(self) -> WorkflowSpec:
@@ -77,19 +82,25 @@ class GraphCandidate(Generic[S]):
             entry=self._entry, budget=self._budget, terminals=self._terminals,
             nodes=tuple(node.declaration() for node in self._nodes),
             edges=tuple(Route(source=node.identity, outcome=label, target=target)
-                        for node in self._nodes for label, target in node.routes),
+                        for node in self._nodes for label, target in node.routes
+                        if not any(fork.source == node.identity and fork.outcome == label
+                                   for fork in self._forks)) + self._forks,
         )
 
     def run(self, initial: S, *, run_id: str, log: RunLog) -> ReferenceResult[S]:
         _assert_supported(self)
         state = _initial_snapshot(self.state_type, initial)
         execution = _Execution(state, self.state_type, Budget(max_steps=self._budget), run_id, log)
+        spec = self.inspect_structure()
         builder = GraphBuilder(
             state_type=_Execution, deps_type=type(None), input_type=type(None), output_type=str,
         )
 
         def make_step(node: _Node):
             async def invoke(ctx: StepContext) -> str:
+                if self._forks and node.identity == self._forks[0].join:
+                    return finish_wave(execution, spec, self._forks[0], ctx.inputs,
+                                       self._reducers[node.identity])
                 if node.model_operation:
                     operation = self._model_operations[node.reference]
                     selected = failure = request_digest = response_digest = None
@@ -116,16 +127,55 @@ class GraphCandidate(Generic[S]):
                             target, failure = "FAILED_VALIDATION", "invalid_binding_result"
                     declaration = node.declaration()
                     assert isinstance(declaration, TransformNode)
-                    return execution.record_model(declaration, target, selected, failure, request_digest,
-                                                  response_digest, self._terminals)
+                    target = execution.record_model(declaration, target, selected, failure, request_digest,
+                                                    response_digest, self._terminals,
+                                                    wave_observation(spec, node.identity, self._wave_concurrency))
+                    if self._forks and node.identity == self._forks[0].source and target == self._forks[0].join:
+                        if not admit_wave(execution, spec, self._forks[0]):
+                            return "FAILED_BUDGET"
+                    return target
                 binding = (self._judgments[node.identity] if node.kind == "judgment"
                            else self._bindings[node.reference])
-                return execution.invoke(node.declaration(), binding,
-                                        dict(node.routes), self._terminals)
+                target = execution.invoke(node.declaration(), binding,
+                                          dict(node.routes), self._terminals,
+                                          wave_observation(spec, node.identity, self._wave_concurrency))
+                if self._forks and node.identity == self._forks[0].source and target == self._forks[0].join:
+                    if not admit_wave(execution, spec, self._forks[0]):
+                        return "FAILED_BUDGET"
+                return target
             return invoke
 
         steps = {node.identity: builder.step(make_step(node), node_id=f"node_{i}")
                  for i, node in enumerate(self._nodes)}
+        wave_dispatch = None
+        if self._forks:
+            fork = self._forks[0]
+            limit = asyncio.Semaphore(self._wave_concurrency or min(len(fork.branches), 4))
+            nodes = {node.identity: node for node in self._nodes}
+
+            async def dispatch(ctx: StepContext) -> list[int]:
+                return list(range(len(fork.branches)))
+
+            async def run_branch(ctx: StepContext) -> BranchItem[S]:
+                index = ctx.inputs
+                holder = branch_execution(execution)
+                target = fork.branches[index]
+                while target != fork.join and target not in self._terminals:
+                    node = nodes[target]
+                    async with limit:
+                        target = await asyncio.to_thread(holder.invoke, node.declaration(),
+                                                         self._bindings[node.reference],
+                                                         dict(node.routes), self._terminals)
+                return BranchItem(index, holder.state, target if target in self._terminals else None)
+
+            wave_dispatch = builder.step(dispatch, node_id="wave_dispatch")
+            wave_branch = builder.step(run_branch, node_id="wave_branch")
+            collector = builder.join(reduce_list_append, initial_factory=list, node_id="wave_collector")
+            builder.add(
+                builder.edge_from(wave_dispatch).map(fork_id="wave").to(wave_branch),
+                builder.edge_from(wave_branch).to(collector),
+                builder.edge_from(collector).to(steps[fork.join]),
+            )
         builder.add(builder.edge_from(builder.start_node).to(steps[self._entry]))
         for i, node in enumerate(self._nodes):
             decision = builder.decision(node_id=f"route_{i}")
@@ -137,6 +187,9 @@ class GraphCandidate(Generic[S]):
             for target in targets:
                 branch = builder.match(str, matches=matches_target(target))
                 destination = builder.end_node if target in self._terminals else steps[target]
+                if self._forks and node.identity == self._forks[0].source and target == self._forks[0].join:
+                    assert wave_dispatch is not None
+                    destination = wave_dispatch
                 decision = decision.branch(branch.to(destination))
             builder.add(builder.edge_from(steps[node.identity]).to(decision))
         # Admission already validates every route/cycle. Unlike the framework's
@@ -150,7 +203,8 @@ class GraphCandidate(Generic[S]):
             raise AuditError("Graph audit I/O failed; execution stopped") from exc
 
 
-_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings", "_judgments", "_model_operations")
+_CONFIG_FIELDS = ("state_type", "_entry", "_nodes", "_terminals", "_budget", "_bindings", "_judgments", "_model_operations",
+                  "_forks", "_reducers", "_wave_concurrency")
 _METHODS = ((GraphCandidate, "run", GraphCandidate.run, GraphCandidate.run.__code__),
             (GraphCandidate, "inspect_structure", GraphCandidate.inspect_structure,
              GraphCandidate.inspect_structure.__code__),
@@ -180,10 +234,12 @@ class Generation(Generic[S]):
 def generate_graph(candidate: object, *, state_type: type[S],
                    bindings: Mapping[str, Callable[[S], object]],
                    judgments: Mapping[str, JudgmentBinding[S]] | None = None,
-                   model_operations: Mapping[str, ModelOperation[S]] | None = None) -> Generation[S]:
+                   model_operations: Mapping[str, ModelOperation[S]] | None = None,
+                   reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult[S]]] | None = None,
+                   wave_concurrency: int | None = None) -> Generation[S]:
     """Admit all declarations without invoking trusted local bindings."""
     admitted = compile_reference(candidate, state_type=state_type, bindings=bindings, judgments=judgments,
-                                 model_operations=model_operations)
+                                 model_operations=model_operations, reducers=reducers, wave_concurrency=wave_concurrency)
     if admitted.plan is None:
         return Generation(None, admitted.findings)
     plan = admitted.plan
@@ -197,7 +253,9 @@ def generate_graph(candidate: object, *, state_type: type[S],
              node.exit_predicate if isinstance(node, LoopNode) else node.id),
             node.route_labels,
             tuple((edge.outcome, edge.target) for edge in plan.spec.edges
-                  if isinstance(edge, Route) and edge.source == node.id),
+                  if isinstance(edge, Route) and edge.source == node.id) +
+            tuple((edge.outcome, edge.join) for edge in plan.spec.edges
+                  if isinstance(edge, Fork) and edge.source == node.id),
             node.max_iterations if isinstance(node, LoopNode) else None,
             node.model_operation if isinstance(node, TransformNode) else False,
             node.operation_version if isinstance(node, TransformNode) else None,
@@ -206,7 +264,9 @@ def generate_graph(candidate: object, *, state_type: type[S],
     result = object.__new__(GraphCandidate)
     owned = (state_type, plan.spec.entry, tuple(nodes), plan.spec.terminals,
              plan.spec.budget, MappingProxyType(dict(plan.bindings)),
-             MappingProxyType(dict(plan.judgments)), MappingProxyType(dict(plan.model_operations)))
+             MappingProxyType(dict(plan.judgments)), MappingProxyType(dict(plan.model_operations)),
+             tuple(edge for edge in plan.spec.edges if isinstance(edge, Fork)),
+             MappingProxyType(dict(plan.reducers)), plan.wave_concurrency)
     for name, value in zip(_CONFIG_FIELDS, owned):
         object.__setattr__(result, name, value)
     object.__setattr__(result, "_seal", owned)

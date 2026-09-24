@@ -226,6 +226,26 @@ def _cycles(spec: WorkflowSpec) -> list[Finding]:
     return []
 
 
+def branch_regions(spec: WorkflowSpec, fork: Fork) -> tuple[frozenset[str], ...]:
+    """Declared-order regions, excluding the join; shared admission/runtime boundary."""
+    graph: dict[str, set[str]] = {name: set() for name in spec.terminals}
+    graph.update({node.id: set() for node in spec.nodes})
+    for edge in spec.edges:
+        graph[edge.source].update(edge.targets)
+    regions = []
+    for branch in fork.branches:
+        pending = [branch]
+        region: set[str] = set()
+        while pending:
+            current = pending.pop()
+            if current == fork.join or current in region:
+                continue
+            region.add(current)
+            pending.extend(graph[current])
+        regions.append(frozenset(region))
+    return tuple(regions)
+
+
 def _joins(spec: WorkflowSpec) -> list[Finding]:
     graph: dict[str, set[str]] = {name: set() for name in spec.terminals}
     graph.update({node.id: set() for node in spec.nodes})
@@ -238,14 +258,7 @@ def _joins(spec: WorkflowSpec) -> list[Finding]:
         # Stop the walk at the join. Every pre-join declaration must be able to
         # converge there, and none may terminate the branch early. Loop bounds
         # are checked separately; predicates are not executed here.
-        pending = list(edge.branches)
-        region: set[str] = set()
-        while pending:
-            current = pending.pop()
-            if current == edge.join or current in region:
-                continue
-            region.add(current)
-            pending.extend(graph[current])
+        region = set().union(*branch_regions(spec, edge))
         converges = {edge.join}
         while True:
             additions = {node for node in region - converges

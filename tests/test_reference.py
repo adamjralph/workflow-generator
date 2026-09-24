@@ -67,7 +67,7 @@ def test_even_unreachable_unsupported_or_unbound_nodes_are_rejected(node):
     assert (result.findings[0].code, result.findings[0].path) == expected
 
 
-def test_fork_is_not_executable_even_when_structurally_valid():
+def test_fork_requires_reducer_even_when_structurally_valid():
     spec = WorkflowSpec(entry="a", budget=4, terminals=example().terminals,
         nodes=tuple(TransformNode(id=n, operation="double") for n in ("a", "b", "c", "join")),
         edges=(Fork(source="a", outcome="done", branches=("b", "c"), join="join"),
@@ -77,7 +77,7 @@ def test_fork_is_not_executable_even_when_structurally_valid():
     assert validate_spec(spec).valid
     result = compile_reference(spec, state_type=State, bindings=bindings())
     assert result.plan is None
-    assert result.findings[0].code == "unsupported_edge"
+    assert result.findings[0].code == "invalid_reducer"
 
 
 @pytest.mark.parametrize("bad", [

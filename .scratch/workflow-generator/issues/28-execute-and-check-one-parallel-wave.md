@@ -1,8 +1,41 @@
 # 28: Execute and check one Transform-only parallel wave
 
 **Type:** task
-**Status:** ready-for-agent
-**Blocked by:** None
+**Status:** accepted by Adam (2026-09-25 05:40 AEST)
+**Blocked by:** None for this ticket. Commit/push remains a separate Adam decision.
+
+**Acceptance boundary:** Adam expressly accepted ticket 28 under the observed-case
+contract after the final offline regression and two independent confirmations.
+Conformance rejects divergent admitted reducer outputs for identical captured
+inputs in supplied cases; it does not prove arbitrary callable purity or isolate
+hidden mutable state. Acceptance authorizes neither a live workflow/model call
+nor publication, commit or push.
+
+**2026-09-25 05:36 AEST verification:** Corrected six-file hash
+`24816c99411acf7e7e3bf2f300161b85511a7a2c551c0d1dbfe04471a3f2856b`
+and nine-file contract-inclusive *review-time* hash
+`a1b7d407e240e1ebcd5d1742a3be52bd8f54e2dbb72aa4647c586e169ba5b5e8`
+were read back unchanged before this status note changed the issue's hash. New masked-join regression failed before correction;
+final focused **252 passed**, mypy **35 files clean**, independent Standards/Spec
+confirmation approved without blockers (`deleg_d6fdeb57`). Final-source full
+regression **2,169 passed / 3 skipped**, exit **0** at
+`/home/hermes/workflow-validation-scratch/v-Z4Ti6p/`. The three skips are two
+opt-in live Jev tests and optional real Hermes plugin-loader check. This is
+offline technical evidence, not a live workflow run or Adam's acceptance.
+
+**2026-09-25 continuation:** Adam approved the narrow observed-case reducer
+determinism boundary instead of a reducer-factory API. Contract §3/§8 and ADR 0011
+now describe the supplied-case check, not callable purity or fresh callable state.
+Independent confirmation of the amended contract and corrected implementation is
+still outstanding. The prior Standards reviewer stopped on an approval denial
+before source inspection; obtain specific permission before retrying that denied
+step. No ticket acceptance, commit, push, publication or live model call follows.
+
+**Verified implementation checkpoint:** Code/test manifest
+`0a77b0bc3a1f517bc79f38ed2079701130f5ac527db5cb4283935ac82282ddb7`;
+controller full suite **2,168 passed / 3 skipped**, exit 0 at
+`/home/hermes/workflow-validation-scratch/v-rKzn37/`. Focused 251 and mypy
+35-file pass plus limitations are in `docs/ticket-28-executor-evidence.md`.
 
 **Scope approval:** Adam approved the D1 parallel-wave contract and ADR 0011 as
 drafted on 2026-09-22 and selected this slice as the next implementation. The
@@ -65,33 +98,37 @@ model calls.
 
 ## Acceptance criteria
 
-- [ ] Hand-authored expected branch states, reducer output and spend for a two- and a
+- [x] Hand-authored expected branch states, reducer output and spend for a two- and a
       three-branch wave, independent of driver agreement.
-- [ ] Barrier-based overlap proof without timing: bounded concurrency completes and
+- [x] Barrier-based overlap proof without timing: bounded concurrency completes and
       records observed overlap, `wave_concurrency=1` records the barrier timeout, and an
       out-of-range value is rejected before work.
-- [ ] Declared-order reducer input under adversarial completion order.
-- [ ] Detached state: a branch cannot mutate run-level or sibling state, and reducer
+- [x] Declared-order reducer input under adversarial completion order.
+- [x] Detached state: a branch cannot mutate run-level or sibling state, and reducer
       input mutation cannot change caller state.
-- [ ] Uneven branches, including a single-node branch, execute.
-- [ ] Multiple branch failures select the first in declared order, terminate at that
+- [x] Uneven branches, including a single-node branch, execute.
+- [x] Multiple branch failures select the first in declared order, terminate at that
       branch's terminal with the fork-entry state, do not invoke the reducer, and both
       drivers record the same step events, closing run-level event and spend.
-- [ ] Invalid reducer output (wrong type, undeclared outcome) fails closed.
-- [ ] Budget: refusal at exactly `remaining == required - 1` before any branch step and
+- [x] Invalid reducer output (wrong type, undeclared outcome) fails closed.
+- [x] Budget: refusal at exactly `remaining == required - 1` before any branch step and
       any model call in both drivers, and admission at exactly `remaining == required`
       completing with the hand-authored spend.
-- [ ] Audit I/O failure stops the run and yields no passing result.
-- [ ] Adversarial candidates (reordered branch sequence, extra branch, changed join,
+- [x] Audit I/O failure stops the run and yields no passing result.
+- [x] Adversarial candidates (reordered branch sequence, extra branch, changed join,
       changed reducer output) fail as `structural_mismatch` or `behavioral_mismatch`,
       never silently.
-- [ ] No network: the whole path executes with no socket available.
-- [ ] Every contract §7 rejection fails before any binding is invoked.
-- [ ] Join-binding exemption in both directions: a wave whose join `operation` is absent
+- [x] No network: the whole path executes without IPv4/IPv6 network sockets;
+      local AF_UNIX sockets needed by asyncio remain available.
+- [x] Identical captured reducer inputs across supplied cases with divergent admitted
+      outputs fail conformance in either driver, even when both diverge in lockstep
+      or downstream work masks the join difference; do not infer arbitrary purity.
+- [x] Every contract §7 rejection fails before any binding is invoked.
+- [x] Join-binding exemption in both directions: a wave whose join `operation` is absent
       from `bindings` compiles and runs through `reducers[join_id]` with no
       `unbound_reference`; a stray `bindings` entry under that name is ignored, while a
       spec with no Fork still rejects an unbound non-model Transform as before.
-- [ ] Offline regression and typechecking pass; independent Standards and Spec reviews
+- [x] Offline regression and typechecking pass; independent Standards and Spec reviews
       run on the frozen implementation hash.
 
 ## Comments

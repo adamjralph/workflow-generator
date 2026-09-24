@@ -1,6 +1,7 @@
 """Case-scoped structural and behavioural evidence, never semantic correctness."""
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+import hashlib
 from pathlib import Path
 import os
 import sys
@@ -12,9 +13,9 @@ from pydantic import BaseModel
 from .generation import GraphCandidate, UnsupportedCandidate
 from .judgment import JevSource
 from .model_operation import ModelOperation
-from .reference import S, AuditError, CompileFinding, JudgmentBinding, compile_reference
-from .runlog import RunLog
-from .spec import DecisionNode, Finding, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
+from .reference import S, AuditError, CompileFinding, JudgmentBinding, ReducerObservation, TransformResult, compile_reference
+from .runlog import RunEvent, RunLog
+from .spec import DecisionNode, Finding, Fork, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec, branch_regions
 
 
 _INSPECT = GraphCandidate.inspect_structure
@@ -56,8 +57,10 @@ def _structure(spec: WorkflowSpec) -> dict[tuple[str | int, ...], object]:
             fields[("nodes", node.id, "max_iterations")] = node.max_iterations
         fields[("nodes", node.id)] = (node.kind, reference, frozenset(node.route_labels))
     for edge in spec.edges:
-        assert isinstance(edge, Route)
-        fields[("edges", edge.source, edge.outcome)] = edge.target
+        if isinstance(edge, Fork):
+            fields[("forks", edge.source, edge.outcome)] = (edge.branches, edge.join)
+        else:
+            fields[("edges", edge.source, edge.outcome)] = edge.target
     return fields
 
 
@@ -75,6 +78,10 @@ class CaseEvidence:
     run_id: str
     reference_log: Path
     candidate_log: Path
+    reference_digest: str = ""
+    candidate_digest: str = ""
+    reference_projection_digest: str = ""
+    candidate_projection_digest: str = ""
 
 
 @dataclass(frozen=True)
@@ -105,11 +112,16 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
                       evidence_dir: Path,
                       judgments: Mapping[str, JudgmentBinding[S]] | None = None,
                       protected_roots: tuple[Path, ...] = (),
-                      model_operations: Mapping[str, ModelOperation[S]] | None = None) -> ConformanceReport:
+                      model_operations: Mapping[str, ModelOperation[S]] | None = None,
+                      reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult[S]]] | None = None,
+                      wave_concurrency: int | None = None) -> ConformanceReport:
     """Check supplied cases; ValueError inputs and programming errors propagate.
 
     Additional Hermes source/install locations must be supplied as protected_roots
     when not discoverable from a loaded hermes_cli host. No Hermes import occurs.
+    Reducer observations reject identical-input divergence across supplied cases.
+    This does not prove purity or reset caller-owned callable state between cases;
+    the public mappings provide no callable factory, and the candidate owns its mapping.
     """
     try:
         destination = Path(evidence_dir).expanduser().resolve()
@@ -127,7 +139,8 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
     if any(type(name) is not str or not name.strip() for name, _ in named_cases):
         raise ValueError("Case names must be nonempty strings")
     compilation = compile_reference(spec, state_type=state_type, bindings=bindings, judgments=judgments,
-                                    model_operations=model_operations)
+                                    model_operations=model_operations, reducers=reducers,
+                                    wave_concurrency=wave_concurrency)
     if compilation.plan is None:
         return ConformanceReport(findings=compilation.findings)
     if not named_cases:
@@ -180,6 +193,7 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
     completed: list[str] = []
     outputs: list[CaseOutput] = []
     findings: list[Finding | CompileFinding | ConformanceFinding] = []
+    reducer_history: dict[str, list[tuple[str, ReducerObservation]]] = {"reference": [], "candidate": []}
     for index, (name, initial) in enumerate(named_cases):
         run_id = f"case-{index}"
         record = CaseEvidence(name, run_id, root / f"{index}-reference.jsonl",
@@ -193,6 +207,25 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
             phase = "candidate"
             actual = candidate.run(initial, run_id=run_id, log=graph)
             phase = "comparison"
+            for driver, result in (("reference", expected), ("candidate", actual)):
+                for observation in result.reducer_observations:
+                    for previous_case, previous in reducer_history[driver]:
+                        if (observation.join == previous.join
+                                and _strict_equal(observation.inputs, previous.inputs)
+                                and not _strict_equal(observation.output, previous.output)):
+                            findings.append(ConformanceFinding(
+                                "behavioral_mismatch", ("cases", name, "reducers", observation.join, driver),
+                                f"Identical reducer inputs differ from case {previous_case!r}"))
+                            break
+                    reducer_history[driver].append((name, observation))
+            forks = tuple(edge for edge in compilation.plan.spec.edges if isinstance(edge, Fork))
+            if forks and not _strict_equal(
+                tuple((item.join, item.inputs, item.output) for item in expected.reducer_observations),
+                tuple((item.join, item.inputs, item.output) for item in actual.reducer_observations),
+            ):
+                findings.append(ConformanceFinding(
+                    "behavioral_mismatch", ("cases", name, "reducers", forks[0].join),
+                    "Candidate reducer observation differs from plain reference"))
             # Owned drivers strictly validate and detach state at every boundary.
             comparisons = {
                 "state": _strict_equal(expected.state.model_dump(mode="python", round_trip=True),
@@ -203,6 +236,15 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
                 "bytes": plain.read_bytes() == graph.read_bytes(),
                 "digest": plain.digest() == graph.digest(),
             }
+            if any(isinstance(edge, Fork) for edge in compilation.plan.spec.edges):
+                expected_projection = wave_projection(compilation.plan.spec, plain.read())
+                actual_projection = wave_projection(compilation.plan.spec, graph.read())
+                for key in ("trace", "bytes", "digest"):
+                    del comparisons[key]
+                comparisons["wave_projection"] = expected_projection == actual_projection
+                evidence[-1] = replace(record, reference_digest=plain.digest(), candidate_digest=graph.digest(),
+                                       reference_projection_digest=expected_projection,
+                                       candidate_projection_digest=actual_projection)
         except (AuditError, OSError) as exc:
             findings.append(ConformanceFinding("incomplete", ("cases", name, phase), str(exc)))
             return ConformanceReport(tuple(attempted), tuple(completed), tuple(evidence), tuple(findings))
@@ -216,3 +258,29 @@ def check_conformance(spec: object, candidate: object, *, state_type: type[S],
         completed.append(name)
     return ConformanceReport(tuple(attempted), tuple(completed), tuple(evidence), tuple(findings),
                              tuple(outputs))
+
+
+def wave_projection(spec: WorkflowSpec, events: list[RunEvent]) -> str:
+    """Derive comparison order from persisted events; never rewrite the raw log."""
+    fork = next(edge for edge in spec.edges if isinstance(edge, Fork))
+    regions = branch_regions(spec, fork)
+    members = set().union(*regions)
+    # The single admitted wave has no alternate entrance or repeated visit.
+    # Keep run-level records in place; group only the branch interval.
+    positions = [i for i, event in enumerate(events) if event.node in members]
+    projected = list(events)
+    if positions:
+        start, end = min(positions), max(positions) + 1
+        interval = events[start:end]
+        if any(event.node not in members for event in interval):
+            raise ValueError("Run-level event inside branch interval")
+        grouped = []
+        for region in regions:
+            for visit, event in enumerate((event for event in interval if event.node in region), 1):
+                grouped.append(replace(event, detail={**event.detail, "used_steps": visit}))
+        projected[start:end] = grouped
+    projected = [replace(event, detail={key: value for key, value in event.detail.items()
+                                       if key != "wave_concurrency"})
+                 if event.node == fork.source else event for event in projected]
+    material = "\n".join(replace(event, seq=index).to_json() for index, event in enumerate(projected))
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()

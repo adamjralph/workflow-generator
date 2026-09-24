@@ -100,10 +100,19 @@ reducers: Mapping[str, Callable[[S, tuple[S, ...]], TransformResult]]
 It receives a detached snapshot of the fork-entry state and the branch results in
 **declared branch order**, and returns the same `TransformResult` every other
 Transform returns, so the join's declared outcomes route exactly like any other
-node's. It must be deterministic and must not carry mutable state between
-invocations; conformance supplies a fresh mapping per driver and per case, and a
-stateful reducer is a caller defect that surfaces as a behavioural mismatch, never
-as an accepted difference.
+node's. The caller must supply a deterministic reducer. The public mapping API does
+not create fresh callable instances per driver or per case: each driver owns its
+supplied reducer mapping, and callable state may persist across cases. Conformance
+checks the *observed* guarantee separately for each driver: if supplied cases
+present identical captured reducer inputs at the same join but produce different
+admitted outputs, it reports a `behavioral_mismatch`, even if both drivers agree
+with each other or later steps mask the difference. The captured inputs are the
+detached fork-entry state and declared-order branch states before reducer mutation;
+the admitted output includes join state, outcome, target and failure. A passing
+report does **not** establish callable purity, statelessness, or consistency for
+unsupplied inputs. A single invocation or cases with distinct captured inputs
+cannot exercise this repeated-input check. Reducer factories and callable-state
+isolation are outside this slice.
 
 **Join declaration.** `Fork.join` must name a `TransformNode` in `spec.nodes`, and
 the `reducers` mapping (keyed by join node id) is **authoritative** for it: the
@@ -369,7 +378,8 @@ seam the existing slice uses (`agent_lab/conformance.py:103-218`). Cases:
 10. Adversarial candidates: reordered branch sequence, extra branch, changed join,
     changed reducer output — each fails as `structural_mismatch` or
     `behavioral_mismatch`, never silently.
-11. No network: the whole path executes with no socket available.
+11. No network: the whole path executes with no IPv4/IPv6 network sockets
+    available; local AF_UNIX sockets needed by asyncio remain available.
 12. Every §7 rejection, each failing before any binding is invoked.
 13. The join-binding exemption of §3 in both directions: a wave whose join node's
     `operation` is absent from `bindings` compiles and runs, resolving the reducer
@@ -377,6 +387,11 @@ seam the existing slice uses (`agent_lab/conformance.py:103-218`). Cases:
     a stray `bindings` entry under the same operation name is ignored, while a
     spec with no Fork still rejects an unbound non-model Transform exactly as
     before.
+14. Repeated identical captured reducer inputs across supplied cases with divergent
+    admitted join outputs fail conformance for each affected driver, including when
+    the two drivers diverge in lockstep or a later step masks the join difference.
+    A deterministic reducer passes this check; it is not a proof of purity for
+    arbitrary caller-owned callable state or inputs not supplied as cases.
 
 ## 9. Mapping to P13's stated acceptance evidence
 

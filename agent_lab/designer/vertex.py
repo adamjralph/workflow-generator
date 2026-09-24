@@ -31,6 +31,15 @@ RESPONSE_LIMIT = 65536
 AUTH_LIMIT = 65536
 TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 Transport = Callable[[str, bytes, dict[str, str], float], AsyncIterator[bytes]]
+ParseReason = Literal["unknown_message_field", "unsupported_usage_value",
+                      "inconsistent_accounting", "unsafe_output", "invalid_shape"]
+
+
+class ParseFailure(ValueError):
+    def __init__(self, reason: ParseReason) -> None:
+        self.reason: ParseReason = reason
+        super().__init__(reason)
+
 _MESSAGES = {
     "credentials_unavailable": "Vertex credentials unavailable or invalid; configure an owned authorized_user file separately.",
     "provider_rejected": "Vertex request rejected; check credentials, project and model selection.",
@@ -58,8 +67,10 @@ class VertexError(ValueError):
 
     def __init__(self, message: str = "", *, code: str = "invalid_response",
                  provider_status: int | None = None, auth_requests: int = 0,
-                 header_observation: HeaderObservation | None = None) -> None:
+                 header_observation: HeaderObservation | None = None,
+                 parse_reason: ParseReason | None = None) -> None:
         self.header_observation = header_observation
+        self.parse_reason: ParseReason | None = parse_reason
         self.code = code if code in _MESSAGES else "invalid_response"
         self.provider_status = (provider_status if type(provider_status) is int
                                 and 100 <= provider_status <= 599 else None)
@@ -160,7 +171,10 @@ def _no_secrets(value: Any, secrets: tuple[str, ...]) -> None:
 
 def _parse(raw: bytes, secrets: tuple[str, ...]) -> ModelResponse:
     data = _json(raw)
-    _no_secrets(data, secrets)
+    try:
+        _no_secrets(data, secrets)
+    except ValueError:
+        raise ParseFailure("unsafe_output") from None
     if (not isinstance(data, dict) or data.get("object") != "chat.completion"
             or set(data) - {"id", "object", "created", "model", "choices", "usage",
                             "system_fingerprint", "service_tier"}):
@@ -179,8 +193,21 @@ def _parse(raw: bytes, secrets: tuple[str, ...]) -> ModelResponse:
             or choice.get("finish_reason") != "stop" or choice.get("logprobs") is not None):
         raise ValueError
     message = choice["message"]
-    if (not isinstance(message, dict) or set(message) - {"role", "content", "tool_calls", "function_call", "refusal"}
-            or message.get("role") != "assistant"
+    # Only the observed Flash route has evidence for these extensions/accounting.
+    gemini3 = data.get("model") == "google/gemini-3.8-flash"
+    if isinstance(message, dict) and "extra_content" in message and gemini3:
+        extra = message["extra_content"]
+        if (not isinstance(extra, dict) or set(extra) != {"google"}
+                or not isinstance(extra["google"], dict)
+                or set(extra["google"]) != {"thought_signature"}
+                or not isinstance(extra["google"]["thought_signature"], str)
+                or not extra["google"]["thought_signature"]
+                or not extra["google"]["thought_signature"].isprintable()):
+            raise ParseFailure("unknown_message_field")
+    if isinstance(message, dict) and set(message) - ({"role", "content", "tool_calls", "function_call", "refusal"}
+                                                   | ({"extra_content"} if gemini3 else set())):
+        raise ParseFailure("unknown_message_field")
+    if (not isinstance(message, dict) or message.get("role") != "assistant"
             or not isinstance(message.get("content"), str) or not message["content"].strip()
             or message.get("tool_calls") not in (None, [])
             or message.get("function_call") is not None or message.get("refusal") is not None):
@@ -193,7 +220,18 @@ def _parse(raw: bytes, secrets: tuple[str, ...]) -> ModelResponse:
     if usage is not None:
         if not isinstance(usage, dict):
             raise ValueError
+        if "extra_properties" in usage and gemini3:
+            extra_usage = usage["extra_properties"]
+            if (not isinstance(extra_usage, dict) or set(extra_usage) != {"google"}
+                    or not isinstance(extra_usage["google"], dict)
+                    or set(extra_usage["google"]) != {"traffic_type"}
+                    or not isinstance(extra_usage["google"]["traffic_type"], str)
+                    or not 0 < len(extra_usage["google"]["traffic_type"]) <= 64
+                    or not extra_usage["google"]["traffic_type"].isprintable()):
+                raise ParseFailure("unsupported_usage_value")
         for key, value in usage.items():
+            if key == "extra_properties" and gemini3:
+                continue  # Validated provider metadata; never counted as tokens.
             if key.endswith("_details"):
                 if value is None:
                     continue
@@ -203,18 +241,23 @@ def _parse(raw: bytes, secrets: tuple[str, ...]) -> ModelResponse:
                     if type(count) is not int or count < 0:
                         raise ValueError
             elif type(value) is not int or value < 0:
-                raise ValueError
+                raise ParseFailure("unsupported_usage_value")
         for target, source in (("input_tokens", "prompt_tokens"), ("output_tokens", "completion_tokens")):
             counts[target] = usage.get(source)
         counts["reasoning_tokens"] = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens")
         counts["cache_read_tokens"] = (usage.get("prompt_tokens_details") or {}).get("cached_tokens")
+        separate_reasoning = False
         if all(key in usage for key in ("prompt_tokens", "completion_tokens", "total_tokens")):
-            if usage["total_tokens"] != usage["prompt_tokens"] + usage["completion_tokens"]:
-                raise ValueError
+            ordinary_total = usage["prompt_tokens"] + usage["completion_tokens"]
+            separate_reasoning = bool(gemini3 and counts["reasoning_tokens"] is not None
+                                      and usage["total_tokens"] == ordinary_total + counts["reasoning_tokens"])
+            if usage["total_tokens"] != ordinary_total and not separate_reasoning:
+                raise ParseFailure("inconsistent_accounting")
         for child, parent in (("reasoning_tokens", "output_tokens"), ("cache_read_tokens", "input_tokens")):
             sub, total = counts.get(child), counts.get(parent)
-            if sub is not None and total is not None and sub > total:
-                raise ValueError
+            if sub is not None and total is not None and sub > total and not (
+                    child == "reasoning_tokens" and separate_reasoning):
+                raise ParseFailure("inconsistent_accounting")
     return ModelResponse(body=message["content"], provider_request_id=data.get("id"),
                          resolved_model=data.get("model"), auth_requests=1, **counts)
 
@@ -417,8 +460,9 @@ class VertexSource:
                                          and isinstance(value, str) and value)
                 try:
                     response = _parse(raw, (*secrets, *returned_secrets))
-                except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
-                    raise VertexError(code="invalid_response_body") from None
+                except (ValueError, TypeError, KeyError, AttributeError, RecursionError) as exc:
+                    reason: ParseReason = exc.reason if isinstance(exc, ParseFailure) else "invalid_shape"
+                    raise VertexError(code="invalid_response_body", parse_reason=reason) from None
                 check_deadline()
                 return response
 
@@ -426,9 +470,13 @@ class VertexSource:
             try:
                 result: ModelResponse | VertexError | VertexUncertain = asyncio.run(run())
             except (VertexError, VertexUncertain) as exc:
-                kind = VertexUncertain if isinstance(exc, VertexUncertain) else VertexError
-                result = kind(code=exc.code, provider_status=exc.provider_status, auth_requests=auth_requests,
-                              header_observation=exc.header_observation)
+                if isinstance(exc, VertexError):
+                    result = VertexError(code=exc.code, provider_status=exc.provider_status,
+                                         auth_requests=auth_requests, header_observation=exc.header_observation,
+                                         parse_reason=exc.parse_reason)
+                else:
+                    result = VertexUncertain(code=exc.code, provider_status=exc.provider_status,
+                                             auth_requests=auth_requests, header_observation=exc.header_observation)
             except asyncio.LimitOverrunError:
                 result = VertexError(code="response_limit", auth_requests=auth_requests)
             except TimeoutError:

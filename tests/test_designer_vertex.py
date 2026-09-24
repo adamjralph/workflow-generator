@@ -109,6 +109,111 @@ class Exchange:
             yield raw[index:index + 13]
 
 
+@pytest.mark.parametrize(("change", "reason"), [
+    (lambda reply: reply["choices"][0]["message"].update(extra_content={"google": {"opaque": True}}),
+     "unknown_message_field"),
+    (lambda reply: reply["usage"].update(extra_properties={"opaque": True}),
+     "unsupported_usage_value"),
+    (lambda reply: reply["usage"].update(total_tokens=999), "inconsistent_accounting"),
+    (lambda reply: reply["choices"][0]["message"].update(content="fixture-access-token"),
+     "unsafe_output"),
+])
+def test_vertex_rejection_has_only_sanitized_parse_reason(auth: Path, change: Any, reason: str) -> None:
+    reply = copy.deepcopy(REPLY)
+    change(reply)
+    source = VertexSource(auth, "project-123", transport=Exchange(reply))
+    with pytest.raises(VertexError) as caught:
+        source.invoke(request())
+    assert caught.value.code == "invalid_response_body"
+    assert caught.value.parse_reason == reason
+    assert "fixture-access-token" not in str(caught.value)
+
+
+def test_vertex_parse_reason_is_persisted_without_response_text(auth: Path, tmp_path: Path) -> None:
+    from agent_lab.designer.draft_runs import AttemptSource, Evidence
+
+    reply = copy.deepcopy(REPLY)
+    reply["choices"][0]["message"]["extra_content"] = {"private": "SECRET_REPLY_MARKER"}
+    directory = tmp_path / "run"
+    directory.mkdir(mode=0o700)
+    attempt = AttemptSource(VertexSource(auth, "project-123", transport=Exchange(reply)),
+                            Evidence(directory), {"run_request": "a" * 64, "snapshot": "b" * 64})
+    with pytest.raises(ValueError, match="Model source failed"):
+        attempt.invoke(request())
+    assert attempt.failure is not None
+    assert attempt.failure.parse_reason == "unknown_message_field"
+    assert attempt.exchange is not None
+    saved = attempt.exchange.read_bytes()
+    assert b'"parse_reason":"unknown_message_field"' in saved
+    assert b"SECRET_REPLY_MARKER" not in saved
+    assert b"fixture-access-token" not in saved
+
+
+def test_gemini_thinking_metadata_and_separate_reasoning_usage(auth: Path) -> None:
+    reply = copy.deepcopy(REPLY)
+    reply["model"] = "google/gemini-3.8-flash"
+    reply["choices"][0]["message"]["extra_content"] = {"google": {"thought_signature": "opaque-signature"}}
+    reply["usage"] = {"prompt_tokens": 21, "completion_tokens": 1, "total_tokens": 135,
+                      "completion_tokens_details": {"reasoning_tokens": 113},
+                      "extra_properties": {"google": {"traffic_type": "on_demand"}}}
+    result = VertexSource(auth, "project-123", transport=Exchange(reply)).invoke(request())
+    assert (result.input_tokens, result.output_tokens, result.reasoning_tokens) == (21, 1, 113)
+    assert result.body == '{"verdict":"Approved"}'
+
+
+def test_gemini_long_thought_signature_within_response_cap(auth: Path) -> None:
+    reply = copy.deepcopy(REPLY)
+    reply["model"] = "google/gemini-3.8-flash"
+    reply["choices"][0]["message"]["extra_content"] = {
+        "google": {"thought_signature": "S" * 10680}}
+    result = VertexSource(auth, "project-123", transport=Exchange(reply)).invoke(request())
+    assert result.body == '{"verdict":"Approved"}'
+
+
+@pytest.mark.parametrize("model", ["google/gemini-3.1-pro-preview", "google/gemini-30-flash",
+                                    "google/gemini-3.8-flash-preview", "other/gemini-3.8-flash"])
+def test_unobserved_models_do_not_gain_flash_metadata_exception(auth: Path, model: str) -> None:
+    reply = copy.deepcopy(REPLY)
+    reply["model"] = model
+    reply["choices"][0]["message"]["extra_content"] = {"google": {"thought_signature": "opaque-signature"}}
+    reply["usage"] = {"prompt_tokens": 21, "completion_tokens": 1, "total_tokens": 135,
+                      "completion_tokens_details": {"reasoning_tokens": 113},
+                      "extra_properties": {"google": {"traffic_type": "on_demand"}}}
+    with pytest.raises(VertexError) as caught:
+        VertexSource(auth, "project-123", transport=Exchange(reply)).invoke(request())
+    assert caught.value.code == "invalid_response_body"
+
+
+@pytest.mark.parametrize("kind", ["signature-structure", "signature-empty", "traffic-structure",
+                                 "traffic-control", "contradictory-total", "tool-call", "secret-in-signature"])
+def test_gemini_thinking_metadata_still_fails_closed(auth: Path, kind: str) -> None:
+    reply = copy.deepcopy(REPLY)
+    reply["model"] = "google/gemini-3.8-flash"
+    message = reply["choices"][0]["message"]
+    message["extra_content"] = {"google": {"thought_signature": "opaque-signature"}}
+    usage = reply["usage"]
+    usage.update(prompt_tokens=21, completion_tokens=1, total_tokens=135,
+                 completion_tokens_details={"reasoning_tokens": 113},
+                 extra_properties={"google": {"traffic_type": "on_demand"}})
+    if kind == "signature-structure":
+        message["extra_content"]["google"]["tool_request"] = "hidden"
+    elif kind == "signature-empty":
+        message["extra_content"]["google"]["thought_signature"] = ""
+    elif kind == "traffic-structure":
+        usage["extra_properties"]["google"]["other"] = "hidden"
+    elif kind == "traffic-control":
+        usage["extra_properties"]["google"]["traffic_type"] = "\nunsafe"
+    elif kind == "contradictory-total":
+        usage["total_tokens"] = 134
+    elif kind == "tool-call":
+        message["tool_calls"] = [{"id": "unexpected"}]
+    else:
+        message["extra_content"]["google"]["thought_signature"] = TOKEN
+    with pytest.raises(VertexError) as caught:
+        VertexSource(auth, "project-123", transport=Exchange(reply)).invoke(request())
+    assert caught.value.code == "invalid_response_body"
+
+
 @pytest.mark.parametrize("changes", [
     {"tools": [{"type": "function"}]}, {"stream": True}, {"temperature": 0},
     {"model": ""}, {"model": 42}, {"messages": []},

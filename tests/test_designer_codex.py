@@ -201,11 +201,11 @@ def test_complete_stream_envelope_limit(tmp_path: Path, overflow: bool) -> None:
     auth = tmp_path / "auth.json"
     credentials(auth)
     final = completed()
-    data = b":" + b" " * (65536 - len(final) - 3 + int(overflow)) + b"\n\n" + final
+    data = b":" + b" " * (524288 - len(final) - 3 + int(overflow)) + b"\n\n" + final
 
     async def transport(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
-        for pos in range(0, len(data), 127):
-            yield data[pos:pos + 127]
+        for pos in range(0, len(data), 4096):
+            yield data[pos:pos + 4096]
 
     source = CodexSource(auth, transport=transport)
     if overflow:
@@ -522,7 +522,7 @@ def test_reasoning_does_not_weaken_validation(tmp_path: Path, invalid: str) -> N
     elif invalid == "reasoning-extra":
         response["output"][0]["content"] = [{"type": "function_call"}]
     else:
-        response["output"][0]["encrypted_content"] = "x" * 65536
+        response["output"][0]["encrypted_content"] = "x" * 524288
 
     async def transport(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
         for event in events:

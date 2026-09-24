@@ -8,8 +8,9 @@ vertical slices. A small implementation slice is not a small planning horizon.
 
 This map is a **proposal for discussion**, not authorization to implement. P13–P32
 are provisional planning identifiers, not issue numbers. Current reconciled status
-is in [CURRENT.md](../../CURRENT.md). Issues 01–18 and 20–27 are closed; 19 is
-Blocked; 28 is ready-for-agent and unimplemented. P26's initial scope was delivered
+is in [CURRENT.md](../../CURRENT.md). Issues 01–19 and 20–27 are accepted/closed
+(19 for the operator-pinned live path; default oldest remains untested); 28 is
+ready-for-agent and unimplemented. P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.
 Later outlines may split after contract design; this is not a delivery estimate.

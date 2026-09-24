@@ -402,6 +402,9 @@ byId("draft-capture-button").addEventListener("click", async () => {
     draftRunRequest = result.run_request;
     byId("draft-run").disabled = !draftRunRequest;
     text(container, "h3", `${result.selected.name} · ${result.selected.date_created}`);
+    text(container, "p", result.selection_mode === "operator_pin"
+      ? "Operator-selected, not oldest. Other invalid inventory items are shown above but do not block this named draft."
+      : "Oldest eligible draft selected.");
     text(container, "p", `Snapshot: ${result.snapshot} · Source digest: ${result.selected.digest}`);
     text(container, "pre", result.selected.text);
     text(container, "h3", "Captured role defaults (not authenticated or executed)");

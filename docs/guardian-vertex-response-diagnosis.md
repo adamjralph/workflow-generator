@@ -1,0 +1,33 @@
+# Guardian Vertex response rejection — bounded diagnosis
+
+Status: diagnostic evidence; the separately reviewed offline correction is recorded in `CURRENT.md` (2026-09-24 14:14 AEST). This diagnosis is not ticket-19 live acceptance. The proposed/unimplemented wording below describes the historical diagnosis checkpoint.
+
+## Scope and evidence
+
+- The earlier private-draft Guardian attempt used `google/gemini-3.1-pro-preview` and ended `invalid_response_body`; its raw response was **not retained**. Its precise failing predicate is unknowable from that receipt.
+- Adam supplied `gemini-flash-3.8` and allowed any Flash model for testing; Google's model ID is `gemini-3.8-flash`. Two separate synthetic, single-generation Vertex observations used `google/gemini-3.8-flash`, project `project-54e16fcb-7c62-4041-bb1`, `global`. Each used one OAuth request, one generation request, no retry, 180-second deadline and 65,536-byte response cap. Neither used a private draft, changed a profile or persisted response text/raw body.
+- Sanitized receipts, read back from the exact targets:
+  - `/home/hermes/workflow-validation-scratch/guardian-flash-ir9b_nlc/result.json`: 1,068-byte response, parser `invalid_response_body`, unknown message/usage keys and inconsistent token totals; insufficient to name the first predicate.
+  - `/home/hermes/workflow-validation-scratch/guardian-cause-9l9w0yhz/result.json`: 1,152-byte response, `invalid_response_body`, exact safe key names, counts, parser traceback line, and in-memory differential results. Request digest `2330d188b513b35f6838fc9061e685aa33aae6edfa4f977cd9ddbc69a987f643` identifies the diagnostic request shape, not a reusable run identity. The ephemeral probe code is under the active profile's scratch; this report and the external receipt are the durable evidence.
+- Focused existing Vertex tests: 70 passed. A separately approved offline synthetic parser check accepted a baseline and rejected the token-total mismatch and an extra message key independently. Neither check proves the earlier Pro response's exact shape.
+
+## Demonstrated cause on Gemini 3.8 Flash
+
+The provider returned HTTP-successful, well-framed JSON on the configured Vertex route, with a matching model ID. The rejection was **local schema validation**, not a 429/rate-limit rejection.
+
+1. The response message contained `extra_content` alongside `role` and `content`. `_parse` allows only `role`, `content`, `tool_calls`, `function_call`, `refusal` at `agent_lab/designer/vertex.py:181-187`. Production's **first failing line was 187**. This is a known Vertex/Gemini extension field name; the probe retained only its name, **not its value or type**. It cannot yet be declared safe to ignore.
+2. After removing only the unrecognized message key in an **in-memory copy** of the actual response, `_parse` reached line **206**: `usage.extra_properties` was rejected by the blanket rule that every non-`*_details` usage value must be a nonnegative integer (`vertex.py:196-206`). The probe did not retain the value/type. Google's Vertex documentation shows `extra_properties` as structured provider metadata in a Chat Completions usage example; do not treat the mere presence as a malformed response. The exact observed value still needs type-only characterization before any allowlist change.
+3. Additional independent accounting incompatibilities are visible from the same response. Reported `prompt_tokens=21`, `completion_tokens=1`, `completion_tokens_details.reasoning_tokens=105`, `total_tokens=127`; `21 + 1 + 105 = 127`. The current parser requires `total_tokens == prompt_tokens + completion_tokens` (`vertex.py:211-213`) and `reasoning_tokens <= completion_tokens` (`:214-217`), both false for those numbers. These guards were not individually reached in the live parser; the numeric relationship is observed, while the meaning of the provider's count categories should be checked against its contract before changing accounting.
+4. The parser catches all of these failures and collapses them to the same `invalid_response_body` at `vertex.py:418-421`. `AttemptSource` records that coarse code, not a predicate or sanitized shape. This is why the failure kept being reported as unknown after the raw Pro response was discarded.
+
+The second probe varied only an in-memory copy: normalizing total alone still failed at line 187; removing the extra message key alone advanced to 206; removing it **and** normalizing total still failed at 206. No live provider response was mutated, accepted as a review, or retained for replay. The first Flash observation's 21/1/113 totals show a similar mismatch but cannot establish identical fields or the earlier Pro cause.
+
+## Recommended bounded correction (not implemented)
+
+- Add a stable, **sanitized parse-failure reason enum** at the Vertex adapter boundary, persisted with the existing failure evidence. Distinguish at least unknown message extension, unsupported usage metadata/value, inconsistent accounting, and secret/unsafe output. Never log raw provider body, message content, IDs, OAuth tokens or untrusted field values; record only safe allowlisted field names/types and bounded numeric counts where needed. This makes the *next* live failure actionable without another paid reproduction.
+- Write red-first synthetic tests for an exact `extra_content` structure, `usage.extra_properties` metadata shape, and the observed reasoning/total relationship, plus negatives for secret echoes, tool calls, malformed metadata, contradictory totals and unsupported fields. Verify a precise provider contract before permitting a field or altering accounting; do not blanket-ignore unknown response keys or invent usage. Version the relevant operation/evidence transition if accepted output semantics change. Run mypy, focused and full offline suite, independent Standards/Spec reviews, then request a separately authorized fresh private-draft pair and offline Check. Old receipts stay immutable.
+- A correction for this **Flash** shape cannot be asserted to fix the earlier **Pro** run. A future Pro observation would need the same structural reason capture; never retry the consumed private-draft request.
+
+No production/parser/evidence code was changed by this diagnosis. Ticket 19 remains Blocked; no Guardian editorial verdict or publication resulted.
+
+References: [Google Vertex OpenAI compatibility](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/migrate/openai/overview); [Google example showing structured `usage.extra_properties`](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/maas/capabilities/thinking).

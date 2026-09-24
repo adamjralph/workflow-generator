@@ -44,7 +44,9 @@ def test_independent_guardian_receives_exact_original_evidence_and_draft(operato
 @pytest.mark.parametrize("driver", ["reference", "generated"])
 @pytest.mark.parametrize("fault", ["digest", "excerpt", "source", "quote", "missing_criterion",
     "duplicate_criterion", "verdict", "fixes", "scope", "image", "edited_post", "duplicate_field",
-    "long", "empty_detail", "unknown_criterion"])
+    "long", "empty_detail", "unknown_criterion", "fenced_json",
+    "missing_required_fixes", "missing_optional_preferences", "missing_scope",
+    "missing_image_consistency", "missing_all_top_level_fields"])
 def test_invalid_review_never_becomes_editorial_completion(operator, driver, fault):
     runs, snapshot, _ = setup(operator)
     from agent_lab.model_operation import ModelResponse
@@ -67,8 +69,13 @@ def test_invalid_review_never_becomes_editorial_completion(operator, driver, fau
             elif fault == "long": body["optional_preferences"] = ["x" * 65536]
             elif fault == "empty_detail": body["findings"][0]["detail"] = " "
             elif fault == "unknown_criterion": body["findings"][0]["criterion"] = "image"
+            elif fault.startswith("missing_"):
+                fields = ("required_fixes", "optional_preferences", "scope", "image_consistency")
+                for field in fields if fault == "missing_all_top_level_fields" else (fault.removeprefix("missing_"),):
+                    body.pop(field)
             raw = json.dumps(body)
             if fault == "duplicate_field": raw = raw[:-1] + ',"verdict":"Approved"}'
+            if fault == "fenced_json": raw = "```json\n" + raw + "\n```"
             return ModelResponse(body=raw)
 
     generator, guardian = FixtureSource(), InvalidGuardian()

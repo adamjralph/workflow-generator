@@ -164,7 +164,11 @@ def _bounded_string(value: Any, limit: int) -> None:
 
 def _verify_bundle(bundle: Any) -> None:
     """No original inputs consulted: validate the persisted contract itself."""
-    _shape(bundle, "bundle_version instruction_version max_model_calls selected entries guidance models provenance")
+    pinned = "selection_mode" in bundle
+    _shape(bundle, "bundle_version instruction_version max_model_calls selected entries guidance models provenance"
+           + (" selection_mode" if pinned else ""))
+    if pinned and bundle["selection_mode"] != "operator_pin":
+        raise ValueError("Invalid capture selection mode")
     if (type(bundle["bundle_version"]) is not int or bundle["bundle_version"] != 1
             or bundle["instruction_version"] != _VERSION
             or type(bundle["max_model_calls"]) is not int or bundle["max_model_calls"] != 2):
@@ -194,14 +198,16 @@ def _verify_bundle(bundle: Any) -> None:
         _bounded_string(entry["name"], 255)
         _bounded_string(entry["reason"], 256)
         names.append(entry["name"])
-        if entry["status"] not in ("eligible", "excluded"):
+        if entry["status"] not in (("eligible", "excluded", "invalid") if pinned else ("eligible", "excluded")):
             raise ValueError("Invalid capture entry status")
         if entry["status"] == "eligible":
             created = entry.get("date_created")
             if not isinstance(created, str) or date.fromisoformat(created).isoformat() != created:
                 raise ValueError("Invalid capture entry date")
             eligible.append((created, entry["name"]))
-    if names != sorted(set(names)) or not eligible or min(eligible) != (selected["date_created"], selected["name"]):
+    selection = (selected["date_created"], selected["name"])
+    if (names != sorted(set(names)) or not eligible or
+            (selection not in eligible if pinned else min(eligible) != selection)):
         raise ValueError("Invalid captured selection ordering")
     guidance = bundle["guidance"]
     if not isinstance(guidance, list) or len(guidance) != len(_AUTHORITY):
@@ -257,8 +263,16 @@ class DraftSource:
             config = json.loads(_text(self._config, _DRAFT_LIMIT), object_pairs_hook=_pairs)
         except (ValueError, RecursionError):
             raise ValueError("Invalid capture manifest") from None
-        if not isinstance(config, dict) or set(config) != {"drafts_dir", "guidance", "profiles"}:
+        if not isinstance(config, dict) or set(config) not in (
+                {"drafts_dir", "guidance", "profiles"},
+                {"drafts_dir", "guidance", "profiles", "selected_draft"}):
             raise ValueError("Capture manifest requires drafts_dir, guidance and profiles")
+        self._selected_draft = config.get("selected_draft")
+        if "selected_draft" in config and (not isinstance(self._selected_draft, str)
+                or not self._selected_draft.endswith(".md") or len(self._selected_draft.encode("utf-8")) > 255
+                or self._selected_draft in (".", "..") or Path(self._selected_draft).name != self._selected_draft
+                or self._selected_draft == "public-copy-bank.md"):
+            raise ValueError("selected_draft must be one top-level draft filename")
         if not isinstance(config["guidance"], dict) or set(config["guidance"]) != _AUTHORITY:
             raise ValueError("Capture manifest requires the complete guidance authority set")
         if not isinstance(config["profiles"], dict) or set(config["profiles"]) != {"generator", "guardian"}:
@@ -320,10 +334,11 @@ class DraftSource:
         return {"succeeded": True, "snapshot": snapshot,
                 **{key: bundle[key] for key in ("selected", "entries", "guidance", "models",
                                                 "max_model_calls", "instruction_version")},
+                **({"selection_mode": bundle["selection_mode"]} if "selection_mode" in bundle else {}),
                 "evidence": [str(path)]}
 
     def capture(self) -> dict[str, Any]:
-        """Capture one oldest eligible draft; never modify operator inputs."""
+        """Capture oldest or explicitly pinned eligible draft; never modify inputs."""
         self._check_overlap()
         entries: list[dict[str, Any]] = []
         candidates: list[dict[str, Any]] = []
@@ -354,7 +369,8 @@ class DraftSource:
                 if total > _TOTAL_LIMIT:
                     raise ValueError("Total captured text exceeds 512 KiB") from None
                 entries.append({"name": path.name, "status": "invalid", "reason": str(exc)})
-                findings.append({"code": "invalid_draft", "path": path.name, "message": str(exc)})
+                if self._selected_draft is None or path.name == self._selected_draft:
+                    findings.append({"code": "invalid_draft", "path": path.name, "message": str(exc)})
                 continue
             if meta["processed"] or meta.get("published") is True or meta.get("status") == "published":
                 entries.append({"name": path.name, "status": "excluded", "reason":
@@ -365,12 +381,14 @@ class DraftSource:
                             "date_created": created})
             candidates.append({"name": path.name, "date_created": created, "text": text,
                                "digest": _digest(text.encode("utf-8"))})
-        if findings or not candidates:
+        pinned = self._selected_draft is not None
+        chosen = next((item for item in candidates if item["name"] == self._selected_draft), None) if pinned else None
+        if findings or (chosen is None if pinned else not candidates):
             return {"succeeded": False, "snapshot": None, "selected": None, "entries": entries,
-                    "findings": findings or [{"code": "no_eligible_draft", "path": "drafts_dir",
-                                               "message": "No eligible draft found"}],
+                    "findings": findings or [{"code": "no_eligible_draft", "path": "selected_draft" if pinned else "drafts_dir",
+                                               "message": "Selected draft is not eligible" if pinned else "No eligible draft found"}],
                     "guidance": [], "models": [], "max_model_calls": 2}
-        selected = min(candidates, key=lambda item: (item["date_created"], item["name"]))
+        selected = chosen if chosen is not None else min(candidates, key=lambda item: (item["date_created"], item["name"]))
         guidance = []
         for label, path in sorted(self._guidance.items()):
             resolved = self._input(path)
@@ -395,8 +413,10 @@ class DraftSource:
                   "selected": selected, "entries": entries, "guidance": guidance,
                   "models": models, "max_model_calls": 2,
                   "provenance": {"config": str(self._config), "drafts_dir": str(self._drafts),
-                                 "source_digests": source_digests,
-                                 "profiles": profile_paths}}
+                                  "source_digests": source_digests,
+                                  "profiles": profile_paths}}
+        if pinned:
+            bundle["selection_mode"] = "operator_pin"
         # A successful capture must always satisfy the public load contract,
         # including inventory names and provenance, before publishing anything.
         _verify_bundle(bundle)
@@ -423,4 +443,5 @@ class DraftSource:
             os.unlink(temporary)
         return {"succeeded": True, "snapshot": snapshot, "selected": selected,
                 "entries": entries, "guidance": guidance, "models": models,
-                "max_model_calls": 2, "instruction_version": _VERSION, "evidence": [str(path)]}
+                "max_model_calls": 2, "instruction_version": _VERSION,
+                **({"selection_mode": "operator_pin"} if pinned else {}), "evidence": [str(path)]}

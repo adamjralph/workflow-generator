@@ -117,14 +117,14 @@ def test_http_envelope_limits_are_classified(tmp_path, monkeypatch, framing):
             pass
 
     async def connect(*args, **kwargs):
-        reader = asyncio.StreamReader(limit=codex.STREAM_LIMIT)
+        reader = asyncio.StreamReader(limit=codex.HEADER_LIMIT)
         head = b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n"
         if framing == "length":
             wire = head + f"Content-Length: {codex.STREAM_LIMIT + 1}\r\n\r\n".encode()
         elif framing == "chunk":
-            wire = head + b"Transfer-Encoding: chunked\r\n\r\n10001\r\n"
+            wire = head + b"Transfer-Encoding: chunked\r\n\r\n80001\r\n"
         else:
-            wire = head + b"X-Large: " + b"x" * codex.STREAM_LIMIT + b"\r\n\r\n"
+            wire = head + b"X-Large: " + b"x" * codex.HEADER_LIMIT + b"\r\n\r\n"
         reader.feed_data(wire)
         reader.feed_eof()
         return reader, Writer()

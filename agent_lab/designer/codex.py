@@ -34,7 +34,9 @@ from .http_response import REPEATABLE_METADATA, chunk_size, header_field, observ
 
 ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 REQUEST_TIMEOUT = 180.0
-STREAM_LIMIT = 65536
+HEADER_LIMIT = 65536
+STREAM_LIMIT = 524288  # Bounded SSE envelope, including repeated deltas and reasoning items.
+RESPONSE_LIMIT = 65536  # Parsed assistant text remains separately bounded.
 AUTH_LIMIT = 1048576
 Transport = Callable[[bytes, dict[str, str], float], AsyncIterator[bytes]]
 
@@ -139,7 +141,7 @@ def _credentials(path: Path) -> tuple[str, str, tuple[str, ...]]:
 
 async def _https(body: bytes, headers: dict[str, str], deadline: float) -> AsyncIterator[bytes]:
     reader, writer = await asyncio.open_connection("chatgpt.com", 443, ssl=ssl.create_default_context(),
-                                                   server_hostname="chatgpt.com", limit=STREAM_LIMIT)
+                                                   server_hostname="chatgpt.com", limit=HEADER_LIMIT)
     failure_code = "invalid_http_status"
     status = None
     observation = None
@@ -149,7 +151,7 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
         writer.write(wire.encode("ascii") + body)
         await writer.drain()
         raw = await reader.readuntil(b"\r\n\r\n")
-        if len(raw) > STREAM_LIMIT:
+        if len(raw) > HEADER_LIMIT:
             raise CodexError(code="response_limit")
         observation = observe_headers(raw)
         lines = raw.split(b"\r\n")
@@ -241,7 +243,8 @@ async def _https(body: bytes, headers: dict[str, str], deadline: float) -> Async
 
 def _reasoning_item(item: dict[str, Any], *, final: bool) -> None:
     """Accept native reasoning, never treating it as assistant output or a tool."""
-    if (set(item) - {"id", "type", "status", "summary", "encrypted_content"}
+    if (set(item) - {"id", "type", "status", "summary", "encrypted_content", "content"}
+            or ("content" in item and item["content"] != [])
             or item.get("type") != "reasoning"
             or not isinstance(item.get("id"), str) or not item["id"]
             or item.get("status", "completed" if final else "in_progress")
@@ -469,6 +472,8 @@ def _parse(data: bytes, secrets: tuple[str, ...]) -> ModelResponse:
             or content[0]["type"] != "output_text"):
         raise ValueError
     body = content[0]["text"]
+    if len(body.encode("utf-8")) > RESPONSE_LIMIT:
+        raise CodexError(code="response_limit")
     if ((response_id is not None and "id" in final and response_id != final["id"])
             or (deltas and "".join(deltas) != body)
             or (done_text is not None and done_text != body)
@@ -550,7 +555,7 @@ class CodexSource:
                     data.extend(chunk)
                 try:
                     return _parse(bytes(data), secrets)
-                except CodexUncertain:
+                except (CodexError, CodexUncertain):
                     raise
                 except Exception:
                     raise CodexError(code="invalid_response_body") from None

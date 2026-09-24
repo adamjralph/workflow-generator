@@ -39,3 +39,22 @@ re-read whole files.
 After big code changes, refresh the graph with `graft build` (deterministic,
 no API key, $0).
 <!-- graft:end -->
+
+## Execution and collaboration
+
+Adam coordinates this project with several models (including Astra, GPT-6-Sol and
+DeepSeek-4.2-flash). Treat their work as shared project work: inspect the current
+working tree and handoff, preserve sibling edits, and advance the next safe,
+authorized step instead of stopping merely because another model touched a file.
+A changed file is a reason to reread and patch against current content, not to
+reset or overwrite it.
+
+Use sensible low-risk assumptions and do routine read-only checks and local
+validation without asking. If a consequential decision, ambiguous provenance,
+private-source change, provider spend, independent delegation, publication, push,
+profile/credential edit or protected write needs approval, ask Adam for that
+specific decision. Do not interpret this collaboration preference as blanket
+permission to bypass the project's explicit run/evidence guards or acceptance
+criteria. Record assumptions and actual results; do not claim a passing run from
+an attempted one.
+

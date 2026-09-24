@@ -6,7 +6,7 @@
 is delivered (tickets 13–14); tickets 17–18 partially cover role/data milestones;
 tickets 20–23 deliver LinkedIn offline plumbing/replay, not live parent completion.
 Ticket 13's bookkeeping is closed under Adam's 2026-09-22 triage authorization.
-Ticket 19 is Blocked; ticket 28 is the next approved implementation and has not started.
+Ticket 19 is accepted for the operator-pinned live path (default-oldest live selection remains untested with invalid inventory); ticket 28 is the next approved implementation and has not started.
 M2–M6 below are capability definitions, not wholly unstarted work or newly authorized scope.
 
 Adam approved the next sequence after ticket 09:

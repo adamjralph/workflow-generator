@@ -162,14 +162,18 @@ class AttemptSource:
             code = "deadline_exceeded" if isinstance(exc, TimeoutError) else "source_failure"
             provider_status = None
             header_observation = None
+            parse_reason = None
             if isinstance(exc, (CodexError, CodexUncertain, VertexError, VertexUncertain)):
                 code, provider_status = exc.code, exc.provider_status
                 header_observation = exc.header_observation
+                if isinstance(exc, VertexError) and code == "invalid_response_body":
+                    parse_reason = exc.parse_reason
             self.auth_requests = (exc.auth_requests if isinstance(exc, (VertexError, VertexUncertain))
                                   else None if self.mode == "live" and request.operation == "review_linkedin" else 0)
             self.failure = ModelFailure.model_validate({"status": status, "code": code,
                                                         "provider_status": provider_status,
-                                                        "header_observation": header_observation})
+                                                        "header_observation": header_observation,
+                                                        "parse_reason": parse_reason})
             self.exchange = self.evidence.record({**attempt, "response": None,
                 "failure": self.failure.model_dump(), "auth_requests": self.auth_requests,
                 "elapsed_seconds": time.monotonic() - start})
@@ -220,6 +224,10 @@ class DraftRuns:
         if self.guardian_source is not None:
             identity["workflow_version"] = "linkedin-pair-v1"
             identity["execution_options"] = self._execution_options()
+        else:
+            # Pending legacy Generator-only requests must not cross a changed
+            # deterministic preparation contract without an explicit new request.
+            identity["operation_version"] = linkedin.VERSION
         root = self._directory()
         previously_attempted = False
         for prior in root.iterdir():
@@ -259,6 +267,8 @@ class DraftRuns:
         if paired:
             expected["workflow_version"] = "linkedin-pair-v1"
             expected["execution_options"] = identity.get("execution_options")
+        elif "operation_version" in identity:
+            expected["operation_version"] = identity["operation_version"]
         if identity != expected:
             raise ValueError("Run request does not match capture")
         store.read("claim.lock")  # Validate type/ownership before opening the lock.
@@ -291,6 +301,8 @@ class DraftRuns:
         view = self._view(snapshot, run_request, "failed")
         attempt = AttemptSource(self.model_source, store, {"snapshot": snapshot, "run_request": run_request})
         try:
+            if json.loads(store.read("request.json")).get("operation_version") != linkedin.VERSION:
+                raise ValueError("Legacy request requires the current Generator operation version")
             captured = self.source.load(snapshot)
             if self.model_source.mode == "live" and captured["models"][0]["provider"] != "openai-codex":
                 raise ValueError("Generator requires configured Codex provider; no substitution")

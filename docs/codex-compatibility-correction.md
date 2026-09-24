@@ -1,5 +1,49 @@
 # Codex compatibility correction
 
+## Follow-up: bounded SSE envelope and empty reasoning content
+
+Adam approved this separate Codex-only correction after one live Generator
+attempt failed `response_limit` and four private diagnostics showed actual SSE
+sizes from 128,639 to 272,209 bytes. A structural trace identified another
+failure: real reasoning items include `content: []`; the strict reasoning-item
+allowlist rejected it. An isolated diagnostic removing **only** that literal
+empty field validated one real Generator response, but did not produce a
+production run or Guardian review. Sanitized private receipts and their limits
+are listed in `HANDOFF.md`; no raw response or source text is in this report.
+
+Approved boundary: raw Codex SSE ≤ 524,288 bytes; HTTP header ≤ 65,536 bytes;
+parsed assistant text ≤ 65,536 UTF-8 bytes. Only literal `content: []` is
+permitted on reasoning items; nonempty/wrong-type content, tools and unrelated
+fields still fail. Explicit MIME, status, framing, deadline, created-response
+identity, item/text agreement, response model/usage and Vertex remain unchanged.
+An oversized parsed response is classified `response_limit`.
+
+Final scoped source/test SHA-256 values (working tree, not committed):
+
+- `agent_lab/designer/codex.py`: `09e6d49d6740478310a79829a79ff63f5905c1f624dc6a819d20384195d04264`
+- `tests/test_designer_codex.py`: `af2f7e970d5b2774237dd84bbad2a6b098c23630b00aafcdfe7ad5568b1b6dff`
+- `tests/test_designer_codex_failures.py`: `cc8d783c1e7ffccfdc2c13c430ac435321e06483fbb3a255a91c6221dec6ea27`
+- `tests/test_designer_codex_compatibility.py`: `d3345152969c274fdeec9eb9165df92715e05507c688279a42344925ddf46f94`
+
+Synthetic regressions cover actual Content-Length, chunked (including safe
+trailer) and close-delimited 524,288/524,289-byte boundaries, 65,536/65,537-byte
+UTF-8 text, independent invalid added/done/final reasoning content, and the
+original strict SSE negatives. The 546-case focused suite passed; mypy found no
+issues in 35 files. Independent Standards and Spec reviews of the corrected
+source returned approved; Spec verified that bypassing the new reasoning guard
+makes the targeted negative cases pass in an isolated copy. A final-source full
+regression had one known browser-polling timing failure (2,013 passed, 3 skipped);
+both affected parametrizations passed 5/5 in isolation. A second final-source
+full run at `/home/hermes/workflow-validation-scratch/v-fWggtf/` also failed one
+different late-response browser timing assertion (2,013 passed, 3 skipped);
+its six parametrizations passed 5/5 in isolation. **Neither final-source full
+run is green** and no stability fix is claimed. Fresh
+private capture then failed before any call because a newly present eligible
+source lacks `date_created`; operator metadata must be corrected before a new
+acceptance attempt. Current status is **not live accepted**. This section supersedes no earlier source hashes
+or review evidence for the preceding missing-MIME/completed-item correction.
+
+
 ## Frozen scope and regression seams (before implementation)
 
 Approved source: `codex-protocol-diagnosis.md`, CURRENT and HANDOFF. This is a

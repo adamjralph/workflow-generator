@@ -1,8 +1,259 @@
 # Current project state
 
-Updated 2026-09-22 after Adam authorized triage, closure of finished tickets and routine pending decisions, while reserving decisions assessed to need his direct approval.
+**2026-09-25 — Adam accepted ticket 19:** He corrected his dictated “except for ticket 19” to “accept ticket 19” and confirmed the private result was good. Marked the parent accepted for its verified **operator-pinned** live path: completed exact-draft Generator/Guardian pair, passing offline Check, 2,082 full tests / 3 skips, independent v5 reviews with no blockers. Do not overstate this as a default-oldest live run: invalid inventory still blocks that mode; the selected 2026-09-23 article was pinned while the oldest eligible file is 2026-09-08. This known limitation is recorded in issue 19, not silently repaired or turned into publication permission. Next approved implementation frontier is ticket 28, a Transform-only parallel wave under the accepted D1 contract; no implementation was launched here. Preserve all sibling uncommitted edits; no commit/push or publication.
+
+**2026-09-24 private browser review checkpoint:** Generated a private 0600 local HTML view of the verified completed pair at `/home/hermes/workflow-validation-scratch/live19-v5-oxnukaml/private-review.html` (SHA-256 `1894892b32ad80f943120d9ddad73d65e20990b5795d0a065078fcdc73d23f00`). It contains the generated post and full Guardian findings, no source bundle. Headless Chromium loaded the `file://` view with exit 0 and found one post block, ten findings, and Approved verdict; no content was printed to logs/chat. Adam subsequently accepted ticket 19 as recorded above. Browser Use CLI was unavailable; Chromium headless verified the actual artifact instead. No publication.
+
+**2026-09-24 18:35 AEST — final-source regression verified:** The tracked rerun `proc_1b3b8497ee4f` completed; read-back `/home/hermes/workflow-validation-scratch/v-611AVg/full.log` reports **2,082 passed / 3 skipped** in 457.62s, and `exit-code.txt` is **0**. This includes the two reviewer-suggested test additions. The separate v5 live pair and offline Check remain completed and verified as recorded below. Ticket 19's technical live and regression gates are green, but Adam has not yet been shown the private post and review for a specific acceptance decision. His preceding “I give my approval” answered the blocked validation/status-check action; it is not publication authorization. Preserve all sibling uncommitted changes. No commit, push or publication.
+
+**2026-09-24 18:27 AEST — ticket 19 live gate passed, full test rerun pending:** Independent v5 Standards and Spec reviews (`deleg_46b717ea`) returned no blockers; both declared `openai-codex/gpt-6-astra`, not wire-attested. Their two nonblocking coverage gaps were addressed with synthetic omitted-field cases through both drivers and an explicit completed v4→v5 receipt read-back; focused 92 passed, mypy clean in 35 source files. Fresh private v5 request `bf7abe01ed8d318ca5c61aba96516978bc41f8f279d7c29d3f1690e02b37d0b4` at `/home/hermes/workflow-validation-scratch/live19-v5-enpgb5p0/` failed `invalid_output` on one noncontiguous quote (all mandatory fields present; exact draft digest and source labels matched); offline Check `invalid_recording`, zero calls. It is consumed. A distinct one-use reproducibility request `6cfaa74e5fc4ac46ee2a00fc1bee543897ef6d1772a71b755ed24f1789e7b741` at `/home/hermes/workflow-validation-scratch/live19-v5-oxnukaml/` **completed** with two attempts (one Generator, one Guardian), verdict **Approved**, and offline Check **passed** with zero new model/auth calls. Read-back of sanitized `summary.json`, completed receipt digests and Check receipt matched. Snapshot `35c6cb134dc05b4b0858eb3d4a272669cecafd2ef29255672a6251e7c3de6db1`; source digest unchanged `08c6f0b1e3acc0749d0af5b72150735862b3c3e3721bc15aa497d7b80a0c8d00`; generated draft digest `ce8b855731c427c17d965b0068a5df33dc5e2179a3c87b0a5fa1b5b9c0eb47a0`. Generator usage 20,523 input / 1,474 output / 419 reasoning; Guardian 23,196 input / 1,165 output / 3,360 reasoning, plus one OAuth. The earlier full suite of 2,071/3 skips predates these test-only additions; a fresh full attempt stopped at ~82% without exit (`/home/hermes/workflow-validation-scratch/v-tGROCH/full.log`), **not a pass**. A new tracked background full suite `proc_1b3b8497ee4f` is running; read its completed log and exit before claiming final-source full green. Adam approved continuing validation after the timeout; do not construe that alone as having reviewed the draft or approved publication/commit/push. Ticket 19 remains Blocked on presenting the private draft/review to Adam and explicit parent acceptance. No publication, profile edit, commit or push.
+
+**2026-09-24 18:03 AEST — continuing testing-call authorization:** Adam clarified that he authorizes as many paid model calls as needed while testing this project, within sensible limits, and that he regarded this as pre-authorized already. This supersedes the 17:58 statement requiring a new approval for every fresh paid pair/Check. Define each experiment's purpose and bounds, use a fresh private destination and a fresh request, record actual attempts/usage or unknown usage, stop on unexplained failure rather than blindly retry, and never reuse consumed requests. This authorization does not grant publication, profile/credential changes, commit/push, weakened validation, or ticket acceptance; those remain separate decisions. Historical narrower approvals below describe their earlier checkpoints, not the current call authority.
+
+Updated 2026-09-24 17:58 AEST; v5 offline correction green; Adam approved independent Standards/Spec reviews for the next session.
+
+**Review authorization (2026-09-24 17:58 AEST):** Adam explicitly approved two independent read-only Standards and Spec reviews of the **v5** Guardian prompt/version correction. This approval carries into the next session; reviews are authorized **but not launched or completed** in this handoff. Review the current scoped working-tree diff and final-source offline evidence. Neither reviewer should read private source/response or make a provider workflow call. The controller must inspect findings and verify any correction. This approval does **not** authorize a fresh paid pair/Check, publication, commit, push, profile edit, or ticket closure; those decisions remain separate.
+
+**2026-09-24 17:46 AEST — fresh v4 pair failed, no retry:** Adam authorized one fresh private Generator→Guardian pair and offline Check, without publication/profile changes/retry. Fresh root `/home/hermes/workflow-validation-scratch/live19-v4-nu7vp_uj/`, snapshot `6c98185690c9d057ff106883d219c68378caf706d11cbaa9838f4f6bacd9cce3`, one-use request `59d88880cff46d5d174a4a9976d360750b7b4313a1d28d4443fa838ade40901a`. Source digest unchanged `08c6f0b1e3acc0749d0af5b72150735862b3c3e3721bc15aa497d7b80a0c8d00`, truthful date 2026-09-23, no health/prayer markers; profiles read back as Codex `gpt-6-sol-900k` and Vertex `google/gemini-3.8-flash`. One Generator and one Guardian generation attempt, one Guardian OAuth; both adapters returned responses, but Guardian failed strict `invalid_output` after two workflow steps. Generator usage 20,523 input / 1,356 output / 472 reasoning; Guardian 23,131 input / 1,070 output / 2,477 reasoning. Receipt digests and sanitized `summary.json` read back. Offline Check rejected incomplete pair (`invalid_recording`), zero additional model/auth calls. Private structural inspection: Guardian returned bare JSON (no fence, no apparent refusal), ten criteria, but omitted four required top-level fields: `required_fixes`, `optional_preferences`, `scope`, `image_consistency`; no verdict was applied. Do not fabricate omitted fields or treat its apparent `Approved` value as an editorial verdict. The request is consumed; no paid retry authorized. Red-first tests showed omission-specific prompt and stale-v4 pending guard failures. Guardian v5 working-tree prompt now explicitly requires those fields including empty arrays and exact literals, retaining strict `apply()`. Focused 156 passed and mypy clean in 35 files; final-source full regression **2,071 passed / 3 skipped**, exit 0 (read-back `/home/hermes/workflow-validation-scratch/v-Ckaun6/full.log` and `exit-code.txt`). Independent v5 reviews not run. No publication, commit, push, profile edit or further provider call. Ticket 19 remains Blocked.
+
+**2026-09-24 offline follow-up verified:** Privately classified the retained Guardian body without displaying text: exactly one `json` Markdown fence (7,634 body bytes, SHA-256 `441de842e4030b79e8c363ac46786283335e150d7a661e73b33575fb1a805f8a`), no preamble or detectable refusal. The inner object passes `ReviewResult`'s JSON schema and matches the exact submitted draft digest, but 2 references name absent source labels and 4 quotes are not exact substrings of their named captured source. Thus removing the fence alone would still fail strict application; this is not a completed verdict. Red-first offline tests demonstrated the missing bare-JSON/exact-reference prompt and stale pending-v3 guard (2 failures). A narrow working-tree correction clarifies both instructions and bumps Guardian operation to v4 without modifying `apply()` or auto-repairing provider text. Focused 116 passed and mypy 35 files clean. Final-source full regression passed 2,071 / 3 skipped, exit 0 (`/home/hermes/workflow-validation-scratch/v-4Jkx9x/full.log`, `exit-code.txt` read back). Independent Standards/Spec reviews (`deleg_02f08ab1`) found zero blockers; neither reran tests nor opened private response. Both declared `openai-codex/gpt-6-astra`, not wire-attested. Spec noted a nonblocking explicit completed-v3→v4 read-back coverage gap; current receipt-read path returns before version preflight. No new provider call, profile edit, commit, push or publication. The consumed live request remains consumed; ticket 19 stays Blocked.
 
 **Start here for current status.** `HANDOFF.md` retains historical session evidence; old “next” instructions do not override this file. `ROADMAP.md` defines capability completion, not ticket authorization. The delivery map's P-identifiers are not issue numbers.
+
+## 2026-09-24 15:48 AEST — fresh approved pair: parser passed, Guardian output not JSON
+
+Adam authorized the fresh private run and reported a separately diagnosed recurrent Chromium startup abort (`SingletonSocket` path 128 bytes versus Unix socket path limit), with many dumps from a Hermes Playwright worker. These dump counts and machine details are Adam's report, not independently inspected here. This ticket-19 run uses direct Codex/Vertex model adapters, not Chromium; earlier Chromium regression tests succeeded only with a short child `TMPDIR` (see handoff). Do not mistake a browser startup failure for a model-parser failure, retry a deterministic browser startup abort, or change Hermes/global TMPDIR as part of this ticket.
+
+Fresh private destination `/home/hermes/workflow-validation-scratch/live19-v3-m6cxo9he/` (0700) captured the same operator-pinned missed-follow-up v1 article with unchanged source digest `08c6f0b1e3acc0749d0af5b72150735862b3c3e3721bc15aa497d7b80a0c8d00`, truthful date 2026-09-23 and no health/prayer markers. Profile defaults read back as Generator `openai-codex/gpt-6-sol-900k` and Guardian `vertex/google/gemini-3.8-flash`; snapshot `d154f63ea65b41d43ddb57898a5d2054c87bf45ec08ef7ea6183b1a913064a6c`. One-use request `73b7af72619d3e4678c66b184ca251908295feae8f24c9173479f1e8d6259e65` made **one Generator and one Guardian generation attempt**, plus one Guardian OAuth request. Generator draft digest `4824dc877f68aed7d1b5d081a7821c3f9f884e26f680a40bce10783e36f57366`. Both adapters produced validated `ModelResponse` objects and usage; Guardian's earlier `unknown_message_field` parser failure did **not** recur on this response. Generator usage 20,523 input / 1,585 output / 435 reasoning / 0 cache-read; Guardian 23,084 input / 1,851 output / 1,522 reasoning, cache-read unknown. Guardian response failed **`invalid_output`** in strict editorial application: private offline reapplication found its body is not JSON (`JSONDecodeError` at position 0), without printing its content. No verdict or completed pair. Receipt digests read back valid. Offline Check returned `invalid_recording`, zero new model/auth calls; receipt `evidence/draft-check-_4_1evge/check.json`. Preserve private response/evidence; do not reuse this consumed request, automatically retry, weaken semantic validation, or publish. Ticket 19 remains Blocked. Next safe action is an offline, privacy-safe assessment of why the Guardian emitted non-JSON and a bounded prompt/contract correction if justified; a fresh paid pair requires another explicit decision.
+
+**Recommended sequence for the next session:** classify only the private response framing offline (fenced JSON, preamble, refusal, other) without printing its text; distinguish mere format noncompliance from a substantive refusal. Do not silently repair or accept it. If formatting is the cause, use a red-first synthetic test and minimal versioned prompt/contract correction, then focused/type/full validation and independent reviews before requesting a new live-run decision. The separate Chromium startup-path/retry-loop defect is not a reason to repeat this model call or to change Hermes in this ticket.
+
+## 2026-09-24 15:15 AEST — long thought-signature parser cause demonstrated; offline correction verified
+
+**Review update (15:33 AEST):** Adam approved two independent read-only reviews of the new long-signature/v3 correction. Standards and Spec both returned **approved, zero blockers** against the unchanged working tree (delegation `deleg_2cd90be4`). Standards suggested nonblocking boundary-combination tests for signature-bearing 65,536/65,537-byte responses and long signatures containing a control character/secret. Spec suggested an explicit historical v2→v3 completed-receipt read-back test; the current v3→v1 test and receipt-before-preflight code support the behavior but do not directly test that direction. Neither reviewer reran tests or mypy; an attempted synthetic Standards probe stopped at an execution approval gate. Both sessions declared `openai-codex/gpt-6-astra`; provider-side wire identity was not attested. Controller read back unchanged scoped source/test hashes, version/receipt guards and the retained final-source full-suite exit 0 (**2,067 passed / 3 skipped**). No live pair/Check, publication, commit or push. Ticket 19 remains Blocked; a fresh pair/Check is a separate Adam decision.
+
+One fresh Guardian-only diagnostic used a distinct request digest (`c2cab0c507ce3f7c12de12b8d5bf47f4f2ffd58925923c4b5b08b2f8dca409dd`) made from the previous Guardian prompt with an explicit diagnostic suffix. It made exactly one OAuth and one Vertex generation request, no retry, within 180 seconds and 65,536 response bytes. The raw response remains private (0600) at `/home/hermes/workflow-validation-scratch/guardian-live-shape-75sr4uzu/generation-response.json`; never print, attach or commit it. Sanitized read-back: `result.json` in that folder. The response was 19,791 bytes, exact model `google/gemini-3.8-flash`, with only `message.extra_content.google.thought_signature`; the opaque signature was **10,680 printable characters**. The parser's arbitrary 4,096-character cap raised `unknown_message_field`. Removing just `extra_content` in an in-memory diagnostic copy made the response parse, isolating this rejection. This establishes the cause for this **distinct near-live request**; the earlier unretained workflow response cannot be proven byte-identical.
+
+Red-first regression `test_gemini_long_thought_signature_within_response_cap` reproduced the rejection. `vertex.py` now drops only the 4,096-character per-field cap; it still requires a nonempty printable string in the exact Flash extension shape, scans for secrets, and retains the 65,536-byte entire-response cap. The unmodified private diagnostic response then parsed offline with 23,099 input / 1,924 output / 1,954 reasoning tokens. Guardian operation version is now **3** so pending v1/v2 pairs fail preflight rather than silently using the changed parser; a red-first v2-pending test demonstrated the previous unsafe completion. Final-source focused suite **196 passed**; mypy clean in 35 source files. An initial broad test attempt used the protected default TMPDIR and failed on the evidence-root guard; a subsequent full run timed out in the foreground without an exit result. The tracked final-source full suite **passed 2,067 / 3 expected skips**, exit 0; `full.log` and `exit-code.txt` read back under `/home/hermes/workflow-validation-scratch/workflow-generator-20260924T044344Z-eiwMNx/`. Existing `AGENTS.md` EOF whitespace is a sibling diff, not part of this correction. Adam requested handoff before deciding on the two independent read-only reviews of this **new** change; none were launched. No completed live pair/Check, publication, commit or push. Next: obtain his review authorization; a fresh live pair/Check needs its own separate decision. Ticket 19 remains Blocked.
+
+## 2026-09-24 14:21 AEST — authorized Flash private pair failed at Guardian; no retry
+
+Adam explicitly approved switching `stillroom-signal-guardian` from Codex Luna to `vertex/google/gemini-3.8-flash` and one fresh private Generator→Guardian pair plus offline Check (one attempt per role, no retry/publication). Profile `model.provider`/`model.default` were changed by supported CLI, checked, and read back as `vertex`/`google/gemini-3.8-flash`; Generator remains `openai-codex/gpt-6-sol-900k`. Fresh private destination `/home/hermes/workflow-validation-scratch/live19-flash-n1PztL/` captured operator-pinned missed-follow-up v1, truthful 2026-09-23 date, snapshot `a08163853bdaddb28ce33b6a5c5a38726d3ceea21e0582aa38b35302cd977956`. Selected source digest stayed `08c6f0b1e3acc0749d0af5b72150735862b3c3e3721bc15aa497d7b80a0c8d00`; no health/prayer markers were found (two generic occurrences of “private”). Other invalid inventory entries remain visible under operator pin.
+
+One-use request `da3efd96e204ca707c2c32bd243b541f1270ed008792acda85b84c0920c6978f` made one Codex Generator and one Vertex Guardian generation attempt plus one Guardian OAuth request. Generator yielded a valid draft (digest `2c16fddb7df679e382b969b483acdc8816e65463d74a523fad78b6c265d49ffe`; 20,523 input / 2,159 output / 1,034 reasoning / 0 cache-read tokens). Guardian failed `invalid_response_body` with persisted sanitized `parse_reason: unknown_message_field`; its token usage and resolved response model are **unknown**. No editorial verdict or completed pair. The exact field/value is unknown: this private response was not retained, and the reason also covers a malformed allowlisted extension. Receipt `evidence/draft-runs/<request>/receipt.json` was read back and agrees. Offline Check reported `invalid_recording`, zero model/auth calls; check receipt under `evidence/draft-check-l7lj17qy/check.json`. Operator run/check logs are private in the destination. Do not reuse or retry this request. The previous synthetic Flash response's offline parse did not predict acceptance of this distinct live response. Ticket 19 stays Blocked; no publication, commit or push. Next step is an offline diagnosis of known parser branches/receipt limitations and a **new specific decision** on any further bounded observation, not another automatic call or a speculative broad parser relaxation. Leave the approved Flash profile selection in place unless Adam decides otherwise.
+
+## 2026-09-24 14:14 AEST — Flash parser correction offline-reviewed; live acceptance still blocked
+
+The bounded Vertex correction now accepts only the observed `google/gemini-3.8-flash` metadata/reasoning accounting, not all Gemini-3 or Pro variants. Guardian operation version moved from 1 to 2: pre-v2 pending pairs fail preflight before either role sends; completed receipts stay readable without a new call, while historical v1 offline Check requires pinned v1 code. Red-first transition/model-scope tests initially failed 4 cases (2 passed), then focused Vertex/alias/review-run/check tests passed **177**. A nine-test Chromium subset passed with a short temp path; mypy found no issues in 35 files. Final-source full offline suite passed **2,065 / 3 expected skips**, exit 0; retained log and exit code: `/home/hermes/workflow-validation-scratch/v-ENroLL/full.log` and `exit-code.txt`. The external runner overrides TMPDIR, so the short 0700 sibling must be exported **inside** its child shell, not just before invoking the runner. An earlier full run with the ineffective outer override showed browser errors and was stopped; it is not a pass.
+
+Independent Standards approved the initial correction; Spec requested the version and scope fixes. Both independent focused re-reviews approved them with no blocking findings; reviewer sessions declared `openai-codex/gpt-6-astra`, not provider-attested wire identity. The synthetic raw Flash response parses offline only; there was **no new provider call, private-draft pair, Check acceptance, profile edit, publication, commit or push** during this continuation. The earlier unretained Pro response remains undiagnosed. Ticket 19 remains Blocked. A fresh captured private-draft pair/Check requires a separate decision on Guardian route/capture and its own authorization; current Guardian Hermes profile remains Codex Luna while the workflow requires Vertex. Preserve all uncommitted sibling work and private raw response.
+
+## 2026-09-24 13:56 AEST — Guardian parser correction in progress, NOT accepted
+
+Adam approved bounded offline correction/review, then explicitly approved relaxed parsing and private raw-response retention to diagnose the real Vertex shape, even if project operating guidance needs revision. No guidance rewrite was necessary. One **new** synthetic `google/gemini-3.8-flash` call made one OAuth and one generation request, no retry, 180s/65,536-byte bounds. Private 1,204-byte raw response (0600) and sanitized receipt: `/home/hermes/workflow-validation-scratch/guardian-raw-tfehz18f/`; **raw response** SHA-256 `f04a8d470f288e2c6d45acd5c1011da3b9b36e07870ca1dd7b02e359a761d0d9`. Never print, commit or publish the raw response. It contains `message.extra_content.google.thought_signature` (opaque string), `usage.extra_properties.google.traffic_type` (string), and token counts prompt=21, visible completion=1, reasoning=113, total=135. The earlier Pro response is still unretained; its exact failure remains unknown.
+
+Red-first working-tree changes in `vertex.py`, `model_operation.py`, `draft_runs.py`, `tests/test_designer_vertex.py` add sanitized persisted parse reasons and narrowly accept the observed Gemini-3 metadata/accounting while rejecting malformed extensions, tool calls, secret echoes and contradictory totals. The unchanged raw synthetic response **now parses offline** with input=21/output=1/reasoning=113; this is not a production Guardian review. Focused Vertex/review-runs tests: **96 passed**; mypy **35 files clean**. First full run: **1,898 passed, 3 skipped, 161 browser setup errors**, caused by Chromium's long `SingletonSocket` temp path (`.../workflow-generator-20260924T034631Z-J9KgxR/full.log`). Second full run with a short fresh sibling temp directory (`.../workflow-generator-20260924T035150Z-Bsn3vm/full.log`) was **interrupted at ~59%**, no exit code or result; no pytest process remains. Do not claim full green. Independent Standards/Spec reviews have not run; code is uncommitted alongside sibling edits. Next: scrutinize acceptance/versioning and negative coverage, finish a full regression with a short external temp path, then independent reviews and fixes. No new model request is needed to reconfirm this synthetic cause. A fresh private-draft pair/Check and Adam's acceptance remain separate; ticket 19 stays Blocked. No profile edit, publication, commit or push.
+
+## 2026-09-24 bounded Guardian-only Flash diagnostic — parser rejected response
+
+Adam supplied `gemini-flash-3.8` and allowed any Flash model; Google's listed ID is `gemini-3.8-flash`. One synthetic, Guardian-only Vertex probe used `google/gemini-3.8-flash` on project `project-54e16fcb-7c62-4041-bb1`, global. It made one OAuth request and one generation request, no retry, 180-second/65,536-byte bounds. The 1,068-byte response arrived in 3.127 seconds; the model identity matched, but the unchanged `VertexSource` returned `invalid_response_body`. Sanitized structural receipt: `/home/hermes/workflow-validation-scratch/guardian-flash-ir9b_nlc/result.json` (read back). No response text/raw body was persisted, and no private draft, full pair, Check, profile edit or publication occurred. Vertex tests passed 70/70 offline. The response has one unrecognized message key, one other usage key, and reported token totals 21 prompt + 1 completion versus 113 total. These observations show parser incompatibility on this **synthetic Flash response**, not the exact cause of the earlier unretained Pro response. The first Flash receipt retained counts but not exact fields; a subsequent bounded observation below resolved that gap. Do not loosen validation or claim a reviewed post. Adam separately approved an offline synthetic check: the parser accepted a baseline, rejected the observed token-total mismatch, and independently rejected an extra synthetic message key. A second bounded synthetic Flash observation then identified the **first** production rejection: `message.extra_content` at `vertex.py:187`. Removing that field in memory advanced to a second rejection, `usage.extra_properties` at line 206. The response also reported prompt=21, completion=1, reasoning=105 and total=127; current accounting guards reject that relationship. The parser collapses all reasons into `invalid_response_body`. Exact evidence, safety bounds, limitations and proposed permanent observability are in `docs/guardian-vertex-response-diagnosis.md` and `/home/hermes/workflow-validation-scratch/guardian-cause-9l9w0yhz/result.json`. This establishes the Flash response's cause, **not** the unretained Pro response's cause. No parser/evidence correction, private-draft pair or Check was run; both diagnostic requests are consumed. Ticket 19 remains Blocked pending a bounded correction decision, tests/reviews and fresh acceptance.
+
+## Earlier Guardian testing direction — historical before Flash probe
+
+Adam reports that he tested **one Gemini Flash model and got a response** and wants to use that model for Guardian testing. The exact model ID, provider route, test input, and response evidence were not supplied or verified here; do not substitute a guessed Flash slug or infer the workflow's Vertex parser accepts it. The Signal Guardian Hermes profile was separately changed from `vertex/google/gemini-3.1-pro-preview` to `openai-codex/gpt-6-luna` and read back; no Guardian model call was made as part of that change. The workflow generator does **not** call Hermes CLI: it still defaults Guardian to `VertexSource`, prepares a Vertex-format request, requires captured Guardian provider `vertex`, and Check requires Vertex routing for live Guardian receipts. A fresh capture of the current Luna profile cannot be run through that live path. Previous captures remain immutable.
+
+Next: identify the exact responding Flash model and its provider/project route, then decide how to configure it for a **fresh, bounded Guardian-only diagnostic** without touching existing receipts. Inspect response validation offline first and propose secret-safe structural evidence, request/time/byte limits and a fresh private destination. Adam's testing direction is not a completed workflow or approval to retry the consumed pair, publish, alter production validation, or perform a full live Generator→Guardian acceptance run. A separate approval is needed for that diagnostic's specific paid request; a full fresh pair and Check need their own specific authorization. Ticket 19 remains Blocked. Read the new top section of `HANDOFF.md` for the read-only impact assessment and boundaries.
+
+## 2026-09-24 authorized v3 live pair — Generator passed, Guardian response rejected
+
+After Adam separately authorized one fresh live pair and offline Check, a new
+private capture selected the same operator-pinned v1 article with truthful
+`2026-09-23` date and defaults `openai-codex/gpt-6-sol-900k` and
+`vertex/google/gemini-3.1-pro-preview`. Snapshot:
+`0bcc81cdaffecdcb530cad6cc122a35b2628dbb38b01b2a49727dae7dab49ee0`.
+Request `4d4bd30553b137c72d7ceb1a9d0ee073c5fe1fffaa3cc9b05b6ea82698f18acf`
+made exactly **two generation attempts**: Codex Generator succeeded with a
+validated draft (digest `30fdbb85a0b51d182a75c1d0efd11c14c6b3fe185c631dfa1ff35c56877dc2cd`),
+then Vertex Guardian made one OAuth request and one generation request but failed
+`invalid_response_body` before a `ModelResponse` or editorial verdict could be
+persisted. Reported Generator usage: 20,523 input / 1,305 output / 450
+reasoning / 0 cache-read tokens. Guardian usage and resolved model remain unknown.
+The durable receipt and all referenced digests read back valid; offline Check
+rejected the incomplete pair as `invalid_recording`, with zero new model/auth
+calls. Private destination:
+`/home/hermes/workflow-validation-scratch/live19-v3-kJBqac/`.
+No Guardian response body was retained, so the precise parser rejection is
+**unknown**; a local parser inspection alone does not diagnose it. Do not reuse
+or retry the claimed request or relax validation. Ticket 19 remains Blocked on
+Guardian diagnosis, a reviewed correction if warranted, successful completed-pair
+Check, and Adam's acceptance. No publication, commit, push, profile/source edit.
+
+## 2026-09-24 offline claim-binding correction — v3 verified; live acceptance blocked
+
+The authorized live response below exposed a Generator compliance failure, not a
+reason to weaken `apply()`: its support claims paraphrased the finished post.
+`linkedin.prepare()` now instructs the model to finish the post first, copy each
+claim as an exact contiguous substring of that post, and bind a verbatim quote
+from its named source. No local output repair, second model call or fallback was
+added. The Generator operation is v3 because the request instructions changed;
+new pending requests bind v3, while v2 pending pairs reject before dispatch.
+Red-first tests demonstrated the missing prompt and unsafe v2 pending path.
+Focused final-source run: **118 passed**, mypy clean in 35 source files; synthetic
+valid-source/quote fixtures show exact claim completes/replays while a paraphrase
+fails before Guardian and cannot retry. The old private response still fails the
+strict guard offline, zero network calls. Independent Standards and Spec reviews
+reported **no blocking findings** against the bounded production change; their
+two suggested test gaps (claim-mismatch fixture and completed-receipt version
+transition) were subsequently corrected. Reviewer sessions reported configured
+`openai-codex/gpt-6-astra`, not provider-attested wire identity. The final-source
+full regression passed **2,046 / 3 expected skips**, exit 0 in 463.92s through
+the approved external runner with a short browser temp path; retained log:
+`/home/hermes/workflow-validation-scratch/v-Xrd1On/full-pytest.log`.
+No live retry, commit, push, publication, profile or source edit. A fresh live
+pair needs separate specific authorization and a new private destination; ticket
+19 remains Blocked.
+
+## 2026-09-24 authorized live pair — Generator output failed validation; no Guardian
+
+Adam authorized one fresh bounded live pair and offline Check. A new private
+operator-pinned capture selected `what-is-a-missed-follow-up-costing-your-business-linkedin-article-v1.md`
+(2026-09-23), snapshot `37c48b99304acf5a5a4491ffb959a38055b0555bfb8cf432fae739c848258999`.
+Captured defaults were `openai-codex/gpt-6-sol-900k` and
+`vertex/google/gemini-3.1-pro-preview`. No private health/prayer markers were found
+in the selected source. The single-use request
+`71375c0c0b527047d544a0a39ba9a82b90bc4cb9778112f13ae571117df6a841`
+made one Generator attempt and stopped `failed / invalid_output` at
+`FAILED_VALIDATION`; no Guardian call, review or completed post. Reported Generator
+usage: 20,429 input, 1,110 output, 83 reasoning and 0 cache-read tokens; no
+recorded auth request. The response was schema-valid, but each of five support
+items had a claim that was not an exact substring of the draft post. Their source
+labels and quotes matched captured evidence. The strict binding guard correctly
+rejected the result. Receipt digests read back valid. Offline Check correctly
+rejected the incomplete pair (`invalid_recording`, zero model/auth calls).
+Private evidence: `/home/hermes/workflow-validation-scratch/live19-approved-qiiDZy/`.
+Do not reuse or retry this claimed request, loosen claim binding, or describe this
+as a successful pair. Ticket 19 remains blocked on an independently reviewed
+correction plus a **new, specifically authorized** live attempt and Adam's
+acceptance. No publication, profile/source edit, commit or push occurred.
+
+## 2026-09-24 offline Codex picker-variant correction — verified; live acceptance blocked
+
+After Adam's “Continue” (offline correction/review, **no live retry**), added a
+Codex-only valid `-900k` mapping in `linkedin.prepare`. The captured profile
+keeps its configured model; the canonical, digest-bound `ModelRequest` records
+the real wire slug. Invalid `-900k` variants fail before request creation;
+non-Codex providers are unchanged. The alias regression went red first
+(12 failed/2 passed), then passed (14 passed). Focused Codex/run/check suite:
+313 passed; mypy: 35 source files clean; JS syntax and scoped diff clean.
+Standards approved; Spec requested versioning. A red-first stale-pending test
+showed v1 could execute changed preparation, so `draft_linkedin` is now v2
+(output schema unchanged). A second Spec review caught the legacy Generator-only
+path: an old unversioned pending request could still send. New Generator-only
+requests now persist `operation_version`; the legacy execution path rejects
+missing/mismatched versions before any model call. Synthetic stale v1 pair,
+legacy v1 and unversioned legacy requests all fail before dispatch. A corrected
+v2 alias pair replays offline with zero provider calls. Scoped 113 tests pass.
+Old completed v1 receipts remain immutable/readable, but v1 replay needs the
+pinned v1 code. The focused Spec re-review approved the legacy guard and
+independently ran 113 tests; our final scoped run passes 114 (one further
+historical receipt regression added).
+
+The first full suite (before this version bump) got 1,876 passed, 3 skipped,
+161 browser setup errors: Chromium's singleton socket exceeded path length
+because the runner's automatic TMPDIR was too deep. With only TMPDIR/TMP/TEMP
+redirected to a fresh short directory under the same validation root, the
+browser draft suite passed 15/15. A full run started before the legacy guard
+passed **2,039 / 3 skipped**, exit 0; it does not establish final-source green.
+The final-source full regression (`proc_754e1fb06456`) passed **2,042 tests,
+3 expected skips**, exit 0, in 461.20s using a short temporary browser path
+under the approved external validation root. Mypy (35 source files), JavaScript
+syntax and scoped diff checks also passed. Both independent review gates have
+approved the bounded correction. No new model call, profile edit, commit,
+publication or ticket-19 acceptance.
+The original HTTP 400 response body was not retained; this correction addresses
+a proven request mismatch, not a confirmed complete diagnosis of that error.
+
+## 2026-09-24 live follow-up — Generator rejected, parent still Blocked
+
+Both independent Standards and Spec reviews approved the bounded pinned-selection
+change (no blocking findings); they inspected code and prior logs but did not
+rerun pytest. Adam then reconfirmed approval for exactly one live pair attempt.
+The selected v1 snapshot reached Codex Generator once on captured
+`openai-codex/gpt-6-sol-900k`, which returned `provider_rejected` / HTTP **400**;
+no Guardian call or completed review followed. Usage is unknown. The durable
+receipt and sanitized summary agree on one attempt and the snapshot identity:
+`/home/hermes/workflow-validation-scratch/live19-pin-a2KKzF/summary.json`.
+The provider response body was not retained, so its stated reason is unknown.
+Offline inspection found the saved request sent `gpt-6-sol-900k` unchanged,
+whereas Hermes documents `-900k` as a picker-only context variant stripped to
+`gpt-6-sol` before the wire. This is a concrete compatibility defect consistent
+with HTTP 400, not proof it was the only cause. Stop, do not retry or silently
+substitute a model. Ticket 19 remains **Blocked**; see the new top section of
+`HANDOFF.md` for the consumed request and proposed Codex-only correction/approval
+boundary. The earlier missing-date and pending-review statements below are
+historical, not the current blocker.
+
+## 2026-09-24 continuation — operator-pinned capture under review
+
+Adam chose truthful creation dates and explicitly approved an optional named-draft
+selection rather than backdating an article to force oldest ordering. The v1
+missed-follow-up article now has `date_created: 2026-09-23` (its observed filesystem
+birth date); v2/v3 and Guardian review receipts remain unmodified. The unchanged
+oldest mode still blocks on their invalid/missing metadata. The new operator
+`selected_draft` manifest mode admits only an eligible top-level `.md`, labels it
+*operator-selected, not oldest*, and shows other invalid inventory without
+silently using it. Browser-supplied paths remain forbidden. See issue 19 and the
+new top-of-`HANDOFF.md` continuation once reviews return.
+
+Three browser late-response tests had a one-second poll that timed out while
+`route.fetch()` was still completing; the unchanged assertions now allow a
+five-second bounded wait. This is a test-synchronization correction, not a
+production UI fix. Red evidence: `stress-1jfjZn/late-response.log` under
+`/home/hermes/workflow-validation-scratch/`. A subsequent full run after the
+pin change and polling corrections passed **2,023 tests / 3 expected skips**,
+exit 0 at `.../v-wyFMqY/full-pytest.log`; focused capture/HTTP/browser suite
+passed 161 tests and mypy found no issues in 35 source files. One green full
+run does not establish flake eradication.
+
+Fresh private capture (no model call) selected exactly
+`what-is-a-missed-follow-up-costing-your-business-linkedin-article-v1.md` with
+its truthful date under `.../live19-pin-a2KKzF/`. Effective defaults now read
+`openai-codex/gpt-6-sol-900k` Generator and
+`vertex/google/gemini-3.1-pro-preview` Guardian; do not silently substitute the
+older recorded `gpt-5.6-sol`. Independent Standards and Spec reviews of the new
+selection seam are **running, not approved**. Adam explicitly authorized those
+reviews and one bounded live pair **only if both approve**. No live call or ticket
+19 acceptance has happened at this checkpoint. Do not launch it on a reviewer
+self-report alone; verify the reviewed source and actual verdict first.
+
+## Latest follow-up — Codex SSE size and reasoning-item shape
+
+Four bounded one-call diagnostics of the same captured Generator input showed
+128,639–272,209 bytes of raw SSE (production cap: 65,536 bytes). Structural
+tracing separately confirmed the parser rejects real reasoning items carrying
+`content: []`. An isolated diagnostic that removed only that empty field validated
+one actual response under a 512 KiB *diagnostic* cap; it did not produce a
+production run or Guardian review. See top of `HANDOFF.md` for retained private
+metadata, actual counts and decision boundary. Adam specifically approved the 512 KiB raw SSE / 64 KiB header and parsed-response
+limits and literal empty reasoning-content exception. Codex-only implementation
+passes 546 focused tests and independent Standards/Spec confirmation. One
+final-source full run had a known browser-polling timing failure (2,013 passed,
+3 skipped), followed by 5/5 isolated passes for both parametrizations. The
+second final-source full run also had one different late-response browser timing
+failure (2,013 passed, 3 skipped); its six parametrizations passed 5/5 in
+isolation. No final-source full run is green; no stability fix is claimed. Fresh private capture preflight failed without a call:
+`what-is-a-missed-follow-up-costing-your-business-linkedin-article-v1.md` lacks
+`date_created`; accepted oldest-selection rule blocks the run until operator
+metadata is corrected. Ticket 19 remains Blocked.
+
+## Latest live acceptance attempt — stopped at Generator
+
+Adam authorized one bounded ticket-19 private-draft run after the offline correction
+reviews. Capture selected `20-years-to-get-here-first-post.md` with the configured
+Codex/Vertex defaults. One Generator attempt ended `failed / response_limit`;
+Guardian was not called, no review completed and usage is unknown. Private evidence
+and exact run details are in the top of `HANDOFF.md`. No retry is authorized by this
+attempt; ticket 19 remains Blocked. Source and profiles were not edited.
 
 ## Latest implementation — Codex correction offline-tested and independently confirmed
 

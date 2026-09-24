@@ -130,7 +130,9 @@ def test_late_run_response_cannot_restore_invalidated_display(page, tmp_path, op
         page.route("**/api/drafts/run", lambda route: held.append((route, route.fetch())))
         page.locator("#draft-run").click()
         expect(page.locator("#draft-run-status")).to_contain_text("Running")
-        for _ in range(50):
+        # route.fetch() must finish before held is populated; preserve the
+        # late-response assertions without assuming a one-second server turn.
+        for _ in range(250):
             if held:
                 break
             page.wait_for_timeout(20)

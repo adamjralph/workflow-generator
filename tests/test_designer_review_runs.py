@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from agent_lab.designer.draft_runs import DraftRuns
+from agent_lab.designer import linkedin_review
 from tests.test_designer_drafts import operator  # noqa: F401
 from tests.test_designer_draft_runs import setup
 from tests.test_designer_review_server import GuardianSource
@@ -27,6 +28,58 @@ def test_pair_reserves_before_each_send_and_binds_completed_receipt(operator):
     assert receipt["review_digest"] and len(receipt["exchanges"]) == 2
     assert len(receipt["digests"]) >= 7
     assert runs.run(snapshot, identity["run_request"]) == result
+
+
+def test_guardian_request_requires_bare_json_and_exact_named_source_quotes(operator):
+    old, snapshot, _ = setup(operator)
+    generator, guardian = FixtureSource(), GuardianSource()
+    runs = DraftRuns(old.source, operator[2], generator, guardian_source=guardian)
+    identity = runs.create_request(snapshot)
+    assert runs.run(snapshot, identity["run_request"])["status"] == "completed"
+    request = guardian.requests[0]
+    assert request.operation_version == linkedin_review.VERSION
+    instructions = json.loads(request.request_json)["messages"][0]["content"]
+    assert "no Markdown code fences" in instructions
+    assert "no preamble or trailing commentary" in instructions
+    assert "copy source exactly from selected.name or guidance[].name" in instructions
+    assert "contiguous substring of that named item's text" in instructions
+    assert "use references: []" in instructions
+    assert "include every top-level field" in instructions
+    assert "required_fixes and optional_preferences must be arrays" in instructions
+    assert "scope must be 'copy-only'" in instructions
+    assert "image_consistency must be 'Image consistency not reviewed.'" in instructions
+
+
+def test_pending_previous_guardian_prompt_version_cannot_send(operator, monkeypatch):
+    old, snapshot, _ = setup(operator)
+    generator, guardian = FixtureSource(), GuardianSource()
+    runs = DraftRuns(old.source, operator[2], generator, guardian_source=guardian)
+    with monkeypatch.context() as patch:
+        patch.setattr(linkedin_review, "VERSION", "4")
+        pending = runs.create_request(snapshot)
+    result = runs.run(snapshot, pending["run_request"])
+    assert result["status"] == "failed"
+    assert result["failure"]["code"] == "preflight_failed"
+    assert not generator.requests and not guardian.requests
+
+
+def test_completed_v4_pair_receipt_reads_under_v5_without_new_calls(operator, monkeypatch):
+    old, snapshot, _ = setup(operator)
+    generator, guardian = FixtureSource(), GuardianSource()
+    runs = DraftRuns(old.source, operator[2], generator, guardian_source=guardian)
+    with monkeypatch.context() as patch:
+        patch.setattr(linkedin_review, "VERSION", "4")
+        nodes = list(linkedin_review.SPEC.nodes)
+        nodes[1] = nodes[1].model_copy(update={"operation_version": "4"})
+        patch.setattr(linkedin_review, "SPEC", linkedin_review.SPEC.model_copy(update={"nodes": tuple(nodes)}))
+        pending = runs.create_request(snapshot)
+        completed = runs.run(snapshot, pending["run_request"])
+    assert completed["status"] == "completed"
+    receipt_path = Path(completed["evidence"][-1])
+    receipt_before = receipt_path.read_bytes()
+    assert runs.run(snapshot, pending["run_request"]) == completed
+    assert receipt_path.read_bytes() == receipt_before
+    assert len(generator.requests) == len(guardian.requests) == 1
 
 
 @pytest.mark.parametrize("phase", ["generator", "guardian"])

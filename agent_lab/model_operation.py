@@ -82,6 +82,10 @@ class ModelFailure(BaseModel):
                   "empty_http_content_type"]
     provider_status: int | None = Field(default=None, ge=100, le=599)
     header_observation: HeaderObservation | None = Field(default=None, exclude_if=lambda value: value is None)
+    # Version-one, allowlisted Vertex parse classification; absent on historical failures.
+    parse_reason: Literal["unknown_message_field", "unsupported_usage_value",
+                          "inconsistent_accounting", "unsafe_output", "invalid_shape"] | None = Field(
+                              default=None, exclude_if=lambda value: value is None)
 
 
 class ModelSource(Protocol):

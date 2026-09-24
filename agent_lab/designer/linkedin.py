@@ -1,5 +1,7 @@
 """Versioned deterministic preparation/application for Signal Generator."""
 import json
+import re
+from datetime import date
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -8,8 +10,34 @@ from agent_lab.model_operation import ModelOperation, ModelRequest, ModelRespons
 from agent_lab.reference import TransformResult
 from agent_lab.spec import Route, TransformNode, WorkflowSpec
 
-VERSION = "1"
+VERSION = "3"  # Changed instructions: support claims must quote exact public-copy spans.
 SCHEMA_VERSION = "linkedin-draft-v1"
+
+# The Hermes picker uses -900k for context sizing, not as a Codex wire slug.
+# Keep this narrow and explicit; captured models retain the configured identity.
+_CODEX_900K_BASES = frozenset({"gpt-5.4", "gpt-daybreak-blue-latest", "gpt-6-astra"})
+_CODEX_900K_SNAPSHOTS = frozenset({
+    "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna",
+    "gpt-6-sol", "gpt-6-terra", "gpt-6-luna",
+})
+
+
+def _wire_model(model: dict[str, str]) -> str:
+    configured = model["model"]
+    if model["provider"] != "openai-codex" or not configured.endswith("-900k"):
+        return configured
+    base = configured[:-5]
+    if base in _CODEX_900K_BASES | _CODEX_900K_SNAPSHOTS:
+        return base
+    for family in _CODEX_900K_SNAPSHOTS:
+        prefix = family + "-"
+        if base.startswith(prefix) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", base[len(prefix):]):
+            try:
+                date.fromisoformat(base[len(prefix):])
+            except ValueError:
+                break
+            return base
+    raise ValueError("Unsupported Codex context variant")
 
 
 def canonical(value: object) -> str:
@@ -65,14 +93,20 @@ def prepare(state: DraftState) -> ModelRequest:
         "current positioning, reader fit, one point, strong hook, AIDA and a supported CTA. "
         "No en/em dashes in public copy. Return only a JSON object matching this schema: "
         + canonical(DraftResult.model_json_schema())
-        + " Each support item identifies an exact claim, source label (selected filename or guidance "
-        "name), and verbatim supporting quote. List limitations explicitly. Never claim reviewed or "
-        "approved. Post maximum 3000 Unicode code points. Copy only; image consistency not reviewed."
+        + " First finish the post, then populate support from that finished text. For every support "
+        "item, claim must be a verbatim contiguous substring of post (copy its exact characters; "
+        "do not paraphrase, normalize punctuation, or cite a summary instead). The named source "
+        "must be the selected filename or a guidance name, and quote must be a verbatim contiguous "
+        "substring of the named source. If a claim cannot be copied exactly from the finished post "
+        "and backed by an exact source quote, revise the post before returning JSON or return a "
+        "blocked result when support is insufficient. Never invent or silently repair evidence. "
+        "List limitations explicitly. Never claim reviewed or approved. Post maximum 3000 Unicode "
+        "code points. Copy only; image consistency not reviewed."
     )
     # No filesystem provenance is sent; exact text, labels and digests remain ordered.
     inputs = {"selected": captured["selected"], "guidance": [
         {key: item[key] for key in ("name", "digest", "text")} for item in captured["guidance"]]}
-    payload = {"model": model["model"], "instructions": instructions,
+    payload = {"model": _wire_model(model), "instructions": instructions,
                "input": [{"role": "user", "content": [{"type": "input_text", "text": canonical(inputs)}]}],
                "tools": [], "store": False, "stream": True}
     return ModelRequest(operation="draft_linkedin", operation_version=VERSION,

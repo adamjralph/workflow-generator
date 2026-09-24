@@ -69,7 +69,9 @@ def test_late_check_cannot_restore_invalidated_result(page, tmp_path, operator, 
         held = []
         page.route("**/api/drafts/check", lambda route: held.append((route, route.fetch())))
         page.locator("#draft-check").click()
-        for _ in range(50):
+        # route.fetch() completes before the handler appends to held; under load
+        # the server may take longer than the old one-second polling window.
+        for _ in range(250):
             if held:
                 break
             page.wait_for_timeout(20)

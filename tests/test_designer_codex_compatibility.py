@@ -66,6 +66,93 @@ def test_completed_items_and_missing_mime(tmp_path, monkeypatch, empty, reasonin
     assert calls == ["chatgpt.com"]
 
 
+@pytest.mark.parametrize("empty,location", [(True, "added"), (True, "done"),
+                                              (False, "added"), (False, "final")])
+@pytest.mark.parametrize("content", [[], ["hidden"], {}, None])
+def test_reasoning_content_only_accepts_literal_empty_list(tmp_path, monkeypatch, empty, location, content):
+    source, request = provider(tmp_path, "codex")
+    stream = events(empty=empty, reasoning=True)
+    if location == "final":
+        # Nonempty final output is authoritative; it needs no streamed reasoning
+        # item. Removing those events isolates final-item validation from equality.
+        stream = [event for event in stream if event.get("output_index") != 0]
+        stream[-1]["response"]["output"][0]["content"] = copy.deepcopy(content)
+    else:
+        kind = "response.output_item." + location
+        next(event for event in stream if event["type"] == kind and event["output_index"] == 0)["item"]["content"] = copy.deepcopy(content)
+        if not empty:  # Make valid controls agree with completed streamed item.
+            stream[-1]["response"]["output"][0]["content"] = []
+            next(event for event in stream if event["type"] == "response.output_item.done" and event["output_index"] == 0)["item"]["content"] = ([] if location == "added" else copy.deepcopy(content))
+    calls = http_responses(monkeypatch, "codex", body=wire(stream))
+    if content == []:
+        assert source.invoke(request).body == " Exact text\n"
+    else:
+        with pytest.raises(CodexError) as caught:
+            source.invoke(request)
+        assert caught.value.code == "invalid_response_body"
+    assert calls == ["chatgpt.com"]
+
+
+def test_large_sse_envelope_does_not_raise_parsed_response_limit(tmp_path, monkeypatch):
+    source, request = provider(tmp_path, "codex")
+    body = b":" + b" " * 70000 + b"\n\n" + wire(events(empty=True, reasoning=True))
+    calls = http_responses(monkeypatch, "codex", body=body)
+    assert source.invoke(request).body == " Exact text\n"
+    assert calls == ["chatgpt.com"]
+
+
+@pytest.mark.parametrize("empty", [False, True])
+@pytest.mark.parametrize("overflow", [False, True])
+def test_parsed_text_remains_bounded_independent_of_sse_limit(tmp_path, monkeypatch, empty, overflow):
+    source, request = provider(tmp_path, "codex")
+    stream = events(empty=empty)
+    text = "x" * 65534 + "é" + ("x" if overflow else "")  # 65536/65537 UTF-8 bytes.
+    for event in stream:
+        kind = event["type"]
+        if kind == "response.output_text.delta":
+            event["delta"] = text
+        elif kind == "response.output_text.done":
+            event["text"] = text
+        elif kind == "response.content_part.done":
+            event["part"]["text"] = text
+        elif kind == "response.output_item.done":
+            event["item"]["content"][0]["text"] = text
+    if not empty:
+        stream[-1]["response"]["output"][0]["content"][0]["text"] = text
+    calls = http_responses(monkeypatch, "codex", body=wire(stream))
+    if overflow:
+        with pytest.raises(CodexError) as caught:
+            source.invoke(request)
+        assert caught.value.code == "response_limit"
+    else:
+        assert source.invoke(request).body == text
+    assert calls == ["chatgpt.com"]
+
+
+@pytest.mark.parametrize("framing", ["length", "chunked", "close"])
+@pytest.mark.parametrize("overflow", [False, True])
+def test_raw_sse_http_framing_limit(tmp_path, monkeypatch, framing, overflow):
+    source, request = provider(tmp_path, "codex")
+    final = wire(events())
+    payload = b":" + b" " * (524288 - len(final) - 3 + int(overflow)) + b"\n\n" + final
+    assert len(payload) == 524288 + int(overflow)
+    headers = b"Content-Type: text/event-stream\r\n"
+    if framing == "length":
+        headers += f"Content-Length: {len(payload)}\r\n".encode()
+    elif framing == "chunked":
+        headers += b"Transfer-Encoding: chunked\r\n"
+        payload = f"{len(payload):x}\r\n".encode() + payload + b"\r\n0\r\nServer-Timing: bounded\r\n\r\n"
+    calls = http_responses(monkeypatch, "codex", body=payload,
+                           response_head=b"HTTP/1.1 200 OK\r\n" + headers + b"\r\n")
+    if overflow:
+        with pytest.raises(CodexError) as caught:
+            source.invoke(request)
+        assert caught.value.code == "response_limit"
+    else:
+        assert source.invoke(request).body == " Exact text\n"
+    assert calls == ["chatgpt.com"]
+
+
 @pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.parametrize("invalid", [
     "duplicate-done", "duplicate-added", "wrong-item-id", "wrong-added-id", "wrong-response-id",

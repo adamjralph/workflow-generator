@@ -1,4 +1,5 @@
 """Capture-only behavior through Chromium and the actual loopback server."""
+import json
 import pytest
 
 from playwright.sync_api import expect
@@ -46,6 +47,25 @@ def test_capture_previews_exact_input_guidance_models_and_no_execution(page, tmp
         assert selected.read_bytes() == original
         bundle = next((evidence / "draft-snapshots").glob("*.json"))
         assert bundle.is_file()
+
+
+def test_operator_pinned_capture_is_labelled_and_does_not_hide_invalid_inventory(page, tmp_path, operator):
+    config, folder, evidence = operator
+    draft(folder, "older.md", "processed: false\ndate_created: 2026-09-08")
+    draft(folder, "chosen.md", "processed: false\ndate_created: 2026-09-23")
+    (folder / "review.md").write_text("# Not a draft")
+    manifest = json.loads(config.read_text())
+    manifest["selected_draft"] = "chosen.md"
+    config.write_text(json.dumps(manifest))
+    with app(tmp_path, draft_config=config) as url:
+        open_drafts(page, url)
+        capture_draft(page)
+        expect(page.locator("#draft-preview")).to_contain_text("chosen.md · 2026-09-23")
+        expect(page.locator("#draft-preview")).to_contain_text("Operator-selected, not oldest")
+        expect(page.locator("#draft-preview")).to_contain_text("review.md: invalid")
+        expect(page.locator("#draft-run")).to_be_enabled()
+        assert list((evidence / "draft-snapshots").glob("*.json"))
+        assert not list(tmp_path.rglob("claimed.json"))
 
 
 def test_source_and_profile_edits_require_explicit_recapture(page, tmp_path, operator):

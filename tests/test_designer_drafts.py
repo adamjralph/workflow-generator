@@ -63,6 +63,58 @@ def test_oldest_eligible_capture_preserves_exact_text_and_omits_secrets(operator
     assert source.capture() == result
 
 
+def test_operator_pinned_draft_keeps_true_date_and_reports_other_invalid_files(operator: tuple[Path, Path, Path]) -> None:
+    config, folder, evidence = operator
+    draft(folder, "older.md", "processed: false\ndate_created: 2026-09-08")
+    selected = draft(folder, "chosen.md", "processed: false\ndate_created: 2026-09-23")
+    draft(folder, "undated.md", "processed: false")
+    (folder / "guardian-review.md").write_text("# Review receipt\n")
+    manifest = json.loads(config.read_text())
+    manifest["selected_draft"] = "chosen.md"
+    config.write_text(json.dumps(manifest))
+
+    source = DraftSource(config, evidence)
+    result = source.capture()
+    assert result["succeeded"] is True
+    assert result["selected"]["name"] == "chosen.md"
+    assert result["selected"]["date_created"] == "2026-09-23"
+    assert result["selected"]["text"].encode() == selected.read_bytes()
+    assert result["selection_mode"] == "operator_pin"
+    assert {item["name"] for item in result["entries"] if item["status"] == "invalid"} == {
+        "undated.md", "guardian-review.md"}
+    assert source.load(result["snapshot"])["selection_mode"] == "operator_pin"
+    assert "2026-09-08" in json.dumps(result["entries"])
+    assert b"TOP_SECRET" not in Path(result["evidence"][0]).read_bytes()
+
+
+@pytest.mark.parametrize("pin,reason", [
+    ("../chosen.md", "selected_draft"), ("/tmp/chosen.md", "selected_draft"),
+    (None, "selected_draft"), ("public-copy-bank.md", "selected_draft"),
+])
+def test_operator_pin_refuses_unsafe_filename(operator: tuple[Path, Path, Path], pin: str | None, reason: str) -> None:
+    config, folder, evidence = operator
+    draft(folder, "chosen.md")
+    manifest = json.loads(config.read_text())
+    manifest["selected_draft"] = pin
+    config.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match=reason):
+        DraftSource(config, evidence)
+    assert not evidence.exists()
+
+
+@pytest.mark.parametrize("metadata", ["processed: true", "processed: false", "processed: false\ndate_created: 2026-02-30"])
+def test_operator_pin_refuses_ineligible_target(operator: tuple[Path, Path, Path], metadata: str) -> None:
+    config, folder, evidence = operator
+    draft(folder, "chosen.md", metadata)
+    manifest = json.loads(config.read_text())
+    manifest["selected_draft"] = "chosen.md"
+    config.write_text(json.dumps(manifest))
+    result = DraftSource(config, evidence).capture()
+    assert result["succeeded"] is False
+    assert result["selected"] is None and result["snapshot"] is None
+    assert not evidence.exists()
+
+
 def test_folder_eligibility_exclusions_and_exact_filename_tie(operator: tuple[Path, Path, Path]) -> None:
     config, folder, evidence = operator
     draft(folder, "z.md")

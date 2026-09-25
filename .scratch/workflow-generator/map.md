@@ -13,7 +13,8 @@ is in [CURRENT.md](../../CURRENT.md). Issues 01–19 and 20–28 are accepted/cl
 delivers the Transform-only P13 wave under the observed-case reducer contract.
 Adam accepted tickets 29 and 30: same-process D2 Gate and committed-pause
 fresh-process recovery complete the restricted offline P17 promise. Ticket 30
-remains uncommitted and unpushed; live calls and broader Gate scopes are separate.
+was pushed as `b53fb492a5568d675749e2649c9e929576672010`; the docs-only
+publication record follows separately. Live calls and broader Gate scopes are separate.
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.
@@ -29,7 +30,8 @@ or persistent spec format. Ticket 13 records the approved scope and demo contrac
 it is delivered. Ticket 28 is accepted; the [D2 lifecycle contract](../../docs/gate-identity-contract.md)
 is accepted under [ADR 0012](../../docs/adr/0012-gate-identity-and-local-operator-continuation.md).
 Tickets 29 and 30 deliver the accepted bounded offline Gate and restart slices;
-ticket 30's repository publication remains a separate decision.
+Adam separately authorized ticket 30's scoped commit/push; the remote read back
+at `b53fb492a5568d675749e2649c9e929576672010` before the docs-only record.
 
 Authoritative records: [CONTEXT](../../CONTEXT.md), [ADRs](../../docs/adr/),
 [roadmap](../../ROADMAP.md), [handoff](../../HANDOFF.md). The historical
@@ -158,7 +160,7 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 | P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | Outline; split if too large |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |
-| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process and [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) committed-pause restart accepted; bounded offline P17 complete. Ticket 30 uncommitted/unpushed |
+| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process and [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) committed-pause restart accepted; bounded offline P17 complete. Ticket 30 implementation pushed as `b53fb49`; docs-only record follows |
 | P18 | Gate between parallel waves: approved continuation executes only the remaining wave with preserved budget, state and evidence | P16, P17 | Outline |
 | P19 | Regenerate an executable artifact into a new immutable version, preserve its user layer, re-check it and refuse old approval | P17; marker/conflict contract | Outline |
 | P20 | A caller-declared Judgment vocabulary executes and replays through reference, graph and checking; invalid options fail closed | D3 | Independent design frontier |

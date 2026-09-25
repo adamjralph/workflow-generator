@@ -1,7 +1,7 @@
 # 30: Restart and fail closed from a committed Gate pause
 
 **Type:** task
-**Status:** accepted by Adam for the bounded offline D2 restart path, 2026-09-25 17:19 AEST. Uncommitted and unpushed.
+**Status:** accepted by Adam for the bounded offline D2 restart path, 2026-09-25 17:19 AEST. Scoped implementation commit `b53fb492a5568d675749e2649c9e929576672010` pushed and remote read back at that SHA; publication record follows separately.
 **Blocked by:** Nothing within this accepted scope. Fork/between-wave Gates, arbitrary mid-step exactly-once side effects, live model/tool effects and person-level authentication remain out of scope.
 **Capability:** Completes the accepted bounded P17 restart promise; not arbitrary mid-step exactly-once execution.
 **Contract:** Accepted D2 Gate identity contract and ADR 0012.

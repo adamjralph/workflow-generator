@@ -1,5 +1,7 @@
 # Ticket 30 controller evidence — accepted bounded offline P17
 
+**17:25 AEST repository publication:** Adam separately authorized commit and push. Scoped 14-file implementation/status commit `b53fb492a5568d675749e2649c9e929576672010` was pushed with command-scoped personal GitHub configuration; remote `refs/heads/main` read back at that SHA, matching local HEAD. Only two unrelated untracked ticket-28 briefs remain; private validation roots excluded. A docs-only publication record follows, so query Git for its final SHA. This is not a live workflow/provider call.
+
 Baseline: `main` HEAD `0f4acb3cb04cfe7017bb8169623e1d179b5fe792` before the uncommitted ticket-30 delta. The accepted ticket-29 110-entry review hash was `0d3c0799bb1e5971820e87fc28b13a106c6c68444716694c24385f3baa9a76ca`; ticket 30 changes its retained worker and is **not** approved by that review. Two unrelated untracked ticket-28 briefs were preserved.
 
 ## Public behavior observed

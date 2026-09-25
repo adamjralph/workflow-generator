@@ -58,6 +58,7 @@ class GateArtifactStore:
     @staticmethod
     def _publish(path: Path, raw: bytes) -> None:
         fd, name = tempfile.mkstemp(prefix=".pending-", dir=path.parent)
+        linked = False
         try:
             with os.fdopen(fd, "wb") as stream:
                 stream.write(raw)
@@ -66,6 +67,7 @@ class GateArtifactStore:
                 os.fchmod(stream.fileno(), 0o400)
             try:
                 os.link(name, path, follow_symlinks=False)
+                linked = True
             except FileExistsError:
                 if GateArtifactStore._read(path, bound=len(raw)) != raw:
                     raise GateIdentityError("Existing artifact has changed")
@@ -74,8 +76,13 @@ class GateArtifactStore:
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        finally:
             os.unlink(name)
+            linked = False
+        finally:
+            # If the link was created but directory fsync failed, retain the
+            # temporary name as an ambiguity marker. Recovery refuses it.
+            if not linked and os.path.exists(name):
+                os.unlink(name)
 
     @staticmethod
     def _read(path: Path, *, bound: int = 65536) -> bytes:

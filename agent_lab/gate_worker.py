@@ -8,6 +8,7 @@ sys.path.insert(0, "/deps")
 
 import hashlib
 import hmac
+import fcntl
 import stat
 import json
 import os
@@ -80,8 +81,11 @@ class Execution:
         self.ops = json.loads(Path("/app/operations.json").read_bytes())["operations"]
         attest(request)
         self.request = request
-        self.operator_key = secrets.token_bytes(32) if request["mode"] == "operator" else None
-        if self.operator_key is not None:
+        recovering = request.get("recovery", False)
+        if type(recovering) is not bool:
+            raise ValueError("Invalid recovery mode")
+        self.operator_key = (self.read_operator_key() if recovering else secrets.token_bytes(32)) if request["mode"] == "operator" else None
+        if self.operator_key is not None and not recovering:
             fd = os.open("/run/operator.key", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
             with os.fdopen(fd, "wb") as stream:
                 stream.write(self.operator_key)
@@ -101,27 +105,97 @@ class Execution:
         self.nodes = {node["id"]: node for node in self.spec["nodes"]}
         self.routes = {(edge["source"], edge["outcome"]): edge["target"] for edge in self.spec["edges"]}
 
+    @staticmethod
+    def read_operator_key() -> bytes:
+        fd = os.open("/run/operator.key", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise ValueError("Unsafe operator authority")
+            key = stream.read(33)
+        if len(key) != 32:
+            raise ValueError("Invalid operator authority")
+        return key
+
+    def load_pause(self) -> None:
+        """Reconstruct only the committed prefix; host separately checks semantics."""
+        if self.request["mode"] != "operator" or self.operator_key is None:
+            raise ValueError("Only operator pauses can restart")
+        paths = sorted(Path("/run").glob("[0-9]*.json"))
+        if (not 2 <= len(paths) <= 2 * self.spec["budget"] or len(paths) % 2
+                or [p.name for p in paths] != [f"{i:08}.json" for i in range(len(paths))]):
+            raise ValueError("Not an untouched committed pause")
+        previous = "0" * 64
+        event_head = "0" * 64
+        for i, path in enumerate(paths):
+            raw = path.read_bytes()
+            row = json.loads(raw)
+            if (raw != canonical(row) or set(row) != {"version", "sequence", "previous", "kind", "run_id", "data"}
+                    or row["version"] != 1 or row["sequence"] != i
+                    or row["run_id"] != self.request["run_id"] or row["previous"] != previous
+                    or row["kind"] != ("claim" if i % 2 == 0 else "completed")):
+                raise ValueError("Altered recovery event chain")
+            if i % 2:
+                data = row["data"]
+                event = data["event"]
+                event_head = sha(b"workflow-generator/gate-event/v1\0" + event_head.encode() + canonical(event))
+                if data["completed_head"] != event_head:
+                    raise ValueError("Altered event head")
+                self.events.append(event)
+            self.journal.append(raw)
+            previous = sha(raw)
+        pending = json.loads(self.journal[-1])["data"]
+        unsigned = {key: value for key, value in pending.items() if key != "pause_proof"}
+        proof = hmac.digest(self.operator_key, b"workflow-generator/gate-pause/v1\0" +
+                            canonical({"previous": json.loads(self.journal[-1])["previous"],
+                                       "data": unsigned}), "sha256").hex()
+        if not hmac.compare_digest(pending["pause_proof"], proof):
+            raise ValueError("Altered committed pause proof")
+        checkpoint = pending["checkpoint"]
+        if (self.events[-1]["outcome"] != "pending" or checkpoint["completed_head"] != event_head
+                or checkpoint["run_id"] != self.request["run_id"]
+                or checkpoint["spec_digest"] != self.request["spec_digest"]
+                or checkpoint["bundle_digest"] != self.request["bundle_digest"]
+                or checkpoint["prior_head"] != json.loads(self.journal[-1])["previous"]):
+            raise ValueError("Altered committed checkpoint")
+        self.checkpoint = checkpoint
+        self.value, self.used = checkpoint["value"], checkpoint["used"]
+        self.head, self.sequence, self.event_head = previous, len(paths), event_head
+        self.verify_journal()
+
     def commit(self, kind: str, data: dict[str, Any]) -> None:
         envelope = {"version": 1, "sequence": self.sequence, "previous": self.head,
                     "kind": kind, "run_id": self.request["run_id"], "data": data}
         raw = canonical(envelope)
         path = Path("/run") / (f"{self.sequence:08}.json")
         temporary = Path("/run") / f".pending-{self.sequence:08}"
+        self.crash("before_file")
         fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400)
         with os.fdopen(fd, "wb") as stream:
             stream.write(raw)
             stream.flush()
             os.fsync(stream.fileno())
+        self.crash("after_file")
         os.link(temporary, path, follow_symlinks=False)
-        os.unlink(temporary)
+        self.crash("after_link")
         directory = os.open("/run", os.O_RDONLY | os.O_DIRECTORY)
         try:
+            os.fsync(directory)
+            self.crash("after_dirsync")
+            os.unlink(temporary)
+            self.crash("after_unlink")
             os.fsync(directory)
         finally:
             os.close(directory)
         self.head = sha(raw)
         self.sequence += 1
         self.journal.append(raw)
+
+    def crash(self, boundary: str) -> None:
+        # Deterministic offline fault injection. A lost acknowledgement never
+        # turns an ambiguous publication into permission to replay a step.
+        if self.request.get("crash_at") == [self.sequence, boundary]:
+            os._exit(73)
 
     def record_event(self, kind: str, event: dict[str, Any], checkpoint: dict[str, Any] | None) -> None:
         head = sha(b"workflow-generator/gate-event/v1\0" + self.event_head.encode() + canonical(event))
@@ -226,27 +300,39 @@ class Execution:
     def consume_operator(self) -> None:
         if self.operator_key is None or self.checkpoint is None:
             raise ValueError("Not an operator pause")
-        fd = os.open("/run/decision.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        with os.fdopen(fd, "rb") as stream:
-            info = os.fstat(stream.fileno())
-            if info.st_uid != os.getuid() or info.st_mode & 0o077 or not stat.S_ISREG(info.st_mode):
-                raise ValueError("Unsafe decision file")
-            raw = stream.read(65537)
-        envelope = json.loads(raw)
-        if len(raw) > 65536 or canonical(envelope) != raw or set(envelope) != {"record", "mac"}:
-            raise ValueError("Noncanonical decision")
-        row = envelope["record"]
-        if not hmac.compare_digest(envelope["mac"], hmac.digest(self.operator_key, canonical(row), "sha256").hex()):
-            raise ValueError("Forged operator decision")
-        if (set(row) != {"version", "checkpoint", "decision", "authority", "uid", "recorded_ns"}
-                or type(row["version"]) is not int or row["version"] != 1
-                or canonical(row["checkpoint"]) != canonical(self.checkpoint)
-                or row["decision"] not in {"approved", "rejected"}
-                or row["authority"] != "local-os-account" or type(row["uid"]) is not int
-                or row["uid"] != os.getuid() or type(row["recorded_ns"]) is not int or row["recorded_ns"] <= 0):
-            raise ValueError("Wrong operator decision scope")
-        self.commit("decision", row)
-        self.decision = row
+        # Share the CLI's publication lock. A linked-but-unsynced decision
+        # cannot be consumed between its link and the ambiguity marker check.
+        authority = os.open("/run/operator.key", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(authority, "rb") as key_stream:
+            info = os.fstat(key_stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise ValueError("Unsafe operator authority")
+            fcntl.flock(key_stream.fileno(), fcntl.LOCK_EX)
+            if key_stream.read(33) != self.operator_key:
+                raise ValueError("Changed operator authority")
+            if any(Path("/run").glob(".pending-*")):
+                raise ValueError("Incomplete decision or journal publication")
+            fd = os.open("/run/decision.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "rb") as stream:
+                info = os.fstat(stream.fileno())
+                if info.st_uid != os.getuid() or info.st_mode & 0o077 or not stat.S_ISREG(info.st_mode):
+                    raise ValueError("Unsafe decision file")
+                raw = stream.read(65537)
+            envelope = json.loads(raw)
+            if len(raw) > 65536 or canonical(envelope) != raw or set(envelope) != {"record", "mac"}:
+                raise ValueError("Noncanonical decision")
+            row = envelope["record"]
+            if not hmac.compare_digest(envelope["mac"], hmac.digest(self.operator_key, canonical(row), "sha256").hex()):
+                raise ValueError("Forged operator decision")
+            if (set(row) != {"version", "checkpoint", "decision", "authority", "uid", "recorded_ns"}
+                    or type(row["version"]) is not int or row["version"] != 1
+                    or canonical(row["checkpoint"]) != canonical(self.checkpoint)
+                    or row["decision"] not in {"approved", "rejected"}
+                    or row["authority"] != "local-os-account" or type(row["uid"]) is not int
+                    or row["uid"] != os.getuid() or type(row["recorded_ns"]) is not int or row["recorded_ns"] <= 0):
+                raise ValueError("Wrong operator decision scope")
+            self.commit("decision", row)
+            self.decision = row
 
     def resume(self, driver: str) -> str:
         self.verify_journal()
@@ -285,7 +371,11 @@ def main() -> None:
     attest()
     request = json.loads(sys.stdin.readline())
     execution = Execution(request)
-    execution.terminal = execution.reference() if sys.argv[1] == "reference" else execution.graph()
+    if request.get("recovery"):
+        execution.load_pause()
+        execution.terminal = execution.resume(sys.argv[1])
+    else:
+        execution.terminal = execution.reference() if sys.argv[1] == "reference" else execution.graph()
     print(json.dumps({"result": execution.result(execution.terminal), "attestation": attest(request)}), flush=True)
     # EOF/close never resumes implicitly. A failed command poisons this worker.
     for line in sys.stdin:

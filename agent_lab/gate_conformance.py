@@ -7,13 +7,15 @@ pause prefix, so a later operation cannot hide a divergent intermediate state.
 from __future__ import annotations
 
 import hashlib
+import contextlib
+import io
 from pathlib import Path
 import secrets
 from typing import Literal, Mapping
 
 from .gate_bundle import GateVersion, verify_bundle
 from .gate_identity import GateIdentityError, RegisteredOperation, _canonical, _parse_canonical, freeze_operations, freeze_spec
-from .gate_runtime import GateResult, Record, start_gate
+from .gate_runtime import GateResult, Record, start_gate, recover_gate
 from .gate_store import GateArtifactStore
 from .spec import WorkflowSpec
 
@@ -149,6 +151,63 @@ def check_gate(spec: WorkflowSpec, operations: Mapping[str, RegisteredOperation]
                                                         pending=pending, result=result,
                                                         audit_dir=str(run.directory), audit_head=audit_head))
                     pair.append((GateExpected.observe(pending), GateExpected.observe(result)))
+            if pair[0] != pair[1]:
+                findings.append(f"{case.name}: independent drivers differ")
+    except (ValueError, OSError, KeyError, TypeError) as exc:
+        findings.append("refused: " + str(exc))
+    return GateReport(passed=not findings, findings=tuple(findings), results=tuple(observations))
+
+
+def check_gate_restart(spec: WorkflowSpec, operations: Mapping[str, RegisteredOperation],
+                       version: GateVersion, cases: tuple[GateCase, ...]) -> GateReport:
+    """Check committed operator decisions across a terminated worker boundary."""
+    from .gate_cli import main as decide
+    findings: list[str] = []
+    observations: list[GateObservation] = []
+    try:
+        manifest, _ = verify_bundle(version)
+        if (freeze_spec(spec)[1] != version.spec_digest
+                or freeze_operations(operations)[1] != manifest["operations_digest"]):
+            raise GateIdentityError("Authored inputs differ from retained candidate")
+        if not cases or len({case.name for case in cases}) != len(cases):
+            raise GateIdentityError("Supply nonempty, uniquely named cases")
+        for case in cases:
+            pair = []
+            for driver, decision in (("reference", case.reference_decision), ("graph", case.graph_decision)):
+                if decision not in {"approved", "rejected"}:
+                    raise GateIdentityError("Restart conformance requires independent explicit decisions")
+                run_id = "restart-check-" + secrets.token_hex(12)
+                with start_gate(version, run_id=run_id, driver=driver, mode="operator") as run:
+                    pending = run.result
+                    _read_audit(run.directory, run_id, pending, version)
+                    if GateExpected.observe(pending) != case.pending:
+                        findings.append(f"{case.name}/{driver}: pending differs from expected")
+                checkpoint = pending.checkpoint
+                if checkpoint is None:
+                    raise GateIdentityError("No committed pause to restart")
+                args = ["--store", str(version.directory.parent), "--run-id", run_id,
+                        "--gate", checkpoint.gate, "--pause", checkpoint.pause,
+                        "--spec", checkpoint.spec_digest, "--bundle", checkpoint.bundle_digest,
+                        "approve" if decision == "approved" else "reject"]
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    if decide(args) != 0:
+                        raise GateIdentityError("Local scoped decision refused")
+                with recover_gate(version.directory.parent, run_id=run_id) as recovered:
+                    result = recovered.result
+                    audit_head = _read_audit(recovered.directory, run_id, result, version)
+                    if GateExpected.observe(result) != case.expected:
+                        findings.append(f"{case.name}/{driver}: final differs from expected")
+                    observations.append(GateObservation(case=case.name, driver=driver, run_id=run_id,
+                                                        pending=pending, result=result,
+                                                        audit_dir=str(recovered.directory), audit_head=audit_head))
+                    pair.append((GateExpected.observe(pending), GateExpected.observe(result)))
+                try:
+                    duplicate = recover_gate(version.directory.parent, run_id=run_id)
+                except GateIdentityError:
+                    pass
+                else:
+                    duplicate.close()
+                    findings.append(f"{case.name}/{driver}: duplicate resume admitted")
             if pair[0] != pair[1]:
                 findings.append(f"{case.name}: independent drivers differ")
     except (ValueError, OSError, KeyError, TypeError) as exc:

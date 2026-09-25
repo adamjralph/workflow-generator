@@ -133,6 +133,10 @@ def inspect_pause(store: Path, run_id: str) -> tuple[Path, GateCheckpoint]:
         info = path.lstat()
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise GateIdentityError("Run directory must be owner-only, not a symlink")
+    names = {path.name for path in directory.iterdir()}
+    numbered = {name for name in names if re.fullmatch(r"[0-9]{8}\.json", name)}
+    if names - ({"run.json", "operator.key", "claim.lock", "decision.json"} | numbered):
+        raise GateIdentityError("Unexpected or incomplete run publication")
     metadata = _parse_canonical(GateArtifactStore._read(directory / "run.json"))
     if (set(metadata) != {"version", "run_id", "mode", "driver", "spec_digest", "bundle_digest"}
             or type(metadata["version"]) is not int or metadata["version"] != 1
@@ -164,6 +168,8 @@ def inspect_pause(store: Path, run_id: str) -> tuple[Path, GateCheckpoint]:
             decided = True
     if checkpoint is None or decided:
         raise GateIdentityError("No unconsumed committed pause")
+    if len(rows) < 2 or len(rows) % 2:
+        raise GateIdentityError("Only an untouched committed Gate pause can resume")
     if (checkpoint.run_id != run_id or checkpoint.spec_digest != metadata["spec_digest"]
             or checkpoint.bundle_digest != bundle):
         raise GateIdentityError("Checkpoint identity mismatch")

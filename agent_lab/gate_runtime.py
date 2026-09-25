@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import fcntl
 import os
 from pathlib import Path
 import re
@@ -13,7 +14,7 @@ from typing import Any, Literal, Mapping
 from pydantic import BaseModel, ConfigDict
 
 from .gate_bundle import GateVersion, emit_bundle, launch_worker, verify_bundle
-from .gate_identity import GateIdentityError, RegisteredOperation, _canonical
+from .gate_identity import GateIdentityError, RegisteredOperation, _canonical, _parse_canonical
 from .gate_store import GateArtifactStore
 from .spec import GateNode, Route, TransformNode, WorkflowSpec, validate_spec
 
@@ -82,11 +83,16 @@ def emit_gate(spec: WorkflowSpec, operations: Mapping[str, RegisteredOperation],
 
 
 class GateRun:
-    def __init__(self, version: GateVersion, *, run_id: str, driver: str, mode: str) -> None:
+    def __init__(self, version: GateVersion, *, run_id: str, driver: str, mode: str,
+                 recovery: bool = False, crash_at: tuple[int, str] | None = None) -> None:
         if driver not in {"reference", "graph"} or mode not in {"fixture", "operator"}:
             raise GateIdentityError("Unknown driver or decision mode")
         if type(run_id) is not str or not re.fullmatch("[A-Za-z0-9_-]{1,64}", run_id):
             raise GateIdentityError("Invalid run ID")
+        if crash_at is not None and (type(crash_at) is not tuple or len(crash_at) != 2
+                or type(crash_at[0]) is not int or not 0 <= crash_at[0] <= 8
+                or crash_at[1] not in {"before_file", "after_file", "after_link", "after_dirsync", "after_unlink"}):
+            raise GateIdentityError("Invalid crash injection boundary")
         verify_bundle(version)
         root = GateArtifactStore(version.directory.parent).root
         runs = root / "runs"
@@ -95,18 +101,50 @@ class GateRun:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise GateIdentityError("Unsafe runs directory or symlink")
         directory = runs / run_id
-        directory.mkdir(mode=0o700)  # Never adopt an existing run, including a failed launch.
-        GateArtifactStore._publish(directory / "run.json", _canonical({
-            "version": 1, "run_id": run_id, "mode": mode, "driver": driver,
-            "spec_digest": version.spec_digest, "bundle_digest": version.bundle_digest,
-        }))
+        if not recovery:
+            directory.mkdir(mode=0o700)  # Never adopt an existing run, including a failed launch.
+            GateArtifactStore._publish(directory / "run.json", _canonical({
+                "version": 1, "run_id": run_id, "mode": mode, "driver": driver,
+                "spec_digest": version.spec_digest, "bundle_digest": version.bundle_digest,
+            }))
+        info = directory.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise GateIdentityError("Unsafe run directory")
         self.version = version
         self.directory = directory
-        self.process = launch_worker(version, directory, driver)
+        # The lock spans host validation, worker launch and every continuation.
+        # A closed/crashed controller releases it; a completed run remains ineligible.
         try:
+            self._claim = os.open(directory / "claim.lock", os.O_RDWR | os.O_NOFOLLOW |
+                                  (0 if recovery else os.O_CREAT | os.O_EXCL), 0o600)
+        except OSError as exc:
+            raise GateIdentityError("Missing or unsafe continuation claim") from exc
+        try:
+            info = os.fstat(self._claim)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+                raise GateIdentityError("Unsafe continuation claim")
+            try:
+                fcntl.flock(self._claim, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise GateIdentityError("Run already has an exclusive continuation claim") from exc
+            if recovery:
+                from .gate_cli import inspect_pause
+                if mode != "operator":
+                    raise GateIdentityError("Only operator pauses can restart")
+                metadata = _parse_canonical(GateArtifactStore._read(directory / "run.json"))
+                if metadata != {"version": 1, "run_id": run_id, "mode": mode, "driver": driver,
+                                "spec_digest": version.spec_digest, "bundle_digest": version.bundle_digest}:
+                    raise GateIdentityError("Recovery metadata changed")
+                _, checkpoint = inspect_pause(root, run_id)
+                if checkpoint.spec_digest != version.spec_digest or checkpoint.bundle_digest != version.bundle_digest:
+                    raise GateIdentityError("Recovery identity changed")
+                if not (directory / "decision.json").exists():
+                    raise GateIdentityError("Committed operator decision required")
+            self.process = launch_worker(version, directory, driver)
             assert self.process.stdin is not None and self.process.stdout is not None
             self.process.stdin.write(json.dumps({"run_id": run_id, "mode": mode, "spec_digest": version.spec_digest,
-                                                "bundle_digest": version.bundle_digest}) + "\n")
+                                                "bundle_digest": version.bundle_digest,
+                                                "recovery": recovery, "crash_at": crash_at}) + "\n")
             self.process.stdin.flush()
             if not select.select([self.process.stdout], [], [], 60)[0]:
                 raise GateIdentityError("Worker timed out before attestation")
@@ -118,7 +156,10 @@ class GateRun:
             self.result = GateResult.model_validate_json(json.dumps(response["result"]))
             self.attestation: dict[str, Any] = response["attestation"]
         except BaseException:
-            self.close()
+            if hasattr(self, "process"):
+                self.close()
+            else:
+                os.close(self._claim)
             raise
 
     def _exchange(self, command: dict[str, Any]) -> GateResult:
@@ -163,7 +204,14 @@ class GateRun:
                 self.process.wait()
         for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
             if stream is not None:
-                stream.close()
+                try:
+                    stream.close()
+                except OSError:
+                    # A crashed worker can leave a buffered stdin flush broken.
+                    pass
+        if self._claim >= 0:
+            os.close(self._claim)
+            self._claim = -1
 
     def __enter__(self) -> GateRun:
         return self
@@ -172,5 +220,31 @@ class GateRun:
         self.close()
 
 
-def start_gate(version: GateVersion, *, run_id: str, driver: str = "graph", mode: str = "operator") -> GateRun:
-    return GateRun(version, run_id=run_id, driver=driver, mode=mode)
+def start_gate(version: GateVersion, *, run_id: str, driver: str = "graph", mode: str = "operator",
+               crash_at: tuple[int, str] | None = None) -> GateRun:
+    return GateRun(version, run_id=run_id, driver=driver, mode=mode, crash_at=crash_at)
+
+
+def recover_gate(store: Path, *, run_id: str, crash_at: tuple[int, str] | None = None) -> GateRun:
+    """Resume only an untouched committed operator pause, from retained bytes."""
+    if type(run_id) is not str or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", run_id):
+        raise GateIdentityError("Invalid run ID")
+    root = GateArtifactStore(store).root
+    # Metadata is verified again under the exclusive claim in GateRun.
+    directory = root / "runs" / run_id
+    for path in (root / "runs", directory):
+        info = path.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise GateIdentityError("Unsafe run directory")
+    metadata = _parse_canonical(GateArtifactStore._read(directory / "run.json"))
+    if (type(metadata) is not dict or set(metadata) != {"version", "run_id", "mode", "driver", "spec_digest", "bundle_digest"}
+            or metadata["run_id"] != run_id or metadata["mode"] != "operator"
+            or metadata["driver"] not in {"reference", "graph"} or metadata["version"] != 1):
+        raise GateIdentityError("Invalid recovery metadata")
+    version = GateVersion(root / metadata["bundle_digest"], metadata["spec_digest"], metadata["bundle_digest"])
+    try:
+        verify_bundle(version)
+    except OSError as exc:
+        raise GateIdentityError("Missing retained executable version") from exc
+    return GateRun(version, run_id=run_id, driver=metadata["driver"], mode="operator",
+                   recovery=True, crash_at=crash_at)

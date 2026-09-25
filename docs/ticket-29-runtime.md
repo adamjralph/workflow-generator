@@ -1,8 +1,9 @@
 # Ticket 29 — restricted same-process Gate runtime
 
-This is an **unaccepted implementation candidate**, governed by the unchanged
+This same-process implementation was **accepted by Adam on 2026-09-25**, governed by the unchanged
 [D2 contract](gate-identity-contract.md) and [ADR 0012](adr/0012-gate-identity-and-local-operator-continuation.md).
-It does not implement ticket 30 or complete P17. The earlier
+The accepted ticket-29 baseline did not implement ticket 30 or complete P17;
+the newer unaccepted candidate has its own [restart contract](ticket-30-restart.md). The earlier
 [closure-blocker report](ticket-29-closure-blocker.md) describes the archived first attempt, not this candidate.
 
 ## Public seam
@@ -141,10 +142,9 @@ checkpoint. Continuation loads its verified committed representation and charges
 no second Gate step. Invalid input produces a refusal rather than a success or an
 alternate downstream action.
 
-These are same-process ordering guarantees. No fresh-process reconstruction,
-arbitrary-crash recovery, concurrent external state mutation safety, or exactly-once
-external side effects have been established. Those must not be inferred from
-fsync calls; committed-pause restart and crash tests belong to ticket 30.
+These were ticket-29's same-process ordering guarantees. The ticket-30 candidate
+adds committed-pause restart and crash tests; neither arbitrary-crash exactly-once
+effects nor safety against malicious same-UID mutation follows from fsync calls.
 
 ## Offline conformance
 
@@ -160,8 +160,8 @@ fixture decisions cannot be silently shared. The checker makes no model or
 provider calls. See `tests/test_gate_conformance.py` for executable budget 1/2/3,
 pending, approve and reject examples.
 
-Independent Standards and Spec assessments were requested by the controller;
-their first passes found approval-time and store-boundary defects, and a final
-Spec confirmation of the corrected prefix proof remains pending. See the
-separate evidence report for validation results and frozen hash; neither test
-success nor this document means ticket acceptance.
+Independent Standards and Spec assessments passed on the corrected final
+ticket-29 source; Adam accepted its bounded same-process scope. See the
+separate evidence report for validation and frozen hash. Ticket 30's restart
+candidate is documented in [ticket-30-restart.md](ticket-30-restart.md), and is
+not accepted merely because ticket 29 was.

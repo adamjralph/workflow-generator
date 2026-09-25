@@ -21,6 +21,10 @@
 > 2026-09-25. The acceptance-status edit changed issue 29's hash after the frozen
 > review; reviewed implementation files were unchanged. No commit, push or live
 > workflow/provider call was made.
+> **Later repository publication:** Adam expressly authorized a scoped commit and
+> push. The 27-file accepted Gate change was committed as
+> `66faa385d1e3776b1c636ab37a109fa436c313d9` and pushed to `origin/main`;
+> the remote SHA was read back identical. This was not a live workflow call.
 > **Boundary disclosure:** The controller dispatched independent read-only
 > subagent reviews for AC6 without the handoff's required separate delegation
 > permission. The reviews are real evidence, but that dispatch crossed the

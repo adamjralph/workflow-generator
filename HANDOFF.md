@@ -1,6 +1,10 @@
 # Workflow Generator — next-session handoff
 
-## Ticket 29 accepted by Adam — 2026-09-25 13:34 AEST
+## Ticket 29 repository publication — 2026-09-25 13:42 AEST
+
+Adam authorized a scoped commit and push of the accepted same-process Gate slice. Commit `66faa385d1e3776b1c636ab37a109fa436c313d9` contains 27 project files: D2 contract/ADR, ticket-29 implementation/tests/evidence, issues 29/30 and reconciled status docs. `GH_CONFIG_DIR=/home/hermes/.config/gh-personal git push origin main` succeeded as `adamjralph`; remote `refs/heads/main` read back at exactly that SHA, matching local HEAD. The two untracked ticket-28 executor briefs and private validation roots were excluded. A high-confidence staged-secret scan found zero matches, and staged `git diff --check` passed. This is repository publication, **not** a live workflow/provider call. Ticket 30 is planning-ready but still requires a separate implementation go. This docs-only publication note needs its own commit/push; verify that final SHA before calling the published handoff complete.
+
+## Ticket 29 accepted by Adam — 2026-09-25 13:34 AEST (historical pre-publication checkpoint)
 
 The bounded offline Route → Gate → local OS-account decision → continuation implementation is present in the **uncommitted working tree** on `main` HEAD `4dddff4be891923452bdfdc06bc5f3e3340a10fd`. It uses a frozen private spec and retained executable bundle, independent plain/reference and actual generated graph schedulers, a one-use owner-only CLI, auditable checkpoint/event ordering, and an offline conformance checker. It is **same-process only**; ticket 30 restart recovery and P17 completion are not claimed. See [runtime contract](docs/ticket-29-runtime.md) and [controller-updated evidence](docs/ticket-29-executor-evidence.md).
 

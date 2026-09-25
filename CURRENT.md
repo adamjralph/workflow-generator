@@ -1,6 +1,6 @@
 # Current project state
 
-**2026-09-25 13:42 AEST — ticket 29 pushed:** Adam authorized scoped commit/push; 27-file accepted ticket-29 change `66faa385d1e3776b1c636ab37a109fa436c313d9` was pushed via his `adamjralph` account and remote `main` read back at the same SHA. Both ticket-28 executor briefs remain untracked. The docs-only publication note is pending its follow-up commit/push; consult `HANDOFF.md` for final SHA. Repository push is not a live workflow call or permission to start ticket 30.
+**2026-09-25 13:42 AEST — ticket 29 pushed:** Adam authorized scoped commit/push; 27-file accepted ticket-29 change `66faa385d1e3776b1c636ab37a109fa436c313d9` was pushed via his `adamjralph` account and remote `main` read back at the same SHA. Docs-only publication record `f20751b559ac4dc73404209e57a8fac11eba100f` was also pushed and verified. Both ticket-28 executor briefs remain untracked. Consult `HANDOFF.md` and Git remote for the final published SHA. Repository push is not a live workflow call or permission to start ticket 30.
 
 **2026-09-25 13:34 AEST — Adam accepted ticket 29:** The same-process D2 Gate slice is accepted under its restricted offline scope. Issue 29 is marked accepted; ticket 30 is planning-ready but requires a separate implementation go. Acceptance authorizes no live workflow/provider call, commit or push. The reviewed code/tests were not changed by this status update; the issue's post-acceptance hash differs from the frozen review hash. See `HANDOFF.md` and `docs/ticket-29-executor-evidence.md`.
 

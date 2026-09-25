@@ -6,7 +6,7 @@
 is delivered (tickets 13–14); tickets 17–18 partially cover role/data milestones;
 tickets 20–23 deliver LinkedIn offline plumbing/replay, not live parent completion.
 Ticket 13's bookkeeping is closed under Adam's 2026-09-22 triage authorization.
-Ticket 19 is accepted for the operator-pinned live path (default-oldest live selection remains untested with invalid inventory); ticket 28 is the next approved implementation and has not started.
+Ticket 19 is accepted for the operator-pinned live path (default-oldest live selection remains untested with invalid inventory); ticket 28 is accepted and pushed for one Transform-only parallel wave. The [D2 Gate identity/continuation contract](docs/gate-identity-contract.md) and [ADR 0012](docs/adr/0012-gate-identity-and-local-operator-continuation.md) are accepted. Adam accepted ticket 29's bounded same-process Gate slice after offline validation and independent reviews. Ticket 30 restart recovery is planning-ready but needs its own implementation go; P17 is not complete. See `CURRENT.md` and `HANDOFF.md` for evidence and authorization boundaries.
 M2–M6 below are capability definitions, not wholly unstarted work or newly authorized scope.
 
 Adam approved the next sequence after ticket 09:
@@ -98,9 +98,9 @@ executable and checked, including failure paths and no re-spending on resume.
 - Regenerate marked regions while preserving the user layer/hand-edits.
 - Define the replay evidence and artifact lifecycle needed for trustworthy checks.
 
-**Dependency:** stable spec identity/digest representation must be explicitly
-agreed without silently deciding the deferred persistent spec format. If that
-requires reopening the format/community decision, bring it to Adam first.
+**Dependency:** D2 now agrees a private internal spec/bundle identity protocol
+without settling a public persistent spec format. If implementation requires
+reopening the format/community decision, bring it to Adam first.
 M2 Gate work and this milestone should be planned together, not claim separate
 completion while either half is missing.
 

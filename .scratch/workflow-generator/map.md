@@ -8,9 +8,12 @@ vertical slices. A small implementation slice is not a small planning horizon.
 
 This map is a **proposal for discussion**, not authorization to implement. P13–P32
 are provisional planning identifiers, not issue numbers. Current reconciled status
-is in [CURRENT.md](../../CURRENT.md). Issues 01–19 and 20–27 are accepted/closed
-(19 for the operator-pinned live path; default oldest remains untested); 28 is
-ready-for-agent and unimplemented. P26's initial scope was delivered
+is in [CURRENT.md](../../CURRENT.md). Issues 01–19 and 20–28 are accepted/closed
+(19 for the operator-pinned live path; default oldest remains untested); 28
+delivers the Transform-only P13 wave under the observed-case reducer contract.
+Adam accepted ticket 29's technically verified same-process D2 Gate slice. Ticket
+30 restart recovery is planning-ready, not authorized to build. P17 is not complete.
+P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.
 Later outlines may split after contract design; this is not a delivery estimate.
@@ -22,8 +25,10 @@ P26 contract are settled; do not reopen them as a new implementation frontier.
 Adam also approved the initial Transform/Decision + Route scope: safe prebound
 operations, answer-based editing, real offline generation/checking, no drag-and-drop
 or persistent spec format. Ticket 13 records the approved scope and demo contract;
-it is delivered. The current implementation frontier is ticket 28; D2 lifecycle
-contract drafting is also authorized, but its substantive semantics remain open.
+it is delivered. Ticket 28 is accepted; the [D2 lifecycle contract](../../docs/gate-identity-contract.md)
+is accepted under [ADR 0012](../../docs/adr/0012-gate-identity-and-local-operator-continuation.md).
+Ticket 29 delivers the accepted same-process Gate slice; ticket 30 restart
+recovery is planning-ready and needs a separate implementation go.
 
 Authoritative records: [CONTEXT](../../CONTEXT.md), [ADRs](../../docs/adr/),
 [roadmap](../../ROADMAP.md), [handoff](../../HANDOFF.md). The historical
@@ -148,11 +153,11 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 
 | ID | Proposed ticket / independently verifiable delivery | Blocked by | Readiness |
 |---|---|---|---|
-| P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — ready-for-agent |
+| P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — accepted under observed-case reducer contract |
 | P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | Outline; split if too large |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |
-| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 (contract drafting approved 2026-09-22) | Near-term design draft; likely sizing pressure |
+| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process accepted; [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) restart planning-ready, separate implementation go required. P17 incomplete |
 | P18 | Gate between parallel waves: approved continuation executes only the remaining wave with preserved budget, state and evidence | P16, P17 | Outline |
 | P19 | Regenerate an executable artifact into a new immutable version, preserve its user layer, re-check it and refuse old approval | P17; marker/conflict contract | Outline |
 | P20 | A caller-declared Judgment vocabulary executes and replays through reference, graph and checking; invalid options fail closed | D3 | Independent design frontier |
@@ -246,10 +251,13 @@ missing/corrupt evidence and audit failure all fail closed. Persisted evidence m
 show what was approved and what executed. No caller-supplied digest string is accepted
 as proof of identity. Independent offline approval inputs constrain each driver.
 
-**Still blocks readiness (D2):** Define reproducible identity for the current in-memory
-artifact and trusted Python bindings, immutable executable representation, run/Gate
-approval scope, continuation integrity and process-restart guarantees. Existing business
-approval binds run/draft, not this pair. Do not claim Gate completion using that shortcut.
+**D2 settled:** [the accepted contract](../../docs/gate-identity-contract.md) restricts bindings
+to frozen, verified, deterministic registrations, binds a one-use local OS-account
+decision to re-derived spec/bundle and run/Gate/pause identities, charges one Gate
+visit and recovers only from a committed pause. Same-UID agents remain inside the
+trust boundary. The existing business approval binds run/draft, not this pair.
+Ticket 29 demonstrates the bounded same-process boundary offline; ticket 30's
+fresh-process recovery remains unimplemented, so P17 is incomplete.
 
 A private digest representation must be explicitly distinguished from a public persistent
 spec format. If executable identity requires settling the deferred format/community
@@ -269,7 +277,7 @@ not a claim that D2 identity or D5 permission semantics are settled.
 | Gate | Decision needed | Owner / proposed next action |
 |---|---|---|
 | D1 | Parallel reducer, scheduling, budget, join and evidence semantics | Settled 2026-09-22: contract accepted ([parallel-wave-contract.md](../../docs/parallel-wave-contract.md)) and published as [ticket 28](issues/28-execute-and-check-one-parallel-wave.md); no measurement prototype was needed |
-| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Drafting approved, semantics NOT settled; direct acceptance needed for identity/continuation guarantees |
+| D2 | Executable spec/bundle identity and approval/continuation lifecycle; restart/durability scope | Settled 2026-09-25 in Gate identity contract and ADR 0012; P17 implementation not authorized by decision alone |
 | D3 | Typed vocabulary and confidence/probability validation, source compatibility | Propose one non-Intervention example and invalid-output behavior for approval |
 | D4 | Role composition representation, registry compatibility and verification policy | Inspect representative read-only registry fixtures and agree one composition contract |
 | D5 | Fresh-session permission verification without protected writes | Adam authorizes a concrete isolated integration plan; no live test is authorized now |
@@ -283,9 +291,10 @@ Live model calls require separate authorization even when a ticket has offline f
 ## Promotion and working method
 
 1. Review this whole map with Adam: coverage, priorities, granularity and genuine blocking edges.
-2. Follow CURRENT.md: P26's initial scenario is delivered; ticket 28 is the next
-   approved implementation, with D1 settled. Draft D2 without inventing lifecycle
-   semantics. Record approved domain changes through the normal ADR process.
+2. Follow CURRENT.md: P26's initial scenario and P13/ticket 28 are delivered.
+   D2 is accepted in the contract/ADR. P17 has two published bounded vertical slices
+   with test seams and review baselines; Adam directed the bounded offline ticket-29
+   implementation after handoff. Other consequential actions need separate approval.
 3. Publish approved slices as individual local issue files in dependency order. Provisional IDs
    may change. Use `ready-for-agent` only with settled scope, semantics, public test seam,
    review baseline and authorization; unresolved outlines stay here, not in the runnable frontier.

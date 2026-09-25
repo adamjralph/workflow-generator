@@ -1,0 +1,16 @@
+# Ticket 31 — local Decision-wave implementation evidence
+
+**Status:** accepted by Adam after local verification; scoped commit/push separately authorized. **Review baseline:** `3e1a30f2425617cdcd8508464cd2db7a27dbd8fe` (approved by Adam). No live model/provider workflow was run.
+
+## Scope and contract
+
+The plain driver now invokes Decision bindings on isolated branch state, and wave admission permits Transform/Decision branch DAGs that converge on one join while rejecting pre-join terminals and the prior unsupported shapes. Admission uses an iterative topological longest-path calculation per branch (one visit per node, excluding join), sums the branch maxima and adds one join step. Fork-source spend, strict Decision label checks, complete-all/declared-order failure selection, reducer-on-success only, and raw-plus-canonical log evidence remain in force. The approved contract and public seam are recorded in [ticket 31](../.scratch/workflow-generator/issues/31-check-decision-routes-in-one-parallel-wave.md).
+
+## Validation
+
+- Focused final-source command: `.venv/bin/python -m pytest -q --basetemp=/home/hermes/workflow-validation-scratch/pytest-t31-focus6 tests/test_decision_wave.py tests/test_parallel_wave.py` → **124 passed**. This includes exclusive-route max-path cost (distinguished from region size), exact and just-short budgets, a deep acyclic branch, alternate Decision paths, failure selection, detached mutable state, reversed raw completion with equal canonical projections, structural/behavioral candidate mutations, denied IPv4/IPv6 sockets, audit incompleteness and refusal conformance.
+- `.venv/bin/python -m mypy agent_lab` → **Success: no issues found in 43 source files** (rechecked after the full run). `git diff --check` clean.
+- Full final-source offline suite through the existing isolated validation wrapper: `/home/hermes/.hermes/profiles/astra-pinned/bin/workflow-generator-validation .venv/bin/python -m pytest -q --tb=short` → **2,367 passed, 3 skipped, exit 0**, in 1069.56s; validation root `/home/hermes/workflow-validation-scratch/v-IDNJBc`. Skips are two optional live Jev cases and the optional real Hermes plugin-loader check. The earlier direct full run stopped after 1,801 passes because this session's default `TMPDIR` was inside `.hermes`; the wrapper supplied an external, owner-only temporary directory without changing the evidence guard.
+- Independent Standards and Spec reviews against the approved baseline initially identified a recursion limit, a non-discriminating cost fixture and incomplete Decision-specific conformance cases. Follow-up reviewers verified the first two corrections and the expanded cases; Spec identified missing Decision-specific reversed-completion and refusal reports, which were then added and passed in the final focused and full suites. No follow-up independent review after those last two test-only additions is claimed.
+
+At validation time no commit, push, publication, live provider call or protected Hermes write had been performed. Existing untracked ticket-28 briefs and sibling documentation edits remain outside the ticket-31 publication scope. Conformance is case-scoped evidence, not semantic correctness or callable purity.

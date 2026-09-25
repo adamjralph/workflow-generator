@@ -2,6 +2,7 @@
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from copy import deepcopy
+from graphlib import TopologicalSorter
 import hashlib
 from types import MappingProxyType
 from typing import Generic, Literal, TypeVar
@@ -223,8 +224,9 @@ class ReferencePlan(Generic[S]):
                     target = branch
                     while target != fork.join and target not in self.spec.terminals:
                         declaration = nodes[target]
-                        assert isinstance(declaration, TransformNode)
-                        target = holder.invoke(declaration, self.bindings[declaration.operation],
+                        assert isinstance(declaration, (TransformNode, DecisionNode))
+                        key = declaration.operation if isinstance(declaration, TransformNode) else declaration.value
+                        target = holder.invoke(declaration, self.bindings[key],
                                                {label: routes[(target, label)]
                                                 for label in declaration.route_labels}, self.spec.terminals)
                     items.append(BranchItem(index, holder.state,
@@ -384,7 +386,7 @@ def _wave_findings(spec: WorkflowSpec, reducers: Mapping[str, object],
             not isinstance(nodes[fork.join], TransformNode)
             or not ({fork.source, fork.join} | region) <= reached
             or any(regions[i] & regions[j] for i in range(len(regions)) for j in range(i))
-            or any(not isinstance(nodes.get(key), TransformNode)
+            or any(not isinstance(nodes.get(key), (TransformNode, DecisionNode))
                    or getattr(nodes.get(key), "model_operation", False) for key in region | {fork.join})
             or any(other.source in region for other in forks)
             or sum(other.join == fork.join for other in forks) != 1
@@ -393,6 +395,8 @@ def _wave_findings(spec: WorkflowSpec, reducers: Mapping[str, object],
             or spec.entry in region | {fork.join}
             or any(edge.source not in region and any(target in region | {fork.join} for target in edge.targets)
                    for edge in spec.edges if edge is not fork)
+            or any(target in spec.terminals for edge in spec.edges if edge.source in region
+                   for target in edge.targets)
         )
         if invalid:
             findings.append(CompileFinding("invalid_wave", ("edges", spec.edges.index(fork)),
@@ -417,8 +421,25 @@ def wave_observation(spec: WorkflowSpec, source: str, concurrency: int | None) -
     return {"wave_concurrency": concurrency or min(len(fork.branches), 4)} if fork else {}
 
 
+def branch_worst_paths(spec: WorkflowSpec, fork: Fork) -> tuple[int, ...]:
+    """Longest declared route to the join, without a Python recursion limit."""
+    regions = branch_regions(spec, fork)
+    members = set().union(*regions) | {fork.join}
+    successors: dict[str, list[str]] = {node: [] for node in members}
+    for edge in spec.edges:
+        if isinstance(edge, Route) and edge.source in members and edge.source != fork.join:
+            successors[edge.source].append(edge.target)
+    # TopologicalSorter expects dependencies: targets must be priced before
+    # their source. Admission has already rejected cycles and pre-join exits.
+    costs = {fork.join: 0}
+    for node in TopologicalSorter(successors).static_order():
+        if node != fork.join:
+            costs[node] = 1 + max(costs[target] for target in successors[node])
+    return tuple(costs[branch] for branch in fork.branches)
+
+
 def admit_wave(execution: _Execution[S], spec: WorkflowSpec, fork: Fork) -> bool:
-    worst = tuple(len(region) for region in branch_regions(spec, fork))
+    worst = branch_worst_paths(spec, fork)
     required = sum(worst) + 1
     remaining = execution.budget.max_steps - execution.budget.used_steps
     if remaining >= required:

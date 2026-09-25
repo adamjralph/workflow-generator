@@ -431,7 +431,7 @@ def invalid_wave(case):
 
 
 @pytest.mark.parametrize("driver", [compile_reference, generate_graph])
-@pytest.mark.parametrize("case", ["missing_reducer", "extra_reducer", "join_kind", "branch_kind", "branch_model",
+@pytest.mark.parametrize("case", ["missing_reducer", "extra_reducer", "join_kind", "branch_model",
                                  "join_model", "overlap", "prejoin_terminal", "unreachable", "nested",
                                  "shared_join", "sequential", "gate", "judgment", "loop", "under_loop"])
 def test_negative_admission_before_any_binding(driver, case):

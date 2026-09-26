@@ -3,12 +3,15 @@
 Software that takes a person through step-by-step and multiple-choice questions, produces a
 visual workflow, and builds or modifies a runnable workflow from that design.
 
-**Start here → [CONTEXT.md](CONTEXT.md).** It holds the decided context: what has been decided,
-what was ruled out and why, and what is still open.
+**Start here → [HANDOFF.md](HANDOFF.md).** Run its state check before reading status.
+[CONTEXT.md](CONTEXT.md) provides detailed decisions on demand.
 
 ## Status
 
 **Current project state and next decisions: [CURRENT.md](CURRENT.md).**
+The compact status index is [state.json](state.json); check it with
+`python3 scripts/project_state.py check` and measure the fresh read with
+`python3 scripts/project_state.py measure`.
 
 Delivered: read-only diagnosis and baselines; restricted in-memory workflow
 execution/conformance; a local browser designer and questionnaire; bounded role/data
@@ -33,8 +36,9 @@ invalid inventory stays fail-visible and the oldest eligible file is dated
 remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
 scenario, not the release definition. Verify **behaves as declared**, not "was the work
 good." Scope accepted; V2–V5 open and no implementation authorized.
-[Drafted cleanup first](.scratch/workflow-generator/issues/33-unambiguous-fresh-session-context.md):
-today's mandated fresh read is 49,336 chars; issue 33 projects ~4,460.
+[Issue 33 context cleanup](.scratch/workflow-generator/issues/33-unambiguous-fresh-session-context.md)
+is implemented locally, with guard and injected-failure checks passing; it awaits
+Adam's acceptance. For publication status, inspect Git and remote.
 
 Full offline regression (2026-09-26, this checkout): **2,399 passed, 3 optional
 skips, exit 0**; `mypy agent_lab` clean in 43 source files. Run it through the

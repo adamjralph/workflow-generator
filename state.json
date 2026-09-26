@@ -1,0 +1,25 @@
+{
+  "authority": "CURRENT.md",
+  "accepted_tickets": "01-18, 20-31",
+  "partial_acceptance": "19: operator-pinned live path only; default oldest-draft untested",
+  "awaiting_acceptance": [
+    32,
+    33
+  ],
+  "published_tickets": "01-18, 20-31; 19 operator-pinned only; 32 pushed but not accepted",
+  "release_scope": "Expected-outcome verification pillar V1 accepted; no implementation authorized",
+  "open_decisions": [
+    "V2-V5",
+    "D3",
+    "D4",
+    "D5",
+    "D7"
+  ],
+  "next_action": "python3 scripts/project_state.py check",
+  "do_not_read_by_default": [
+    "*.history-*.md",
+    "docs/",
+    "issues/",
+    "CONTEXT.md"
+  ]
+}

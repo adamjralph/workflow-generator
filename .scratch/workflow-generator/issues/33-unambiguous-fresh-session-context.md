@@ -1,11 +1,10 @@
 # 33: Make fresh-session context unambiguous and cheap
 
 **Type:** task
-**Status:** draft for Adam's decision, 2026-09-26. Not approved, not started. Blocks
-the pillar's implementation slices (V1 accepted 2026-09-26) because every future
-slice pays this cost otherwise.
-**Blocked by:** nothing technical. Needs Adam's go, and one protected-file approval
-(`AGENTS.md`).
+**Status:** implemented locally, awaiting Adam's acceptance (2026-09-26). Adam
+approved implementation, protected `AGENTS.md` edit, and scoped commit/push.
+**Decisions:** tracked `state.json` index; `HANDOFF.md` entry; standalone guard;
+`CONTEXT.md` on demand. HEAD is read from Git, not stored in tracked files.
 **Scope note:** documentation and tooling only. No engine, test or behaviour change.
 
 ## Why this exists
@@ -52,8 +51,8 @@ a reading list, not a state.
 
 1. **One machine-readable state artifact.** `state.json` (or an equivalent
    front-matter block in one nominated file) holding: accepted tickets, published
-   tickets, HEAD SHA, current next action, open decisions. Derived from Git where
-   possible so it cannot drift silently. Agents query it; they do not reconstruct it.
+   tickets, current next action, open decisions. Read live HEAD from Git at check
+   time, not from a tracked snapshot. Agents query the index, not reconstruct it.
 2. **One entry file, the only read path.** It lists what to read by topic on demand
    and states explicitly: do not read the `*.history-*.md` archives or the full
    `docs/` set unless a named question requires it. Resolve the README/HANDOFF
@@ -67,20 +66,21 @@ a reading list, not a state.
 5. **Next action as an executable command, not prose.** So a fresh agent runs it
    instead of interpreting it.
 6. **A staleness guard.** A scripted check (test or script) that fails when:
-   `CURRENT.md`'s recorded HEAD differs from `git rev-parse HEAD`; a ticket marked
-   accepted still carries a "still missing" claim that contradicts it; or a
-   nominated file contains a known-superseded phrase. This is the missing cheap
-   state check.
+   tracked status files assert a frozen HEAD rather than reading `git rev-parse HEAD`;
+   a ticket marked accepted still carries a contradictory "still missing" claim;
+   or a nominated file contains a known-superseded phrase. Git facts are checked
+   against Git, not against a self-invalidating recorded SHA.
 7. **A repeatable size measurement.** A command that reports the mandated fresh read
    in chars, so the budget becomes a number that can regress, not a vibe.
 
 ## Projected result (prototyped 2026-09-26)
 
-A 1,225-char prototype `state.json` (HEAD, accepted/partial/awaiting-acceptance
+A 1,225-char historical prototype `state.json` (HEAD, accepted/partial/awaiting-acceptance
 tickets, release scope, open decisions, next action, authority, observed regression,
 do-not-read list) plus `CURRENT.md` prose projects a mandated read of **~4,460 chars**
-against today's **49,336**. The ≤6,000-char target is therefore achievable, not
-aspirational. The prototype is not committed; it exists to size the change.
+against the **49,336**-char 2026-09-26 baseline. The prototype was not committed;
+it sized the change. Current measured entry budget: **5,789 chars**
+(`python3 scripts/project_state.py measure`, 2026-09-26), including `AGENTS.md`.
 
 ## Acceptance criteria
 
@@ -101,9 +101,9 @@ aspirational. The prototype is not committed; it exists to size the change.
   remain open decisions.
 - Not committing or pushing anything without a separate scoped approval.
 
-## Open questions for Adam
+## Resolved decisions
 
-- O1: `state.json` as a generated artifact, or the front-matter of one nominated file? (Generated cannot drift; front-matter is one less moving part.)
-- O2: Which file is the single entry point — the new one, `AGENTS.md`, or `HANDOFF.md`?
-- O3: Guard as a pytest test in the suite, or a standalone script run at session start?
-- O4: Is `CONTEXT.md` (25,005 chars) in or out of the default read path?
+- O1: tracked `state.json` indexes status; current HEAD is read directly from Git by the guard, not stored in `state.json` or `CURRENT.md`. Adam approved replacing the impossible recorded-HEAD equality check with this Git-derived observation.
+- O2: `HANDOFF.md` is the sole entry file.
+- O3: Standalone `python3 scripts/project_state.py check` runs at session start.
+- O4: `CONTEXT.md` is outside the default read path.

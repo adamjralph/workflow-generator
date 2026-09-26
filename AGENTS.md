@@ -58,3 +58,44 @@ permission to bypass the project's explicit run/evidence guards or acceptance
 criteria. Record assumptions and actual results; do not claim a passing run from
 an attempted one.
 
+## Status documents: one state, one authority, no append-only status
+
+`CURRENT.md` is the **authority**. If any other document disagrees with it, `CURRENT.md`
+wins and the other sentence is stale — that is the whole rule, and it is deliberately
+mechanical so a fresh session does not have to adjudicate. `HANDOFF.md` carries
+next-session instructions only; `ROADMAP.md` and `.scratch/workflow-generator/map.md`
+order future work; `README.md` is orientation and must never be the only place a
+status change is recorded.
+
+A fresh session is told to read a reading list, then reconstruct a state. That is
+where it goes wrong: append-only status means recency loses, so a corrected claim at
+the top of a file is beaten by a stale one at the bottom. Concretely, `BUG_REPORT.md`
+once read as a live blocker after its bug was fixed, and that caused a real
+misdiagnosis. Do not add to that.
+
+Rules:
+
+1. **Never put both current status and dated history in one file.** A file carries a
+   current header; its update log moves to a sibling `*.history.md`, which is not part
+   of the read path.
+2. **Update every affected document in the same change**, including `README.md`'s
+   Status section and any `**Still missing:**` or readiness line inside the ticket
+   file itself. Stale status is worse than missing status, because a fresh session
+   acts on it and redoes settled work.
+3. **Verify by grep, not by memory.** After changing a status, search for the
+   superseded claim (`grep` for the old count, the old status word, the old SHA).
+4. **Never state a test count, coverage claim or "next approved implementation" you
+   did not observe in this checkout.** Cite the command and the date. Historical
+   numbers belong only in dated evidence documents, where they are clearly labelled.
+5. **State the next action as a runnable command**, not as prose an agent must
+   interpret.
+6. **Do not read the `*.history-*.md` archives or the full `docs/` or `issues/` sets
+   by default.** Read them only when a named question requires the history.
+
+Scope acceptance, a decision, or a passed review is not implementation authorization.
+Each slice needs its own go, and live calls need their own explicit approval.
+
+Leave the ticket-28 briefs (`.scratch/workflow-generator/ticket28-*.md`) untracked and
+unmodified, and keep private validation evidence under
+`/home/hermes/workflow-validation-scratch/` outside Git.
+

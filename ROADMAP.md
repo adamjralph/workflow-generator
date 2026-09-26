@@ -6,7 +6,7 @@
 is delivered (tickets 13–14); tickets 17–18 partially cover role/data milestones;
 tickets 20–23 deliver LinkedIn offline plumbing/replay, not live parent completion.
 Ticket 13's bookkeeping is closed under Adam's 2026-09-22 triage authorization.
-Ticket 19 is accepted for the operator-pinned live path (default-oldest live selection remains untested with invalid inventory); ticket 28 is accepted and pushed for one Transform-only parallel wave. The [D2 Gate identity/continuation contract](docs/gate-identity-contract.md) and [ADR 0012](docs/adr/0012-gate-identity-and-local-operator-continuation.md) are accepted. Adam accepted tickets 29 and 30: the bounded same-process Gate path and committed-pause fresh-process restart complete the restricted offline P17 promise after focused/type/full validation and independent Standards/Spec reviews. Ticket 30's accepted implementation was committed as `b53fb492a5568d675749e2649c9e929576672010` and pushed to `origin/main`; the remote read back at that SHA. The docs-only publication record is being reconciled separately. P17 does not imply arbitrary side-effect exactly-once execution, person-level authentication, or a live workflow run. See `CURRENT.md` and `HANDOFF.md` for evidence and approval boundaries.
+Ticket 19 is accepted for the operator-pinned live path (default-oldest live selection remains untested with invalid inventory); ticket 28 is accepted and pushed for one Transform-only parallel wave. The [D2 Gate identity/continuation contract](docs/gate-identity-contract.md) and [ADR 0012](docs/adr/0012-gate-identity-and-local-operator-continuation.md) are accepted. Adam accepted tickets 29 and 30: the bounded same-process Gate path and committed-pause fresh-process restart complete the restricted offline P17 promise after focused/type/full validation and independent Standards/Spec reviews. Tickets 31 and 32 subsequently delivered P14's Decision routes and bounded Loops inside one wave's branches; ticket 31 is accepted and published and ticket 32 awaits acceptance. Ticket 30's accepted implementation was committed as `b53fb492a5568d675749e2649c9e929576672010` and pushed to `origin/main`; the remote read back at that SHA. P17 does not imply arbitrary side-effect exactly-once execution, person-level authentication, or a live workflow run. See `CURRENT.md` and `HANDOFF.md` for evidence and approval boundaries.
 M2–M6 below are capability definitions, not wholly unstarted work or newly authorized scope.
 
 Adam approved the next sequence after ticket 09:
@@ -16,7 +16,9 @@ before expanding node support or building the questionnaire.**
 
 This roadmap orders work; it does not authorize every milestone for implementation.
 Tickets 01–12 are accepted and closed. M1 is complete for its restricted target;
-M2 now includes restricted Intervention Judgment and bounded Loop + Route execution.
+M2 now includes restricted Intervention Judgment, bounded Loop + Route execution,
+one Transform-only parallel wave, Decision routes and bounded Loops inside that
+wave's branches, and a restricted offline Gate pause/restart path.
 
 **Plan the whole journey; implement in bounded vertical slices.** The
 [whole-product delivery map](.scratch/workflow-generator/map.md) connects the remaining
@@ -27,6 +29,12 @@ agreed contracts, test seams and review baselines. No time or percentage-complet
 estimate is implied.
 
 Current implemented state and next-session instructions: [HANDOFF.md](HANDOFF.md).
+**First-stop release scope (accepted 2026-09-26):**
+[the expected-outcome verification pillar](docs/outcome-verification-pillar.md) —
+declare what each agent must produce, check the observed outcome, try a bounded
+remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
+scenario, not the release definition. Verify **behaves as declared**, not "was the work
+good." Scope accepted; V2–V5 open and no implementation authorized.
 Full proposal: [.scratch/workflow-generator/spec.md](.scratch/workflow-generator/spec.md).
 Closed domain decisions: [CONTEXT.md](CONTEXT.md), [ADRs](docs/adr/).
 

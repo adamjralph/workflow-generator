@@ -12,22 +12,42 @@ what was ruled out and why, and what is still open.
 
 Delivered: read-only diagnosis and baselines; restricted in-memory workflow
 execution/conformance; a local browser designer and questionnaire; bounded role/data
-snapshots; LinkedIn capture, generation/review plumbing and offline replay. Tickets
-01–18 and 20–27 are closed, including ticket 13's reconciled bookkeeping. This is
-not full-product completion: parallel execution, exact-version Gate/resume,
-regeneration, agent permissions and the integrated journey remain unfinished.
+snapshots; LinkedIn capture, generation/review plumbing and offline replay; one
+parallel wave, Decision routes and bounded Loops within its branches; a restricted
+offline Gate pause/restart path. Tickets 01–18 and 20–27 are closed, including
+ticket 13's reconciled bookkeeping. Tickets 28–31 are accepted and published;
+ticket 32 is implemented, verified and pushed, awaiting Adam's separate acceptance.
+This is not full-product completion: gates between parallel waves, regeneration,
+role/skill emission, permission proof and the integrated journey remain unfinished.
+The [delivery map](.scratch/workflow-generator/map.md) lists the remaining outline
+rows; most are blocked on unsettled decisions rather than on code.
 
-Ticket 19 is **Blocked** on successful live execution; ticket 28 (one parallel wave)
-is the next approved implementation and has not started. The new synthetic DeepSeek
-probe establishes endpoint response, not a completed live workflow or exact-model
-acceptance. See [provider triage](docs/provider-triage-2026-09-22.md).
+Ticket 19 is accepted for its bounded **operator-pinned** live path only. A real
+Codex Generator → independent Vertex Guardian pair completed with a passing offline
+Check, but the default oldest-draft selection mode has never been live-exercised:
+invalid inventory stays fail-visible and the oldest eligible file is dated
+2026-09-08. See [issue 19](.scratch/workflow-generator/issues/19-refine-and-review-oldest-linkedin-draft.md).
 
-Historical offline regression: **1,892 passed, 3 optional skips**. The fresh assessment
-run was **1,016 passed, 876 failed, 3 skipped**, predominantly because the current
-session's mandatory scratch root is inside Hermes and evidence guards reject it.
-Do not claim a new green suite or disable those guards. Details and remaining direct
-decisions are in `CURRENT.md`. Public format, distribution/naming and Hermes writes
-remain deferred.
+**First-stop release scope (accepted 2026-09-26):** [the expected-outcome verification pillar](docs/outcome-verification-pillar.md)
+— declare what each agent must produce, check the observed outcome, try a bounded
+remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
+scenario, not the release definition. Verify **behaves as declared**, not "was the work
+good." Scope accepted; V2–V5 open and no implementation authorized.
+[Drafted cleanup first](.scratch/workflow-generator/issues/33-unambiguous-fresh-session-context.md):
+today's mandated fresh read is 49,336 chars; issue 33 projects ~4,460.
+
+Full offline regression (2026-09-26, this checkout): **2,399 passed, 3 optional
+skips, exit 0**; `mypy agent_lab` clean in 43 source files. Run it through the
+validation wrapper that supplies a permitted evidence root outside Hermes:
+
+```bash
+/home/hermes/.hermes/profiles/astra-pinned/bin/workflow-generator-validation \
+  .venv/bin/python -m pytest -q --tb=short
+```
+
+A plain `pytest` from a session whose scratch root sits inside Hermes still fails
+against the evidence-directory guard by design; do not disable the guard. Public
+format, distribution/naming and Hermes writes remain deferred.
 
 ## Local development
 
@@ -59,12 +79,15 @@ Concurrent branches must share `Deps.accounting` (a `RunAccounting` owner), even
 when using separate judgment sources. Reserve before work; no model call holds
 an accounting lock. Branches return their own frozen states through a reducer;
 `collect_findings(base, returned_states, deps)` joins notes and refreshes the
-budget without merging incompatible branch stages or artifacts. The existing
-business route remains linear; the tests compose real parallel branches around
-these shared semantics, not a new spec engine.
+budget without merging incompatible branch stages or artifacts. The accepted wave
+engine (tickets 28–32) executes declared Fork/join waves with thread-dispatched
+concurrency, whole-wave budget admission and declared-order failure selection;
+Decision routes and bounded Loops are supported inside a branch, and Gates remain
+a separate offline-only path. See [ADR 0011](docs/adr/0011-parallel-waves-are-declared-order-deterministic.md)
+and the [parallel wave contract](docs/parallel-wave-contract.md).
 
 See [ticket 02 evidence and concurrency contract](docs/foundation/parallel-accounting.md).
-`.venv/bin/python -m mypy agent_lab` passes with zero errors (16 source files).
+`.venv/bin/python -m mypy agent_lab` passes with zero errors (43 source files).
 See [ticket 07 verification](docs/typechecking-ticket07.md).
 
 See [foundation provenance and limits](docs/foundation/README.md) for adoption

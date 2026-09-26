@@ -290,9 +290,11 @@ No model substitution, live smoke test or protected write is authorized.
    **Approved 2026-09-22:** the six proposed seams above and baseline
    `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`.
 
-**Still missing:** the separately authorized live smoke and Adam's acceptance of this
-parent. The 2026-09-22 approval authorizes no live call, no protected write and no
-Hermes change.
+**Still missing:** a live test of the **default oldest-draft** selection mode (invalid
+inventory stays fail-visible; the oldest eligible file is dated 2026-09-08), truthful
+metadata/classification and any public-use permission for sensitive source material.
+The operator-pinned live smoke is delivered, and Adam accepted this parent on
+2026-09-25; acceptance authorizes no live call, no protected write and no Hermes change.
 
 **Proposed review baseline:** `35b9a5d7ac8784c062d25ec91f367e6c6d9ffb93`.
 Approved on 2026-09-22. Preserve all unrelated working-tree edits; ticket 18

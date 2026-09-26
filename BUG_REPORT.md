@@ -1,6 +1,13 @@
 # Bug report: Codex live generation stops at response-header validation
 
-## Current triage — 2026-09-22
+> **Resolved — historical record.** The two incompatibilities described here were
+> diagnosed and corrected on 2026-09-23; the bounded live Generator → Guardian pair
+> later completed with a passing offline Check and was accepted with ticket 19. Read
+> [codex-protocol-diagnosis.md](docs/codex-protocol-diagnosis.md) and
+> [codex-compatibility-correction.md](docs/codex-compatibility-correction.md) for the
+> remedy. Nothing below is a current blocker or a live-call authorization.
+
+## Current triage — 2026-09-22 (superseded by the resolution note above)
 
 The incident remains open. Five historical live attempts are now recorded; the
 older four-attempt snapshot below is retained as historical evidence. Smoke 05

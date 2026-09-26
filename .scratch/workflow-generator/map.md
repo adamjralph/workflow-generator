@@ -8,13 +8,13 @@ vertical slices. A small implementation slice is not a small planning horizon.
 
 This map is a **proposal for discussion**, not authorization to implement. P13–P32
 are provisional planning identifiers, not issue numbers. Current reconciled status
-is in [CURRENT.md](../../CURRENT.md). Issues 01–19 and 20–28 are accepted/closed
-(19 for the operator-pinned live path; default oldest remains untested); 28
-delivers the Transform-only P13 wave under the observed-case reducer contract.
-Adam accepted tickets 29 and 30: same-process D2 Gate and committed-pause
-fresh-process recovery complete the restricted offline P17 promise. Ticket 30
-was pushed as `b53fb492a5568d675749e2649c9e929576672010`; the docs-only
-publication record follows separately. Live calls and broader Gate scopes are separate.
+is in [CURRENT.md](../../CURRENT.md). Issues 01–31 are accepted/closed (19 only for
+the bounded operator-pinned live path; default oldest selection remains
+live-untested) and ticket 32 is implemented, verified and pushed awaiting Adam's
+separate acceptance. That covers the Transform-only P13 wave under the observed-case
+reducer contract, P14's Decision routes and bounded Loops, and the restricted
+offline P17 Gate path (same-process plus committed-pause fresh-process recovery).
+Live calls, broader Gate scopes, between-wave Gates and regeneration remain separate.
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.
@@ -157,10 +157,10 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 | ID | Proposed ticket / independently verifiable delivery | Blocked by | Readiness |
 |---|---|---|---|
 | P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — accepted under observed-case reducer contract |
-| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | Outline; split if too large |
+| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | [Ticket 31 Decision routes](issues/31-check-decision-routes-in-one-parallel-wave.md) accepted and published at `19985ee`; [ticket 32 bounded Loops](issues/32-check-bounded-loops-in-parallel-branches.md) implemented, verified and pushed at `ac27f28`, awaiting Adam's separate acceptance |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |
-| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process and [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) committed-pause restart accepted; bounded offline P17 complete. Ticket 30 implementation pushed as `b53fb49`; docs-only record follows |
+| P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process and [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) committed-pause restart accepted and published; bounded offline P17 complete at `b53fb49` |
 | P18 | Gate between parallel waves: approved continuation executes only the remaining wave with preserved budget, state and evidence | P16, P17 | Outline |
 | P19 | Regenerate an executable artifact into a new immutable version, preserve its user layer, re-check it and refuse old approval | P17; marker/conflict contract | Outline |
 | P20 | A caller-declared Judgment vocabulary executes and replays through reference, graph and checking; invalid options fail closed | D3 | Independent design frontier |

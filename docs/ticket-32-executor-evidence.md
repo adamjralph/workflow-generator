@@ -1,0 +1,18 @@
+# Ticket 32 — local bounded-Loop wave implementation evidence
+
+**Status:** implemented and verified offline; Adam authorized scoped commit/push if ready, but acceptance and live calls remain separate. **Frozen baseline:** `19985ee300da0b900e1dd1ae780fb120445584d3`. At validation time no ticket-32 commit, push, publication or live provider workflow call had occurred. Preserve the existing untracked ticket-28 briefs and exclude the sibling edits to `CURRENT.md`, `HANDOFF.md` and `.scratch/workflow-generator/map.md` from the scoped commit.
+
+## Scope
+
+The plain driver and generated graph execute at most one bounded Loop per disjoint branch of a single parallel wave, retaining independent branch state, repeat counts and recorded visit sequences. Admission rejects unsupported branch cycles, repeat-body escapes/alternate entries, nested Forks, Gate/Judgment and model operations before binding. A topological whole-branch pricing pass treats each repeat as another full body-plus-Loop visit, includes Decision alternatives, all siblings and one join close, and reports the actual worst-case cost even when it exceeds the run budget. Raw completion logs remain intact; the existing canonical wave projection groups branch events in their *recorded* per-branch visit order and normalizes scheduling-dependent step counts only. The frozen implementation contract and exclusions are in [ticket 32](../.scratch/workflow-generator/issues/32-check-bounded-loops-in-parallel-branches.md).
+
+## Final-source checks
+
+- Focused final-source command: `.venv/bin/python -m pytest -q --tb=short --basetemp=/home/hermes/workflow-validation-scratch/pytest-t32-finalfocus tests/test_loop_wave.py tests/test_decision_wave.py tests/test_parallel_wave.py tests/test_loop_routes.py` → **188 passed**. Two additional tests check Loop-route structural mutation and repeated-visit evidence sensitivity.
+- `.venv/bin/python -m mypy agent_lab` → **Success: no issues found in 43 source files**. `git diff --check` clean.
+- Full offline **final-source** command: `/home/hermes/.hermes/profiles/astra-pinned/bin/workflow-generator-validation .venv/bin/python -m pytest -q --tb=short` → **2,399 passed, 3 skipped, exit 0**, in 1071.69s. Validation root `/home/hermes/workflow-validation-scratch/v-UVYLFX`. Skips: two opt-in live Jev calls and one optional real Hermes plugin loader check. An earlier run before the two final tests passed 2,398 / 3 skips; the final-source run supersedes it.
+- Independent Spec and Standards reviewers initially found nested-Fork `StopIteration`, underreported large-bound refusal evidence, iteration-proportional pricing and an incorrect exhaustion fixture. The corrections are in the final source; two independent follow-up reviewers reported **no remaining blockers**. The Spec reviewer compared 45 admitted route/bound variants against expanded-state enumeration. The Standards reviewer compared 58 randomized admitted graphs; its own broader wave test was blocked by its scratch evidence guard, so its 25 conformance failures are environmental, not a passing review run. Parent-run focused and full suites passed under external validation roots.
+
+## Scope of evidence
+
+Public tests cover repeat, early exit, exhaustion, large and exact/short budgets, sibling isolation, two Loop branches, declared-order failures, no reducer on failure, bad predicate, audit I/O, nested/unsupported topology, reversed raw completion, structural bound mutation, behavioral binding mutation, no-network supplied-case conformance and unchanged Decision/route-only behavior. These are offline, supplied cases; a passing report is case-scoped structural/behavioral evidence, not semantic correctness, callable purity, or a live-provider proof.

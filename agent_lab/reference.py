@@ -224,8 +224,9 @@ class ReferencePlan(Generic[S]):
                     target = branch
                     while target != fork.join and target not in self.spec.terminals:
                         declaration = nodes[target]
-                        assert isinstance(declaration, (TransformNode, DecisionNode))
-                        key = declaration.operation if isinstance(declaration, TransformNode) else declaration.value
+                        assert isinstance(declaration, (TransformNode, DecisionNode, LoopNode))
+                        key = (declaration.operation if isinstance(declaration, TransformNode) else
+                               declaration.exit_predicate if isinstance(declaration, LoopNode) else declaration.value)
                         target = holder.invoke(declaration, self.bindings[key],
                                                {label: routes[(target, label)]
                                                 for label in declaration.route_labels}, self.spec.terminals)
@@ -382,12 +383,15 @@ def _wave_findings(spec: WorkflowSpec, reducers: Mapping[str, object],
     for fork in forks:
         regions = branch_regions(spec, fork)
         region = set().union(*regions)
+        loop_invalid = any(_invalid_branch_loop(spec, nodes, graph, branch_region)
+                           for branch_region in regions)
         invalid = (
             not isinstance(nodes[fork.join], TransformNode)
             or not ({fork.source, fork.join} | region) <= reached
             or any(regions[i] & regions[j] for i in range(len(regions)) for j in range(i))
-            or any(not isinstance(nodes.get(key), (TransformNode, DecisionNode))
+            or any(not isinstance(nodes.get(key), (TransformNode, DecisionNode, LoopNode))
                    or getattr(nodes.get(key), "model_operation", False) for key in region | {fork.join})
+            or loop_invalid
             or any(other.source in region for other in forks)
             or sum(other.join == fork.join for other in forks) != 1
             or any(isinstance(node, LoopNode) and fork.source in reachable(node.id)
@@ -402,6 +406,41 @@ def _wave_findings(spec: WorkflowSpec, reducers: Mapping[str, object],
             findings.append(CompileFinding("invalid_wave", ("edges", spec.edges.index(fork)),
                                            "Unsupported, overlapping, model-backed or unreachable wave"))
     return findings
+
+
+def _invalid_branch_loop(spec: WorkflowSpec, nodes: Mapping[str, object],
+                         graph: Mapping[str, set[str]], region: frozenset[str]) -> bool:
+    """Repeat body must return to its only Loop; it cannot escape or be entered elsewhere."""
+    loops = [nodes[key] for key in region if isinstance(nodes.get(key), LoopNode)]
+    if not loops:
+        return False
+    if len(loops) != 1:
+        return True
+    loop = loops[0]
+    assert isinstance(loop, LoopNode)
+    repeat = next((edge.target for edge in spec.edges
+                   if isinstance(edge, Route) and edge.source == loop.id and edge.outcome == "repeat"), None)
+    if repeat is None:
+        return True
+    body: set[str] = set()
+    pending = [repeat]
+    while pending:
+        current = pending.pop()
+        if current == loop.id or current in body:
+            continue
+        if current not in region:
+            return True
+        body.add(current)
+        pending.extend(graph[current])
+    converges = {loop.id}
+    while True:
+        additions = {key for key in body - converges if graph[key] & converges}
+        if not additions:
+            break
+        converges.update(additions)
+    return (not body <= converges or
+            any(edge.source not in body | {loop.id} and any(target in body for target in edge.targets)
+                for edge in spec.edges))
 
 
 @dataclass(frozen=True)
@@ -422,20 +461,47 @@ def wave_observation(spec: WorkflowSpec, source: str, concurrency: int | None) -
 
 
 def branch_worst_paths(spec: WorkflowSpec, fork: Fork) -> tuple[int, ...]:
-    """Longest declared route to the join, without a Python recursion limit."""
+    """Longest whole-branch route through the admitted single repeat-only cycle."""
     regions = branch_regions(spec, fork)
-    members = set().union(*regions) | {fork.join}
-    successors: dict[str, list[str]] = {node: [] for node in members}
-    for edge in spec.edges:
-        if isinstance(edge, Route) and edge.source in members and edge.source != fork.join:
-            successors[edge.source].append(edge.target)
-    # TopologicalSorter expects dependencies: targets must be priced before
-    # their source. Admission has already rejected cycles and pre-join exits.
-    costs = {fork.join: 0}
-    for node in TopologicalSorter(successors).static_order():
-        if node != fork.join:
-            costs[node] = 1 + max(costs[target] for target in successors[node])
-    return tuple(costs[branch] for branch in fork.branches)
+    nodes = {node.id: node for node in spec.nodes}
+    results = []
+    for branch, region in zip(fork.branches, regions):
+        members = set(region) | {fork.join}
+        routes: dict[str, dict[str, str]] = {key: {} for key in members}
+        dependencies: dict[str, list[str]] = {key: [] for key in members}
+        for edge in spec.edges:
+            if isinstance(edge, Route) and edge.source in region:
+                routes[edge.source][edge.outcome] = edge.target
+                if not (isinstance(nodes[edge.source], LoopNode) and edge.outcome == "repeat"):
+                    dependencies[edge.source].append(edge.target)
+        order = tuple(TopologicalSorter(dependencies).static_order())
+        loops = [node for key in region if isinstance(node := nodes[key], LoopNode)]
+
+        def price(loop_cost: int) -> dict[str, int]:
+            costs = {fork.join: 0}
+            for key in order:
+                if key == fork.join:
+                    continue
+                node = nodes[key]
+                costs[key] = (loop_cost if isinstance(node, LoopNode) else
+                              1 + max(costs[target] for target in routes[key].values()))
+            return costs
+
+        if loops:
+            loop = loops[0]
+            assert isinstance(loop, LoopNode)
+            # Removing the repeat edge leaves a DAG. With Loop priced at zero,
+            # the repeat body costs one finite trip back, while exit/exhausted
+            # tails price their independent routes to the join. Each repeat
+            # adds the same body plus one Loop visit; no count-sized expansion.
+            tails = price(0)
+            body = tails[routes[loop.id]["repeat"]]
+            end = max(tails[routes[loop.id][label]] for label in ("exit", "exhausted"))
+            loop_cost = loop.max_iterations * (1 + body) + 1 + end
+        else:
+            loop_cost = 0
+        results.append(price(loop_cost)[branch])
+    return tuple(results)
 
 
 def admit_wave(execution: _Execution[S], spec: WorkflowSpec, fork: Fork) -> bool:

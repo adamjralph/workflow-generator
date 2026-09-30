@@ -1,8 +1,8 @@
 # 32: Execute and check bounded Loops in parallel branches
 
 **Type:** task
-**Status:** locally implemented and verified; Adam authorized scoped commit/push if ready. Acceptance and live calls remain separate decisions. [Evidence](../../../docs/ticket-32-executor-evidence.md).
-**Blocked by:** no local implementation blocker; acceptance remains with Adam. Ticket 31 (Decision routes), ticket 28's wave and ticket 12's route-only bounded Loop are delivered foundations.
+**Status:** committed as `ac27f28` and accepted by Adam. Live calls remain a separate decision. [Evidence](../../../docs/ticket-32-executor-evidence.md).
+**Blocked by:** no local implementation blocker. Ticket 31 (Decision routes), ticket 28's wave and ticket 12's route-only bounded Loop are delivered foundations.
 
 ## What to build
 

@@ -8,11 +8,11 @@ vertical slices. A small implementation slice is not a small planning horizon.
 
 This map is a **proposal for discussion**, not authorization to implement. P13–P32
 are provisional planning identifiers, not issue numbers. Current reconciled status
-is in [CURRENT.md](../../CURRENT.md). Issues 01–31 are accepted/closed (19 only for
+is in [CURRENT.md](../../CURRENT.md). Issues 01–33 are accepted/closed (19 only for
 the bounded operator-pinned live path; default oldest selection remains
-live-untested) and ticket 32 is implemented, verified and pushed awaiting Adam's
-separate acceptance. That covers the Transform-only P13 wave under the observed-case
-reducer contract, P14's Decision routes and bounded Loops, and the restricted
+live-untested). Ticket 32 is committed and accepted. That covers the
+Transform-only P13 wave under the observed-case reducer contract, P14's
+Decision routes and bounded Loops, and the restricted
 offline P17 Gate path (same-process plus committed-pause fresh-process recovery).
 Live calls, broader Gate scopes, between-wave Gates and regeneration remain separate.
 P26's initial scope was delivered
@@ -157,7 +157,7 @@ may still require coordination. Passing a slice does not authorize arbitrary com
 | ID | Proposed ticket / independently verifiable delivery | Blocked by | Readiness |
 |---|---|---|---|
 | P13 | One Transform-only Fork/join wave: authored spec → plain/graph execution → reducer → exact conformance evidence | D1 settled 2026-09-22 | [Ticket 28](issues/28-execute-and-check-one-parallel-wave.md) — accepted under observed-case reducer contract |
-| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | [Ticket 31 Decision routes](issues/31-check-decision-routes-in-one-parallel-wave.md) accepted and published at `19985ee`; [ticket 32 bounded Loops](issues/32-check-bounded-loops-in-parallel-branches.md) implemented, verified and pushed at `ac27f28`, awaiting Adam's separate acceptance |
+| P14 | Decision routes and bounded Loops within one wave's branches, including uneven branch progress and failures, checked through both drivers | P13; D1 counter extension settled 2026-09-22 (`max_iterations + 1`) | [Ticket 31 Decision routes](issues/31-check-decision-routes-in-one-parallel-wave.md) accepted and published at `19985ee`; [ticket 32 bounded Loops](issues/32-check-bounded-loops-in-parallel-branches.md) committed at `ac27f28` and accepted |
 | P15 | Restricted offline Judgment in parallel branches with isolated replay and full input/judgment evidence | P13; replay ownership contract | Outline |
 | P16 | Two sequential parallel waves with explicit joins, fresh branch state and one run-wide budget, checked end to end | P13 | Outline |
 | P17 | Route-only Gate: version an executable spec/bundle pair in the artifact store, pause, approve/reject and resume through both drivers and conformance | D2 accepted 2026-09-25 | [Ticket 29](issues/29-pause-decide-and-continue-one-route-gate.md) same-process and [ticket 30](issues/30-restart-and-fail-closed-gate-continuation.md) committed-pause restart accepted and published; bounded offline P17 complete at `b53fb49` |

@@ -19,7 +19,7 @@ snapshots; LinkedIn capture, generation/review plumbing and offline replay; one
 parallel wave, Decision routes and bounded Loops within its branches; a restricted
 offline Gate pause/restart path. Tickets 01–18 and 20–27 are closed, including
 ticket 13's reconciled bookkeeping. Tickets 28–31 are accepted and published;
-ticket 32 is implemented, verified and pushed, awaiting Adam's separate acceptance.
+tickets 32 and 33 are implemented, committed and accepted by Adam.
 This is not full-product completion: gates between parallel waves, regeneration,
 role/skill emission, permission proof and the integrated journey remain unfinished.
 The [delivery map](.scratch/workflow-generator/map.md) lists the remaining outline
@@ -37,8 +37,8 @@ remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
 scenario, not the release definition. Verify **behaves as declared**, not "was the work
 good." Scope accepted; V2–V5 open and no implementation authorized.
 [Issue 33 context cleanup](.scratch/workflow-generator/issues/33-unambiguous-fresh-session-context.md)
-is implemented locally, with guard and injected-failure checks passing; it awaits
-Adam's acceptance. For publication status, inspect Git and remote.
+is implemented and accepted; guard and injected-failure checks passed. For
+publication status, inspect Git and remote.
 
 Full offline regression (2026-09-26, this checkout): **2,399 passed, 3 optional
 skips, exit 0**; `mypy agent_lab` clean in 43 source files. Run it through the

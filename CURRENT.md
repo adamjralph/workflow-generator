@@ -6,15 +6,16 @@ comes directly from Git when the guard runs, not from tracked status files.
 Run `python3 scripts/project_state.py check` at session start; run
 `python3 scripts/project_state.py measure` for the mandated-read budget.
 
-**Issue 33:** Context cleanup implemented locally with approved AGENTS.md edit.
+**Issue 33:** Context cleanup accepted by Adam, with approved AGENTS.md edit.
 Guard and injected-failure checks passed; `python3 scripts/project_state.py measure`
-reported 5,812 chars (2026-09-26). Awaiting Adam's acceptance. For publication
+reported 5,812 chars (2026-09-26). For publication
 status, inspect Git and remote; no HEAD is recorded in tracked status files.
 
 **Release scope:** Expected-outcome verification pillar V1 accepted, not authorized
-for implementation; V2–V5 open. Tickets 01–18, 20–31 accepted/published; ticket 19
+for implementation; V2–V5 open. Tickets 01–18, 20–33 accepted; ticket 19
 accepted only for operator-pinned live path (default oldest-draft still untested).
-Ticket 32 implemented/pushed, awaiting Adam's acceptance. D3, D4, D5, D7 open.
+Tickets 32–33 are committed;
+local `main` matches its `origin/main` tracking ref. D3, D4, D5, D7 open.
 
 **Next action:** `python3 scripts/project_state.py check`
 

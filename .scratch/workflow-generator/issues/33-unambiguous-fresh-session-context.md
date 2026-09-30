@@ -1,7 +1,7 @@
 # 33: Make fresh-session context unambiguous and cheap
 
 **Type:** task
-**Status:** implemented locally, awaiting Adam's acceptance (2026-09-26). Adam
+**Status:** committed as `7df3db2` and accepted by Adam. Adam
 approved implementation, protected `AGENTS.md` edit, and scoped commit/push.
 **Decisions:** tracked `state.json` index; `HANDOFF.md` entry; standalone guard;
 `CONTEXT.md` on demand. HEAD is read from Git, not stored in tracked files.

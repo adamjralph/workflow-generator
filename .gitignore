@@ -15,3 +15,7 @@ venv/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Historical local executor briefs; keep on disk, outside version control.
+/.scratch/workflow-generator/ticket28-executor-brief.md
+/.scratch/workflow-generator/ticket28-correction-brief.md

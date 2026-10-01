@@ -15,6 +15,10 @@ Transform-only P13 wave under the observed-case reducer contract, P14's
 Decision routes and bounded Loops, and the restricted
 offline P17 Gate path (same-process plus committed-pause fresh-process recovery).
 Live calls, broader Gate scopes, between-wave Gates and regeneration remain separate.
+Latest accepted slice: [ticket 34](issues/34-check-declared-workflow-output.md), created
+locally and implemented under Adam’s go for one declared JSON output, required
+fields and configurable byte limit. Verified offline and accepted by Adam. Repair and alerts
+are later slices.
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.

@@ -1,10 +1,10 @@
 {
   "authority": "CURRENT.md",
-  "accepted_tickets": "01-18, 20-33",
+  "accepted_tickets": "01-18, 20-34",
   "partial_acceptance": "19: operator-pinned live path only; default oldest-draft untested",
   "awaiting_acceptance": [],
-  "published_tickets": "01-18, 20-33; 19 operator-pinned only",
-  "release_scope": "Expected-outcome verification pillar V1 accepted; no implementation authorized",
+  "published_tickets": "01-18, 20-33; 19 operator-pinned only; 34: inspect Git/remote",
+  "release_scope": "Expected-outcome verification pillar V1 accepted; ticket 34 implemented, verified and accepted; commit/push authorized; inspect Git/remote for publication",
   "open_decisions": [
     "V2-V5",
     "D3",

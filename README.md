@@ -35,7 +35,12 @@ invalid inventory stays fail-visible and the oldest eligible file is dated
 — declare what each agent must produce, check the observed outcome, try a bounded
 remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
 scenario, not the release definition. Verify **behaves as declared**, not "was the work
-good." Scope accepted; V2–V5 open and no implementation authorized.
+good." Scope accepted; V2–V5 open; only ticket 34 implementation authorized.
+[Ticket 34](.scratch/workflow-generator/issues/34-check-declared-workflow-output.md)
+is implemented locally: one declared JSON output, required top-level fields and
+configurable byte limit, checked against the actual file with saved run attribution.
+Full offline regression passed (2,436 passed, 3 expected skips); accepted by Adam.
+Commit/push authorized; inspect Git/remote for publication. Evidence: [ticket 34](docs/outcome-ticket34.md).
 [Issue 33 context cleanup](.scratch/workflow-generator/issues/33-unambiguous-fresh-session-context.md)
 is implemented and accepted; guard and injected-failure checks passed. For
 publication status, inspect Git and remote.

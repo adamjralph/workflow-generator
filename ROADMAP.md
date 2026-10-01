@@ -34,7 +34,11 @@ Current implemented state and next-session instructions: [HANDOFF.md](HANDOFF.md
 declare what each agent must produce, check the observed outcome, try a bounded
 remedy, alert on failure. Internal-only first stop; LinkedIn is one acceptance
 scenario, not the release definition. Verify **behaves as declared**, not "was the work
-good." Scope accepted; V2–V5 open and no implementation authorized.
+good." Scope accepted; V2–V5 open; only ticket 34 implementation authorized.
+Latest accepted slice: [ticket 34](.scratch/workflow-generator/issues/34-check-declared-workflow-output.md),
+implemented locally for one declared JSON output, required fields and configurable
+byte limit. Offline regression and typing pass; accepted by Adam. Repair and
+alerts remain outside this slice.
 Full proposal: [.scratch/workflow-generator/spec.md](.scratch/workflow-generator/spec.md).
 Closed domain decisions: [CONTEXT.md](CONTEXT.md), [ADRs](docs/adr/).
 

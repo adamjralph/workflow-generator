@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, field_validator
 
 Name = Annotated[str, StringConstraints(min_length=1, pattern=r"\S")]
 PositiveSteps = Annotated[int, Field(gt=0)]
@@ -29,8 +29,32 @@ class Node(Declaration):
         raise NotImplementedError
 
 
+class JsonOutputExpectation(Declaration):
+    """One required JSON object; fields are literal top-level keys, not expressions."""
+
+    file: Name
+    required_fields: Annotated[tuple[Name, ...], Field(min_length=1)]
+    max_bytes: Annotated[int, Field(gt=0)] = 1024 * 1024
+
+    @field_validator("file")
+    @classmethod
+    def safe_file(cls, value: str) -> str:
+        if (value.startswith("/") or "\\" in value or "\x00" in value
+                or any(part in {"", ".", ".."} for part in value.split("/"))):
+            raise ValueError("Output file must be a safe relative path")
+        return value
+
+    @field_validator("required_fields")
+    @classmethod
+    def distinct_fields(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(set(value)) != len(value):
+            raise ValueError("Required fields must be distinct")
+        return value
+
+
 class TransformNode(Node):
     kind: Literal["transform"] = "transform"
+    expected_output: JsonOutputExpectation | None = None
     operation: Name
     model_operation: bool = False
     operation_version: Name | None = None

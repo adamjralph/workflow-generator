@@ -25,7 +25,7 @@ exists toward it, and proposes it as the first internal-only release scope.
 | Adam's intent | Current answer | Status |
 |---|---|---|
 | "whether a workflow had executed" | Diagnosis reads run attribution from the Kanban DB; conformance checks an execution against the plain reference; offline Check replays a recorded pair | **Substantially built** |
-| "whether the agents had done what they were expected to do" | Nothing. Conformance compares two executions of the *same spec* to each other. That is self-consistency, not compliance with a declared expectation. Diagnosis measures *cost*, not *outcome* | **Missing** |
+| "whether the agents had done what they were expected to do" | Ticket 34 implements an opt-in, fixture-only check of one declared JSON file, required top-level fields and byte limit, with a saved attributed verdict. Offline regression and typing pass; accepted by Adam. Broader and real-workflow expectations still missing. Conformance remains execution self-consistency; diagnosis measures cost, not outcome | **Restricted slice accepted** |
 | "get them to do it" | Nothing, deliberately. The engine has no retries, no fallbacks, no re-dispatch, no repair | **Missing by design** |
 | "or at least alert" | Only in-run terminal states (`NEEDS_REVIEW`, `FAILED_VALIDATION`, `FAILED_BUDGET`). Nothing is ever delivered to Adam; there is no notification path in the codebase | **Missing** |
 

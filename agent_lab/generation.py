@@ -19,7 +19,7 @@ from .reference import (
     BranchItem, admit_wave, branch_execution, finish_wave, wave_observation,
 )
 from .runlog import RunLog
-from .spec import DecisionNode, Finding, Fork, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
+from .spec import DecisionNode, Finding, Fork, JsonOutputExpectation, JudgmentNode, LoopNode, Route, TransformNode, WorkflowSpec
 from .state import Budget, BudgetExceeded
 from .model_operation import ModelOperation, validate_request, validate_response
 
@@ -35,6 +35,7 @@ class _Node(NamedTuple):
     model_operation: bool = False
     operation_version: str | None = None
     schema_version: str | None = None
+    expected_output: JsonOutputExpectation | None = None
 
     def declaration(self) -> TransformNode | DecisionNode | JudgmentNode | LoopNode:
         if self.kind == "loop":
@@ -46,7 +47,7 @@ class _Node(NamedTuple):
         if self.kind == "transform":
             return TransformNode(id=self.identity, operation=self.reference, outcomes=self.labels,
                                  model_operation=self.model_operation, operation_version=self.operation_version,
-                                 schema_version=self.schema_version)
+                                 schema_version=self.schema_version, expected_output=self.expected_output)
         return DecisionNode(id=self.identity, value=self.reference, cases=self.labels)
 
 
@@ -260,6 +261,7 @@ def generate_graph(candidate: object, *, state_type: type[S],
             node.model_operation if isinstance(node, TransformNode) else False,
             node.operation_version if isinstance(node, TransformNode) else None,
             node.schema_version if isinstance(node, TransformNode) else None,
+            node.expected_output if isinstance(node, TransformNode) else None,
         ))
     result = object.__new__(GraphCandidate)
     owned = (state_type, plan.spec.entry, tuple(nodes), plan.spec.terminals,

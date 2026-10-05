@@ -129,6 +129,16 @@ def test_endpoint_policy_rejects_before_reservation(endpoint):
     assert not (result.original.root / 'alert-reserved.json').exists()
 
 
+@pytest.mark.parametrize('fields', [('unknown',), ('unknown', 'unknown')])
+def test_invalid_private_fields_stop_before_reservation(receiver, fields):
+    _, received, endpoint = receiver
+    result = report('reference', 'exhausted')
+    with pytest.raises(ValueError, match='Private alert fields'):
+        deliver_outcome_alert(result, endpoint=endpoint, private_fields=fields)
+    assert not (result.original.root / 'alert-reserved.json').exists()
+    assert not received
+
+
 @pytest.mark.parametrize('timeout', [0, -1, 6, float('inf'), float('nan'), True])
 def test_timeout_is_bounded(receiver, timeout):
     _, received, endpoint = receiver

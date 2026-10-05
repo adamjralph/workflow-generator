@@ -43,6 +43,8 @@ def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
     has a reservation but no receipt, so delivery remains unknown. HTTP 2xx means
     receiver acknowledgement, not proof a human read it. Callers are trusted local
     code; this API is neither a sandbox nor an external-send approval mechanism.
+    private_fields removes those declared string constraints from transport and
+    lists the redacted field names. It never changes the local declaration.
     """
     target = urlsplit(endpoint)
     if (target.scheme != "http" or target.hostname not in {"127.0.0.1", "::1"}

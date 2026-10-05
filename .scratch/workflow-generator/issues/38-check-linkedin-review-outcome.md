@@ -1,7 +1,7 @@
 # Ticket38 — declared outcome on the existing LinkedIn review workflow
 
 Type: task
-Status: claimed
+Status: resolved — technically complete; no personal Adam acceptance
 
 ## Scope and authorization
 
@@ -32,6 +32,7 @@ choose the real release scenario (V4) or authorize publication.
   without draft/review/source content. Successful/repaired outcomes suppress it.
   Omitting the endpoint records no delivery claim.
 - Derived output cannot overlap capture inputs, profiles or original recordings.
+  Replay receipts use only the captured source's pinned recording evidence root.
   CLI prints status/paths only; private evidence remains outside Git.
 - Verify useful complete fixture pairs, missing-packet repair and unrepairable
   verdict policy; replay an available already-recorded real pair without new
@@ -39,5 +40,18 @@ choose the real release scenario (V4) or authorize publication.
 - Focused tests, typing, one complete final-code regression and independent review;
   safe focused commit/push/readback, cumulative status patch and exact handoff.
 
-**Still missing:** implementation/validation/review; V2 recipient, V3 live repair
-budget, V4 scenario acceptance, V5 expanded runtime and broader release journey.
+## Result
+
+Implemented recorded-pair replay → declared review packet/policy → one local
+packet repair → optional redacted loopback alert. Final focused 225 passed;
+typing 49 source files clean; final-code regression 2,571 passed, 3 expected skips,
+exit 0 on 2026-10-05. Separate Standards/Spec reviewers cleared all corrections.
+Actual commands, private evidence pointers and scope limitations are recorded in
+[the evidence](../../../docs/outcome-ticket38.md). The existing real pair was
+replayed offline with test-only packet faults; no new provider/auth calls or
+external sends. Machine-specific interpreter setup remains ignored and local.
+
+**Still missing:** actual recipient/channel, broader live editorial repair/runtime,
+representative live acceptance, browser integration and attributed measurement.
+[Minimal live-acceptance bundle](../../../docs/linkedin-live-acceptance-bundle.md)
+targets the existing LinkedIn scenario under the parent's continuing mandate.

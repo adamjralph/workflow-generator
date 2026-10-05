@@ -21,7 +21,7 @@ fields and configurable byte limit. Verified offline and accepted by Adam. Its
 original boundary excludes repair and alerts.
 Ticket 35 extends this pillar with exact allowed string values for required fields,
 using the LinkedIn review vocabulary in synthetic offline output checks. Delegated
-technical verification is complete; parent assessment is next. See
+technical verification is complete; no personal Adam acceptance is claimed. See
 [ticket 35](issues/35-check-declared-output-values.md).
 Ticket36 implements one opt-in offline output repair for a completed single
 Transform, with at most two aggregate reserved steps and fresh checked output.
@@ -33,8 +33,15 @@ a fresh session under Adam's continuing authorization, without implicit live cal
 Ticket37 implements explicit one-shot loopback webhook delivery after unresolved
 offline remedy using the existing internal report/checklist workflow. Final focused
 tests, typing and independent Standards/Spec review pass; complete final-code
-regression passed (2,534 passed, 3 expected skips, exit 0, 2026-10-05). No external recipient/channel is selected or notified.
+regression passed, recorded in its linked evidence. No external recipient/channel is selected or notified.
 [Ticket37](issues/37-deliver-local-outcome-alert.md), [evidence](../../docs/outcome-ticket37.md).
+Ticket38 joins the existing recorded LinkedIn pair to declared review-packet
+checks, one bounded local packet repair and optional redacted loopback delivery.
+The prior real pair replays through both drivers with test-only missing-output
+faults; no new provider call, editorial revision or personal acceptance.
+Independent reviews cleared all corrections; focused, typing and complete final-code
+regression pass. Live acceptance and actual recipient remain open.
+[Ticket38](issues/38-check-linkedin-review-outcome.md), [evidence](../../docs/outcome-ticket38.md).
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.

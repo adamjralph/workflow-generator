@@ -304,6 +304,16 @@ class DraftSource:
             raise ValueError("Capture inputs and evidence must be disjoint")
         return resolved
 
+    def validate_output_root(self, destination: Path) -> Path:
+        """Keep derived artifacts disjoint from capture inputs and recordings."""
+        self._check_overlap()
+        roots = (self._root, self._config, self._drafts, *self._guidance.values(),
+                 *self._profiles.values(), *self._protected)
+        output = validate_evidence_root(destination, protected_roots=roots)
+        if any(root.resolve().is_relative_to(output) for root in roots):
+            raise ValueError("Derived output and capture inputs/evidence must be disjoint")
+        return output
+
     def _directory(self) -> Path:
         if validate_evidence_root(self._root, protected_roots=self._protected) != self._root:
             raise ValueError("Evidence root changed")

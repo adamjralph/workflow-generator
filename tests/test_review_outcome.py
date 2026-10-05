@@ -15,11 +15,11 @@ from tests.test_outcome_alerts import receiver
 
 
 def run(operator, *, verdict="Approved", driver="reference", allowance=2, accepted=("Approved",),
-        endpoint=None):
+        endpoint=None, adapter=None):
     checks, snapshot, request, saved = completed(operator, verdict)
     result = review_outcome.check_review_outcome(checks.source, operator[2], snapshot, request,
         evidence_dir=operator[2].parent / "outcomes", accepted_verdicts=accepted,
-        step_allowance=allowance, driver=driver, endpoint=endpoint)
+        step_allowance=allowance, driver=driver, endpoint=endpoint, adapter=adapter)
     return result, saved
 
 
@@ -203,3 +203,33 @@ def test_mismatched_recording_store_cannot_write_checks_into_inputs(operator, ta
             evidence_dir=operator[2].parent / "outcomes", accepted_verdicts=("Approved",), step_allowance=2)
     assert (set(recording_dir.iterdir()) if recording_dir.exists() else set()) == before
     assert not (operator[2].parent / "outcomes").exists()
+
+
+@pytest.mark.parametrize("driver", ["reference", "graph"])
+def test_explicit_adapter_receives_only_redacted_linkedin_envelope(operator, receiver, driver):
+    from agent_lab.alerts import LoopbackAlertAdapter, read_alert_audit
+    _, received, endpoint = receiver
+    result, saved = run(operator, verdict="Blocked", driver=driver, adapter=LoopbackAlertAdapter(endpoint))
+    assert result.alert.receipt.completion == "acknowledged"
+    assert read_alert_audit(result.remedy).receipt == result.alert.receipt
+    assert len(received) == 1
+    payload = json.loads(received[0][2])
+    assert saved["result"]["post"] not in json.dumps(payload)
+    assert payload["expected"]["redacted_string_fields"] == list(review_outcome.ATTRIBUTION_FIELDS)
+    packet = json.loads(result.packet_path.read_bytes())
+    for field in review_outcome.ATTRIBUTION_FIELDS:
+        assert packet[field].encode() not in received[0][2]
+    assert packet["human_decision"] == "required" and packet["verdict"] == "Blocked"
+    assert packet["model_calls"] == packet["auth_requests"] == 0
+
+
+def test_two_transports_stop_before_recording_replay(operator, receiver, monkeypatch):
+    from agent_lab.alerts import LoopbackAlertAdapter
+    _, received, endpoint = receiver
+    checks, snapshot, request, _ = completed(operator)
+    monkeypatch.setattr(review_outcome.DraftChecks, "check", lambda *args: pytest.fail("replay started"))
+    with pytest.raises(ValueError, match="one explicit alert transport"):
+        review_outcome.check_review_outcome(checks.source, operator[2], snapshot, request,
+            evidence_dir=operator[2].parent / "outcomes", accepted_verdicts=("Approved",),
+            step_allowance=2, endpoint=endpoint, adapter=LoopbackAlertAdapter(endpoint))
+    assert not received

@@ -225,3 +225,128 @@ def test_total_deadline_stops_dripping_response_headers():
         stop.set()
         listener.close()
         worker.join(timeout=2)
+
+
+@pytest.mark.parametrize('driver', ['reference', 'graph'])
+@pytest.mark.parametrize('completion', ['acknowledged', 'rejected', 'unknown', 'exception', 'interrupt'])
+def test_adapter_reserves_before_one_attempt_and_reads_completion(driver, completion):
+    from agent_lab.alerts import TransportReceipt, deliver_alert_with_adapter, read_alert_audit
+    result = report(driver, 'exhausted')
+    calls = []
+    class Adapter:
+        def send(self, payload, *, attempt_id, timeout):
+            calls.append(payload)
+            assert read_alert_audit(result).state == 'reserved'
+            assert attempt_id == result.original.run_id and timeout == 2
+            assert json.loads(payload)['event'] == 'workflow.outcome.unresolved'
+            if completion == 'interrupt':
+                raise KeyboardInterrupt()
+            if completion == 'exception':
+                raise RuntimeError('secret endpoint')
+            return TransportReceipt(completion=completion)
+    assert read_alert_audit(result).state == 'unattempted'
+    if completion == 'interrupt':
+        with pytest.raises(KeyboardInterrupt):
+            deliver_alert_with_adapter(result, adapter=Adapter())
+        audit = read_alert_audit(result)
+        assert audit.state == 'reserved' and audit.receipt is None
+    else:
+        alert = deliver_alert_with_adapter(result, adapter=Adapter())
+        assert alert.receipt.completion == ('unknown' if completion == 'exception' else completion)
+        assert alert.receipt.status == ('delivered' if completion == 'acknowledged' else 'failed')
+        assert 'secret endpoint' not in alert.receipt_path.read_text()
+        assert read_alert_audit(result).receipt == alert.receipt
+    with pytest.raises(FileExistsError):
+        deliver_alert_with_adapter(result, adapter=Adapter())
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('case', ['passed', 'repaired'])
+def test_suppressed_adapter_is_never_invoked(case):
+    from agent_lab.alerts import deliver_alert_with_adapter, read_alert_audit
+    class Adapter:
+        def send(self, *args, **kwargs):
+            pytest.fail('suppressed outcome invoked transport')
+    result = report('reference', case)
+    delivered = deliver_alert_with_adapter(result, adapter=Adapter())
+    assert delivered.receipt.completion == 'suppressed'
+    assert read_alert_audit(result).receipt == delivered.receipt
+
+
+@pytest.mark.parametrize('code', [204, 302, 500])
+def test_explicit_loopback_adapter_records_transport_completion(receiver, code):
+    from agent_lab.alerts import LoopbackAlertAdapter, deliver_alert_with_adapter, read_alert_audit
+    server, received, endpoint = receiver
+    server.reply = code
+    result = report('reference', 'exhausted')
+    delivered = deliver_alert_with_adapter(result, adapter=LoopbackAlertAdapter(endpoint))
+    assert len(received) == 1
+    assert delivered.receipt.completion == ('acknowledged' if code == 204 else 'rejected')
+    assert read_alert_audit(result).receipt == delivered.receipt
+
+
+@pytest.mark.parametrize('field,value', [('payload_digest', 'changed'), ('remedy_digest', 'changed'),
+    ('original_run', 'changed'), ('completion', 'unknown')])
+def test_audit_rejects_receipt_mismatch(receiver, field, value):
+    from agent_lab.alerts import read_alert_audit
+    _, _, endpoint = receiver
+    result = report('reference', 'exhausted')
+    alert = deliver_outcome_alert(result, endpoint=endpoint)
+    saved = json.loads(alert.receipt_path.read_text())
+    saved[field] = value
+    alert.receipt_path.write_text(json.dumps(saved))
+    with pytest.raises(ValueError):
+        read_alert_audit(result)
+
+
+@pytest.mark.parametrize('reply', [None, {'completion': 'acknowledged', 'http_status': 500},
+    {'completion': 'acknowledged', 'secret': 'private'}, {'completion': 'rejected', 'http_status': 204}])
+def test_malformed_adapter_reply_is_unknown_and_consumes_attempt(reply):
+    from agent_lab.alerts import deliver_alert_with_adapter, read_alert_audit
+    result = report('reference', 'exhausted')
+    class Adapter:
+        def send(self, *args, **kwargs):
+            return reply
+    alert = deliver_alert_with_adapter(result, adapter=Adapter())
+    assert alert.receipt.status == 'failed' and alert.receipt.completion == 'unknown'
+    assert read_alert_audit(result).receipt == alert.receipt
+    assert 'private' not in alert.receipt_path.read_text()
+    with pytest.raises(FileExistsError):
+        deliver_alert_with_adapter(result, adapter=Adapter())
+
+
+def test_receipt_write_failure_leaves_unknown_reserved_attempt(receiver, monkeypatch):
+    from agent_lab.alerts import read_alert_audit
+    _, received, endpoint = receiver
+    result = report('reference', 'exhausted')
+    original_open = Path.open
+    def fail_receipt(path, *args, **kwargs):
+        if path == result.original.root / 'alert.json':
+            raise OSError('private disk detail')
+        return original_open(path, *args, **kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, 'open', fail_receipt)
+        with pytest.raises(OSError):
+            deliver_outcome_alert(result, endpoint=endpoint)
+    assert len(received) == 1 and read_alert_audit(result).state == 'reserved'
+    with pytest.raises(FileExistsError):
+        deliver_outcome_alert(result, endpoint=endpoint)
+
+
+@pytest.mark.parametrize('fault', ['missing_reservation', 'changed_reservation', 'changed_remedy'])
+def test_audit_rejects_broken_saved_links(receiver, fault):
+    from agent_lab.alerts import read_alert_audit
+    _, _, endpoint = receiver
+    result = report('reference', 'exhausted')
+    deliver_outcome_alert(result, endpoint=endpoint)
+    reservation_path = result.original.root / 'alert-reserved.json'
+    if fault == 'missing_reservation':
+        reservation_path.unlink()
+    elif fault == 'changed_reservation':
+        value = json.loads(reservation_path.read_text())
+        value['original_run'] = 'another-run'
+        reservation_path.write_text(json.dumps(value))
+    else:
+        result.receipt_path.write_text('{}')
+    with pytest.raises(ValueError):
+        read_alert_audit(result)

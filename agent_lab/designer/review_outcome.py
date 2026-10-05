@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from agent_lab.alerts import DeliveredAlert, deliver_outcome_alert
+from agent_lab.alerts import AlertAdapter, DeliveredAlert, deliver_alert_with_adapter, deliver_outcome_alert
 from agent_lab.designer import validate_evidence_root
 from agent_lab.designer.draft_checks import DraftChecks
 from agent_lab.designer.draft_runs import digest
@@ -52,7 +52,7 @@ def _write_packet(output: Path, state: PacketInput) -> TransformResult[PacketInp
 def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str, run_request: str, *,
                          evidence_dir: Path, accepted_verdicts: tuple[Verdict, ...], step_allowance: int,
                          driver: Literal["reference", "graph"] = "reference", endpoint: str | None = None,
-                         protected_roots: tuple[Path, ...] = ()) -> ReviewOutcome:
+                         protected_roots: tuple[Path, ...] = (), adapter: AlertAdapter | None = None) -> ReviewOutcome:
     """Replay the exact pair before projecting a bounded, declared review packet.
 
     The caller must name its accepted editorial verdicts and local step allowance.
@@ -60,6 +60,8 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
     Invalid recordings stop before packet production/repair/delivery. A rejected
     editorial verdict remains rejected after repair: no new model call is made.
     """
+    if endpoint is not None and adapter is not None:
+        raise ValueError("Choose one explicit alert transport")
     if (not accepted_verdicts or len(set(accepted_verdicts)) != len(accepted_verdicts)
             or any(value not in ("Approved", "Changes requested", "Blocked") for value in accepted_verdicts)):
         raise ValueError("Name distinct accepted Guardian verdicts")
@@ -111,7 +113,9 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
         repair_bindings_factory=repair, step_allowance=step_allowance, evidence_dir=destination, driver=driver,
         protected_roots=(*protected_roots, recording_dir))
     alert = (deliver_outcome_alert(remedy, endpoint=endpoint, private_fields=ATTRIBUTION_FIELDS)
-             if endpoint is not None else None)
+             if endpoint is not None else
+             deliver_alert_with_adapter(remedy, adapter=adapter, private_fields=ATTRIBUTION_FIELDS)
+             if adapter is not None else None)
     return ReviewOutcome(check, remedy, alert)
 
 

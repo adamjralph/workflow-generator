@@ -23,6 +23,7 @@ from agent_lab.remedy import RemediedRun, run_with_remedy
 from agent_lab.spec import JsonOutputExpectation, Route, StringFieldExpectation, TransformNode, WorkflowSpec
 
 Verdict = Literal["Approved", "Changes requested", "Blocked"]
+ATTRIBUTION_FIELDS = ("snapshot", "run_request", "receipt_digest", "check_digest", "draft_digest", "review_digest")
 
 
 class PacketInput(BaseModel):
@@ -88,8 +89,8 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
     }
     # Bind exact identities/scope as literal values using ticket35's contract.
     strings = tuple(StringFieldExpectation(field=key, allowed_values=(packet[key],)) for key in
-        ("snapshot", "run_request", "receipt_digest", "check_digest", "draft_digest", "review_digest",
-         "scope", "human_decision")) + (StringFieldExpectation(field="verdict", allowed_values=accepted_verdicts),)
+        (*ATTRIBUTION_FIELDS, "scope", "human_decision")) + (
+            StringFieldExpectation(field="verdict", allowed_values=accepted_verdicts),)
     spec = WorkflowSpec(entry="packet", budget=1,
         nodes=(TransformNode(id="packet", operation="write_review_packet",
             expected_output=JsonOutputExpectation(file="review-packet.json", required_fields=tuple(packet),
@@ -107,7 +108,8 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
     remedy = run_with_remedy(spec, PacketInput(packet_json=canonical(packet)), bindings_factory=bindings,
         repair_bindings_factory=repair, step_allowance=step_allowance, evidence_dir=destination, driver=driver,
         protected_roots=(*protected_roots, recording_dir))
-    alert = deliver_outcome_alert(remedy, endpoint=endpoint) if endpoint is not None else None
+    alert = (deliver_outcome_alert(remedy, endpoint=endpoint, private_fields=ATTRIBUTION_FIELDS)
+             if endpoint is not None else None)
     return ReviewOutcome(check, remedy, alert)
 
 

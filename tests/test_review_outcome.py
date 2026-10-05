@@ -86,6 +86,13 @@ def test_rejected_verdict_never_rewritten_and_alert_excludes_private_copy(operat
     assert saved["result"]["post"] not in json.dumps(payload)
     assert "result" not in payload and "review" not in payload and "historical_usage" not in payload
     assert payload["unmet"] == [{"code": "unexpected_value", "requirement": "verdict"}]
+    for field in review_outcome.ATTRIBUTION_FIELDS:
+        assert packet[field].encode() not in received[0][2]
+    assert payload["expected"]["redacted_string_fields"] == list(review_outcome.ATTRIBUTION_FIELDS)
+    assert payload["expected"]["string_fields"] == [
+        {"field": "scope", "allowed_values": ["copy-only"]},
+        {"field": "human_decision", "allowed_values": ["required"]},
+        {"field": "verdict", "allowed_values": ["Approved"]}]
 
 
 @pytest.mark.parametrize("defect", ["missing", "corrupt", "incomplete"])

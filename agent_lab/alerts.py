@@ -35,7 +35,7 @@ class DeliveredAlert:
 
 
 def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
-                          timeout: float = 2.0) -> DeliveredAlert:
+                          timeout: float = 2.0, private_fields: tuple[str, ...] = ()) -> DeliveredAlert:
     """Send once to an explicitly supplied local receiver, or suppress success.
 
     An exclusive reservation precedes the request. Re-entry raises rather than
@@ -52,6 +52,10 @@ def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
         raise ValueError("Alert endpoint must be literal loopback HTTP with an explicit port and no credentials/query")
     if isinstance(timeout, bool) or not math.isfinite(timeout) or not 0 < timeout <= 5:
         raise ValueError("Alert timeout must be positive and at most five seconds")
+    declaration = (result.repair or result.original).verdict.declaration
+    if (len(set(private_fields)) != len(private_fields)
+            or not set(private_fields) <= {item.field for item in declaration.string_fields}):
+        raise ValueError("Private alert fields must name distinct declared string constraints")
     saved = result.receipt_path.read_bytes()
     if json.loads(saved) != result.receipt.model_dump(mode="json"):
         raise ValueError("Saved remedy receipt changed")
@@ -67,10 +71,17 @@ def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
     payload = None
     if not result.passed:
         latest = result.repair or result.original
+        expected = latest.verdict.declaration.model_dump(mode="json")
+        # Redact caller-designated attribution values only in transport. The
+        # original declaration/digests remain intact in local audit evidence.
+        expected["string_fields"] = [item for item in expected["string_fields"]
+                                     if item["field"] not in private_fields]
+        if private_fields:
+            expected["redacted_string_fields"] = list(private_fields)
         payload = json.dumps({"event": "workflow.outcome.unresolved", "original_run": result.original.run_id,
             "repair_run": result.receipt.repair_run, "status": result.receipt.status,
             "reserved_steps": result.receipt.reserved_steps, "step_allowance": result.receipt.step_allowance,
-            "terminal": latest.execution.terminal, "expected": latest.verdict.declaration.model_dump(mode="json"),
+            "terminal": latest.execution.terminal, "expected": expected,
             "unmet": [finding.model_dump(mode="json") for finding in latest.verdict.findings],
             "remedy_digest": remedy_digest, "action": "Inspect saved evidence; no further repair is authorized"},
             separators=(",", ":")).encode("utf-8")

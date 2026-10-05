@@ -314,6 +314,12 @@ class DraftSource:
             raise ValueError("Derived output and capture inputs/evidence must be disjoint")
         return output
 
+    @property
+    def evidence_root(self) -> Path:
+        """Validated pinned store shared by capture, run and derived checks."""
+        self._check_overlap()
+        return self._root
+
     def _directory(self) -> Path:
         if validate_evidence_root(self._root, protected_roots=self._protected) != self._root:
             raise ValueError("Evidence root changed")

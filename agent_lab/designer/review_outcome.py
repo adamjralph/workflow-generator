@@ -67,6 +67,8 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
         raise ValueError("Offline step allowance must be one or two")
     if driver not in ("reference", "graph"):
         raise ValueError("Unknown driver")
+    if recording_dir.expanduser().resolve() != source.evidence_root:
+        raise ValueError("Recording store must match the captured source's pinned evidence root")
     destination = source.validate_output_root(evidence_dir)
     destination = validate_evidence_root(destination, protected_roots=(*protected_roots, recording_dir))
     if recording_dir.resolve().is_relative_to(destination):

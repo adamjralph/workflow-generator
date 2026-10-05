@@ -189,3 +189,15 @@ def test_packet_execution_failure_is_ineligible_and_not_retried(operator, monkey
     assert result.remedy.receipt.status == "ineligible" and len(calls) == 1
     assert result.remedy.repair is None
     assert "private error text" not in result.remedy.receipt_path.read_text()
+
+
+@pytest.mark.parametrize("target", ["source", "other"])
+def test_mismatched_recording_store_cannot_write_checks_into_inputs(operator, target):
+    checks, snapshot, request, _ = completed(operator)
+    recording_dir = operator[1] if target == "source" else operator[2].parent / "other"
+    before = set(recording_dir.iterdir()) if recording_dir.exists() else set()
+    with pytest.raises(ValueError, match="pinned evidence root"):
+        review_outcome.check_review_outcome(checks.source, recording_dir, snapshot, request,
+            evidence_dir=operator[2].parent / "outcomes", accepted_verdicts=("Approved",), step_allowance=2)
+    assert (set(recording_dir.iterdir()) if recording_dir.exists() else set()) == before
+    assert not (operator[2].parent / "outcomes").exists()

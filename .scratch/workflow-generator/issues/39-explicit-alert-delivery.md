@@ -1,7 +1,7 @@
 # Ticket39 — explicit delivery adapter and inspectable attempt receipt
 
 Type: task
-Status: claimed
+Status: resolved — technically complete; no personal Adam acceptance
 
 ## Scope and authorization
 
@@ -27,6 +27,17 @@ and mechanism remain pending with the parent. No provider call or external send.
   before replay. Both drivers preserve attribution redaction and human decision.
 - Deterministic loopback tests, typing, independent review, complete final-code
   suite exit 0, focused commit/push/readback, cumulative status patch and handoff.
+
+## Result
+
+Implemented the existing redacted envelope through one explicit trusted adapter,
+reservation-before-invocation, separate acknowledged/rejected/unknown completion,
+and read-only saved-attempt inspection. Ticket38 accepts either adapter or endpoint
+and preserves attribution redaction and the human gate through both drivers.
+202 focused tests passed; typing 49 files clean; independent Standards/Spec reviews
+clear; complete final-code regression 2,601 passed, 3 expected skips, exit 0 on
+2026-10-05. [Commands and evidence](../../../docs/outcome-ticket39.md).
+No provider/auth calls or external sends.
 
 **Still missing:** actual authorized destination/adapter, live acceptance, browser
 integration and attributed measurement. This local contract settles none of those.

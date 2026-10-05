@@ -42,6 +42,12 @@ faults; no new provider call, editorial revision or personal acceptance.
 Independent reviews cleared all corrections; focused, typing and complete final-code
 regression pass. Live acceptance and actual recipient remain open.
 [Ticket38](issues/38-check-linkedin-review-outcome.md), [evidence](../../docs/outcome-ticket38.md).
+Ticket39 makes the same redacted envelope usable through one explicit trusted
+adapter and records acknowledged/rejected/unknown transport completion. Reserved
+attempts cannot resend; read-only audit exposes interruption without claiming
+success. Focused/type/independent reviews and complete final-code regression pass (2026-10-05).
+Only loopback exists; actual destination and live acceptance remain pending.
+[Ticket39](issues/39-explicit-alert-delivery.md), [evidence](../../docs/outcome-ticket39.md).
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.

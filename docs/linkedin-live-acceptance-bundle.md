@@ -1,6 +1,6 @@
 # Minimal LinkedIn live-acceptance bundle
 
-**Status:** proposal for the parent after ticket38; no run or external send starts
+**Status:** proposal for the parent after ticket39; no run or external send starts
 from this document. The parent chooses the existing LinkedIn scenario under the
 continuing bounded/test-only mandate. Scenario selection does not need a separate
 user question. Actual recipient/channel and permissions beyond that mandate do.
@@ -89,8 +89,9 @@ the outgoing alert. Private evidence supplies the detailed diagnosis.
 Adam's exact remaining delivery decision: **which channel and exact recipient or
 endpoint should receive this one redacted test alert, and which existing authorized
 delivery mechanism may send it?** A connected-app grant is needed if that chosen
-mechanism is unavailable. Ticket37 supports literal loopback only; external
-delivery needs that decision and a bounded implementation/authorized connector.
+mechanism is unavailable. Ticket39 supplies explicit one-attempt adapter reservation and inspectable receipt
+semantics around this same envelope; its sole supplied transport remains literal
+loopback. External delivery needs that decision and a bounded implementation/authorized connector.
 Acknowledgement establishes transport receipt, not that a human read it.
 
 ## Execution and acceptance evidence

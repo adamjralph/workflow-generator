@@ -21,6 +21,22 @@ claims, and Vertex token acquisition in memory only. The previously proposed har
 4,096-token ceiling is withdrawn. This approves those adjustments, not an implicit
 model substitution, Hermes write, live smoke test or all remaining ticket decisions.
 
+## Scope when used by the outcome-verification pillar
+
+The two-generation-call ceiling and no-retry rule below describe ticket 19's
+bounded proof. Adam's 2026-09-26 direction in the
+[outcome pillar](outcome-verification-pillar.md#relaxations-adam-named-on-2026-09-26)
+permits future pillar work to declare a separate sensible call/remediation budget.
+It does not change these implemented limits or authorize a live run. Source
+immutability remains the default; any test relaxation must preserve important
+content and avoid publication. Oldest-eligible selection remains the real-run
+rule; fixtures and operator selection are valid building/testing seams.
+
+Ticket 35 checks declared string values offline using synthetic outputs with the
+existing Guardian verdict vocabulary. It does not execute ticket 19's live pair,
+relax its guards, authorize private-source edits, or settle the pillar's V2–V5
+implementation decisions. Historical ticket 19 evidence keeps its original limits.
+
 ## 1. Explicit model-backed operations
 
 Keep the five node kinds. For this slice only, permit a Transform to bind to an

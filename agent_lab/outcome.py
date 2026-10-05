@@ -26,7 +26,7 @@ class _OutputTooLarge(ValueError):
 
 
 OutcomeCode = Literal["missing_file", "unsafe_file", "invalid_json", "invalid_object",
-                      "missing_field", "step_not_completed", "file_too_large"]
+                      "missing_field", "unexpected_value", "step_not_completed", "file_too_large"]
 
 
 class OutcomeFinding(Declaration):
@@ -61,7 +61,8 @@ def run_checked(candidate: object, initial: S, *,
     """Admit a declaration BEFORE work; execute once, inspect and save a verdict.
 
     Exactly one Transform expectation is supported in this slice. Fields mean
-    literal top-level key presence (null is present), not value/quality checks.
+    literal top-level key presence (null is present). Optional string constraints
+    check exact allowed values, without a semantic-quality judgment.
     Bindings are trusted fixture code, not a sandbox. No model operations run.
     """
     admitted = validate_spec(candidate)
@@ -129,13 +130,27 @@ def _check_file(output: Path, declaration: JsonOutputExpectation) -> tuple[tuple
         return failed("unsafe_file")
     digest = hashlib.sha256(data).hexdigest()
     try:
-        value = json.loads(data, parse_constant=_reject_constant)
+        value = json.loads(data, parse_constant=_reject_constant, object_pairs_hook=_unique_object)
     except (ValueError, UnicodeError, RecursionError):
         return failed("invalid_json", digest)
     if not isinstance(value, dict):
         return failed("invalid_object", digest)
-    return tuple(OutcomeFinding(code="missing_field", requirement=field)
-                 for field in declaration.required_fields if field not in value), digest
+    findings = [OutcomeFinding(code="missing_field", requirement=field)
+                for field in declaration.required_fields if field not in value]
+    findings.extend(OutcomeFinding(code="unexpected_value", requirement=item.field)
+                    for item in declaration.string_fields
+                    if item.field in value and (not isinstance(value[item.field], str)
+                                                or value[item.field] not in item.allowed_values))
+    return tuple(findings), digest
+
+
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON field")
+        result[key] = value
+    return result
 
 
 def _reject_constant(value: str) -> None:

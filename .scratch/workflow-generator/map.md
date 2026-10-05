@@ -19,6 +19,11 @@ Latest accepted slice: [ticket 34](issues/34-check-declared-workflow-output.md),
 locally and implemented under Adam’s go for one declared JSON output, required
 fields and configurable byte limit. Verified offline and accepted by Adam. Repair and alerts
 are later slices.
+Ticket 35 extends this pillar with exact allowed string values for required fields,
+using the LinkedIn review vocabulary in synthetic offline output checks. Delegated
+technical verification is complete; parent assessment is next. See
+[ticket 35](issues/35-check-declared-output-values.md). Repair, alerts and real
+workflow outcome acceptance remain open; no expanded live budget implemented.
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.

@@ -25,7 +25,7 @@ exists toward it, and proposes it as the first internal-only release scope.
 | Adam's intent | Current answer | Status |
 |---|---|---|
 | "whether a workflow had executed" | Diagnosis reads run attribution from the Kanban DB; conformance checks an execution against the plain reference; offline Check replays a recorded pair | **Substantially built** |
-| "whether the agents had done what they were expected to do" | Ticket 34 implements an opt-in, fixture-only check of one declared JSON file, required top-level fields and byte limit, with a saved attributed verdict. Offline regression and typing pass; accepted by Adam. Broader and real-workflow expectations still missing. Conformance remains execution self-consistency; diagnosis measures cost, not outcome | **Restricted slice accepted** |
+| "whether the agents had done what they were expected to do" | Ticket 34 implements an opt-in, fixture-only check of one declared JSON file, required top-level fields and byte limit, with a saved attributed verdict. Offline regression and typing pass; accepted by Adam. Ticket 35 adds exact allowed string values for required top-level fields, verified offline; technically complete under delegated review. Broader and real-workflow expectations still missing. Conformance remains execution self-consistency; diagnosis measures cost, not outcome | **Restricted slice accepted** |
 | "get them to do it" | Nothing, deliberately. The engine has no retries, no fallbacks, no re-dispatch, no repair | **Missing by design** |
 | "or at least alert" | Only in-run terminal states (`NEEDS_REVIEW`, `FAILED_VALIDATION`, `FAILED_BUDGET`). Nothing is ever delivered to Adam; there is no notification path in the codebase | **Missing** |
 
@@ -141,8 +141,9 @@ Recorded because ticket 19's contract text still carries the old constraints:
    Note the honest consequence: the true automatic path's first target is Adam's
    hospital-rebuild personal draft, which is why the public-use gate exists.
 
-Ticket 19's execution contract needs an explicit amendment recording these, so the
-next session does not read the old limits as current.
+Ticket 19's execution contract now records these as future pillar scope, separately
+from the implemented historical proof. V5 remains open for approving concrete
+expanded runtime limits; ticket 35 changes no call or source-write guards.
 
 ## Decisions this proposal needs from Adam
 

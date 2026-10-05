@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from graphlib import CycleError, TopologicalSorter
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, field_validator, model_validator
 
 Name = Annotated[str, StringConstraints(min_length=1, pattern=r"\S")]
 PositiveSteps = Annotated[int, Field(gt=0)]
@@ -29,12 +29,27 @@ class Node(Declaration):
         raise NotImplementedError
 
 
+class StringFieldExpectation(Declaration):
+    """Exact allowed string values for one literal top-level JSON field."""
+
+    field: Name
+    allowed_values: Annotated[tuple[str, ...], Field(min_length=1)]
+
+    @field_validator("allowed_values")
+    @classmethod
+    def distinct_values(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(set(value)) != len(value):
+            raise ValueError("Allowed values must be distinct")
+        return value
+
+
 class JsonOutputExpectation(Declaration):
     """One required JSON object; fields are literal top-level keys, not expressions."""
 
     file: Name
     required_fields: Annotated[tuple[Name, ...], Field(min_length=1)]
     max_bytes: Annotated[int, Field(gt=0)] = 1024 * 1024
+    string_fields: tuple[StringFieldExpectation, ...] = ()
 
     @field_validator("file")
     @classmethod
@@ -50,6 +65,15 @@ class JsonOutputExpectation(Declaration):
         if len(set(value)) != len(value):
             raise ValueError("Required fields must be distinct")
         return value
+
+    @model_validator(mode="after")
+    def valid_string_fields(self) -> "JsonOutputExpectation":
+        fields = tuple(item.field for item in self.string_fields)
+        if len(set(fields)) != len(fields):
+            raise ValueError("String field expectations must be distinct")
+        if any(field not in self.required_fields for field in fields):
+            raise ValueError("String field expectations must name required fields")
+        return self
 
 
 class TransformNode(Node):

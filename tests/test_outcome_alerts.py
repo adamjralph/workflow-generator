@@ -120,7 +120,7 @@ def test_disconnected_receiver_is_failed_without_exception_content(receiver):
 
 
 @pytest.mark.parametrize('endpoint', ['http://example.com:80/', 'http://localhost:80/', 'https://127.0.0.1:443/',
-    'http://127.0.0.1/', 'http://user:secret@127.0.0.1:80/', 'http://127.0.0.1:80/?token=secret',
+    'http://127.0.0.1/', 'http://127.0.0.1:0/', 'http://user:secret@127.0.0.1:80/', 'http://127.0.0.1:80/?token=secret',
     'http://127.0.0.1:80/#fragment', 'http://127.0.0.1:80/\nheader'])
 def test_endpoint_policy_rejects_before_reservation(endpoint):
     result = report('reference', 'exhausted')
@@ -149,3 +149,69 @@ def test_tampered_evidence_prevents_delivery(receiver, which):
         deliver_outcome_alert(result, endpoint=endpoint)
     assert received == []
     assert not (result.original.root / 'alert-reserved.json').exists()
+
+
+def test_timeout_may_have_delivered_and_cannot_resend(monkeypatch, receiver):
+    _, received, endpoint = receiver
+    result = report('reference', 'exhausted')
+    import http.client
+    def timeout_response(self):
+        raise TimeoutError('private endpoint detail')
+    monkeypatch.setattr(http.client.HTTPConnection, 'getresponse', timeout_response)
+    alert = deliver_outcome_alert(result, endpoint=endpoint, timeout=.1)
+    assert alert.receipt.status == 'failed' and alert.receipt.http_status is None
+    assert 'private endpoint detail' not in alert.receipt_path.read_text()
+    with pytest.raises(FileExistsError):
+        deliver_outcome_alert(result, endpoint=endpoint)
+
+
+def test_interrupted_attempt_has_reservation_and_no_success_receipt(monkeypatch, receiver):
+    _, received, endpoint = receiver
+    result = report('reference', 'exhausted')
+    import http.client
+    def interrupt(self, *args, **kwargs):
+        raise KeyboardInterrupt()
+    monkeypatch.setattr(http.client.HTTPConnection, 'request', interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        deliver_outcome_alert(result, endpoint=endpoint)
+    assert (result.original.root / 'alert-reserved.json').exists()
+    assert not (result.original.root / 'alert.json').exists()
+    assert received == []
+    with pytest.raises(FileExistsError):
+        deliver_outcome_alert(result, endpoint=endpoint)
+
+
+def test_total_deadline_stops_dripping_response_headers():
+    import socket
+    import time
+    listener = socket.socket()
+    listener.bind(('127.0.0.1', 0))
+    listener.listen(1)
+    stop = threading.Event()
+    accepted = threading.Event()
+    def drip():
+        connection, _ = listener.accept()
+        with connection:
+            connection.recv(65536)
+            accepted.set()
+            try:
+                connection.sendall(b'HTTP/1.1 200 OK\r\nX-Slow: ')
+                while not stop.wait(.02):
+                    connection.sendall(b'a')
+            except OSError:
+                pass
+    worker = threading.Thread(target=drip, daemon=True)
+    worker.start()
+    result = report('reference', 'exhausted')
+    start = time.monotonic()
+    try:
+        alert = deliver_outcome_alert(result, endpoint=f'http://127.0.0.1:{listener.getsockname()[1]}/', timeout=.2)
+        assert accepted.is_set()
+        assert time.monotonic() - start < 1.5
+        assert alert.receipt.status == 'failed'
+        with pytest.raises(FileExistsError):
+            deliver_outcome_alert(result, endpoint=f'http://127.0.0.1:{listener.getsockname()[1]}/')
+    finally:
+        stop.set()
+        listener.close()
+        worker.join(timeout=2)

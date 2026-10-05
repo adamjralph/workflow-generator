@@ -8,6 +8,9 @@ import hashlib
 import http.client
 import json
 import math
+import socket
+import threading
+import time
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
@@ -44,7 +47,7 @@ def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
     target = urlsplit(endpoint)
     if (target.scheme != "http" or target.hostname not in {"127.0.0.1", "::1"}
             or target.username is not None or target.password is not None
-            or target.fragment or target.query or target.port is None
+            or target.fragment or target.query or target.port is None or target.port == 0
             or any(ord(c) < 33 or ord(c) == 127 for c in endpoint)):
         raise ValueError("Alert endpoint must be literal loopback HTTP with an explicit port and no credentials/query")
     if isinstance(timeout, bool) or not math.isfinite(timeout) or not 0 < timeout <= 5:
@@ -81,16 +84,36 @@ def deliver_outcome_alert(result: RemediedRun[S], *, endpoint: str,
     if payload is not None:
         status = "failed"
         connection = http.client.HTTPConnection(target.hostname, target.port, timeout=timeout)
+        deadline = time.monotonic() + timeout
+        timer = None
+        expired = threading.Event()
         try:
+            connection.connect()
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or connection.sock is None:
+                raise TimeoutError()
+            delivery_socket = connection.sock
+            def expire() -> None:
+                expired.set()
+                try:
+                    delivery_socket.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+            timer = threading.Timer(remaining, expire)
+            timer.daemon = True
+            timer.start()
             connection.request("POST", target.path or "/", body=payload,
                 headers={"Content-Type": "application/json", "Idempotency-Key": result.original.run_id})
             response = connection.getresponse()
             http_status = response.status
-            if 200 <= response.status < 300:
+            if not expired.is_set() and time.monotonic() < deadline and 200 <= response.status < 300:
                 status = "delivered"
         except (OSError, http.client.HTTPException):
             pass  # Never retain endpoint, response body or exception text.
         finally:
+            if timer is not None:
+                timer.cancel()
+                timer.join()
             connection.close()
     receipt = AlertReceipt(status=status, original_run=result.original.run_id,
         remedy_digest=remedy_digest, payload_digest=payload_digest, http_status=http_status)

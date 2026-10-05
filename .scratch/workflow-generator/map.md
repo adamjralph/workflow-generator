@@ -30,6 +30,11 @@ regression and self-review passed; ticket36 is technically complete. [Ticket36](
 [evidence](../../docs/outcome-ticket36.md). Real alert, useful real-workflow acceptance
 and expanded live/spend policy remain open under V2–V5. Next slice is selected in
 a fresh session under Adam's continuing authorization, without implicit live calls.
+Ticket37 implements explicit one-shot loopback webhook delivery after unresolved
+offline remedy using the existing internal report/checklist workflow. Final focused
+tests, typing and independent Standards/Spec review pass; complete final-code
+regression passed (2,534 passed, 3 expected skips, exit 0, 2026-10-05). No external recipient/channel is selected or notified.
+[Ticket37](issues/37-deliver-local-outcome-alert.md), [evidence](../../docs/outcome-ticket37.md).
 P26's initial scope was delivered
 as [ticket 13](issues/13-build-browser-workflow-designer.md) and extended in ticket 14.
 Ticket 13's closure was reconciled under Adam's 2026-09-22 triage authorization.

@@ -27,7 +27,7 @@ exists toward it, and proposes it as the first internal-only release scope.
 | "whether a workflow had executed" | Diagnosis reads run attribution from the Kanban DB; conformance checks an execution against the plain reference; offline Check replays a recorded pair | **Substantially built** |
 | "whether the agents had done what they were expected to do" | Ticket 34 implements an opt-in, fixture-only check of one declared JSON file, required top-level fields and byte limit, with a saved attributed verdict. Offline regression and typing pass; accepted by Adam. Ticket 35 adds exact allowed string values for required top-level fields, verified offline; technically complete under delegated review. Broader and real-workflow expectations still missing. Conformance remains execution self-consistency; diagnosis measures cost, not outcome | **Restricted slice accepted** |
 | "get them to do it" | Ticket 36 supplies one opt-in offline repair for a completed single-Transform output producer, with a declared aggregate allowance and preserved verdicts. Live/multi-step remedy remains outside this slice | **Restricted offline slice built** |
-| "or at least alert" | Only in-run terminal states (`NEEDS_REVIEW`, `FAILED_VALIDATION`, `FAILED_BUDGET`). Nothing is ever delivered to Adam; there is no notification path in the codebase | **Missing** |
+| "or at least alert" | Ticket37 supplies one explicit bounded loopback webhook attempt after unresolved offline remedy, with saved delivery acknowledgement and no resend. Real external channel/recipient remains open; nothing has been sent to Adam | **Local delivery built; real alert open** |
 
 The repair and alert halves complete the pillar; ticket 36 begins the restricted offline repair path. Everything else is scaffolding that makes the
 pillar affordable to build: we already have typed state, budgets, per-role
@@ -150,7 +150,7 @@ expanded runtime limits; tickets 35–36 change no live-call or source-write gua
 | # | Decision | Why it blocks |
 |---|---|---|
 | V1 | Accept the pillar as the first-stop release scope | **Accepted 2026-09-26.** Recorded in README/ROADMAP/HANDOFF; each implementation slice still needs its own go |
-| V2 | Where an alert is delivered (file under a project root, a report the browser shows, or a message through a channel outside Hermes) | The codebase has no notification path; this is a new boundary and Adam owns it |
+| V2 | Where an alert is delivered (file under a project root, a report the browser shows, or a message through a channel outside Hermes) | Ticket37 proves local webhook transport only; Adam still owns the actual external channel and recipient |
 | V3 | Remediation bound and budget: how many repair attempts, charged how | Prevents open-ended spend and unbounded loops. Ticket 36 declares only a local offline allowance of one original step plus at most one repair step; live/spend policy remains open |
 | V4 | Whether the first real acceptance scenario is the LinkedIn workflow or a different one | Determines whether live cost is needed at all for the first stop |
 | V5 | Amend ticket 19's contract with the relaxations above | Stale contract text otherwise misleads the next session |

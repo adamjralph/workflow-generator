@@ -108,10 +108,12 @@ def test_invalid_recording_stops_before_output_or_repair(operator, defect):
         value["view"]["status"] = "uncertain"
         path.write_text(canonical(value))
     destination = operator[2].parent / "outcomes"
-    with pytest.raises(ValueError, match="replay failed"):
+    with pytest.raises(ValueError, match="replay failed") as rejected:
         review_outcome.check_review_outcome(checks.source, operator[2], snapshot, request,
             evidence_dir=destination, accepted_verdicts=("Approved",), step_allowance=2)
     assert not destination.exists()
+    receipt = Path(str(rejected.value).split("; inspect ", 1)[1])
+    assert not json.loads(receipt.read_bytes())["passed"]
 
 
 @pytest.mark.parametrize("target", ["config", "draft", "guidance", "profile", "recordings", "ancestor"])

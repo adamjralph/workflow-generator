@@ -75,7 +75,7 @@ def check_review_outcome(source: DraftSource, recording_dir: Path, snapshot: str
         raise ValueError("Derived output and recording store must be disjoint")
     check = DraftChecks(source, recording_dir, protected_roots).check(snapshot, run_request)
     if not check["passed"]:
-        raise ValueError("Completed-pair replay failed; inspect its saved check receipt")
+        raise ValueError(f"Completed-pair replay failed; inspect {check['check_receipt']}")
     check_bytes = Path(check["check_receipt"]).read_bytes()
     if json.loads(check_bytes) != check:
         raise ValueError("Saved check receipt changed")

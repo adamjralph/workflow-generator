@@ -65,14 +65,27 @@ Subsequent narrower passes were superseded by this final focused run.
 Typing from the isolated checkout: existing interpreter `-m mypy --cache-dir
 /tmp/ticket36-mypy agent_lab`: **47 source files clean**, exit 0.
 
-Post-change full regression was interrupted before completion. The run used the
-full command above, evidence `/home/hermes/workflow-validation-scratch/v-0ZH6CV`,
-and reported progress through 77% without a reported failure. The wait was aborted
-and the runner PID was subsequently absent. No aggregate exit status or complete
-test total was observed; **no post-change full green result is claimed**.
-Next session must rerun the complete command before calling ticket36 technically
-complete or starting another ticket. The ticket35 baseline remains a distinct
-complete passing run.
+Complete post-ticket36 regression: **2,499 passed, 3 expected skips**, exit 0,
+992.71 seconds (16m32s), evidence
+`/home/hermes/workflow-validation-scratch/v-I81sKP`. The code checkpoint was
+`a0e3f7a36f91416b7bd5462eb95ffded38ab4572`; this follow-up changes documentation only.
+The three skips are the two opt-in live TypeSafe checks and optional real Hermes
+plugin-loader check. No test failed and no corrective code change was needed.
+
+The successful run used the same wrapper, interpreter and absolute full-suite
+paths above, with `tee` saving `pytest-output.log` and `${PIPESTATUS[0]}` saving
+`pytest-exit.txt` under the wrapper's private evidence directory. Both the terminal
+summary and the saved exit file (0) were read back. This is one complete successful
+run, not a count inferred from partial runs.
+
+Earlier attempt evidence: `/home/hermes/workflow-validation-scratch/v-0ZH6CV`.
+Its wait reported “aborted by user”; pytest was absent afterward, and no terminal
+result was captured. The initiating actor/cause beyond that tool report cannot be
+established. No aggregate result is attributed to that attempt. On continuation,
+no prior runner existed, context was sufficient, and the current host had about
+8 GB available memory and 47 GB free on the evidence volume. One rerun was launched,
+then allowed to finish. Live process checks showed normal browser/sandboxed
+subprocess work, not a stalled runner.
 
 Standalone demonstration completed, exit 0, evidence
 `/home/hermes/workflow-validation-scratch/v-72oSIB`. Exact command:
@@ -102,6 +115,7 @@ commit excludes the five inherited status files. `../ticket36-status.patch` is a
 cumulative ticket35+ticket36 delta against the exact inherited original status
 contents, excluding the inherited edits themselves; do not apply ticket35's delta
 again when using it. Combined status files remain uncommitted in this checkout.
-No merge, PR, deployment, outgoing communication, live call or credential change.
+No merge, PR, deployment, external communication, live call or credential change.
+Requested parent coordination updates were sent within Codex.
 For publication, inspect Git and the focused remote branch; the final handoff
 records the observed push/read-back result.

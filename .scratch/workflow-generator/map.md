@@ -25,8 +25,8 @@ technical verification is complete; parent assessment is next. See
 [ticket 35](issues/35-check-declared-output-values.md).
 Ticket36 implements one opt-in offline output repair for a completed single
 Transform, with at most two aggregate reserved steps and fresh checked output.
-Both drivers demonstrate repaired and exhausted outcomes. Complete post-change regression
-was interrupted; self-review complete. [Ticket36](issues/36-repair-one-offline-output.md),
+Both drivers demonstrate repaired and exhausted outcomes. Complete post-change
+regression and self-review passed; ticket36 is technically complete. [Ticket36](issues/36-repair-one-offline-output.md),
 [evidence](../../docs/outcome-ticket36.md). Real alert, useful real-workflow acceptance
 and expanded live/spend policy remain open under V2–V5. Next slice is selected in
 a fresh session under Adam's continuing authorization, without implicit live calls.

@@ -1,6 +1,6 @@
 # 36: Repair one failed offline output
 
-**Status:** implemented and focused-verified under Adam's continued-development instruction, 2026-10-05; complete post-change regression blocked by interrupted run.
+**Status:** technically complete under Adam's continued-development instruction, 2026-10-05; full regression and self-review passed. No personal Adam acceptance claimed.
 **Boundary:** single offline Transform; trusted local bindings; no paid calls,
 source edits, gates, whole-workflow redispatch, alert delivery or restart/resume.
 
@@ -22,11 +22,14 @@ callback failure, attribution and preserved evidence; run typing and self-review
 This bounded local allowance does not settle V3's future live/spend policy.
 Real alert channel, representative real workflow and internal release remain open.
 
-## Evidence and remaining verification
+## Evidence and remaining release gaps
 
-[Evidence](../../../docs/outcome-ticket36.md): 188 focused tests passed, typing
-clean in 47 files, standalone demo passed through both drivers, self-review no
-remaining code blockers. Complete ticket35 baseline passed before implementation.
-**Still missing:** complete post-ticket36 full regression. Its run was interrupted;
-no aggregate success is claimed. Rerun the full command in the evidence document
-before technical completion or another ticket. No personal Adam acceptance claimed.
+[Evidence](../../../docs/outcome-ticket36.md): complete post-change regression
+passed 2,499 tests with 3 expected skips, exit 0, on 2026-10-05. Focused regression
+passed 188 tests; typing clean in 47 files; standalone demo passed through both
+drivers; self-review found no remaining blockers.
+
+No ticket36 verification blocker remains. Real alert channel, live repair/spend
+policy, representative real-workflow acceptance and integrated internal-release
+journey remain open. Parent assessment is next; no personal Adam acceptance or
+independent ticket36 review is claimed.

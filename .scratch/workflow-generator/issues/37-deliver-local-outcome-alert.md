@@ -28,4 +28,5 @@ findings. [Commands and evidence](../../../docs/outcome-ticket37.md).
 **Release gaps:** external channel/recipient V2, live/spend policy V3,
 real-workflow acceptance V4 and expanded contract V5 remain open. No external
 message or real-workflow acceptance is claimed. Publication: inspect Git/remote
-and the handoff for the observed push/read-back result.
+and the handoff: push was rejected HTTP 403; existing identity lacks write
+permission. Local commits are preserved; no remote publication is claimed.

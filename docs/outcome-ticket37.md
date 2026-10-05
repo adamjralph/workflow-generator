@@ -108,3 +108,20 @@ transport does not settle that decision. Live repair/spend policy V3,
 representative real-workflow acceptance V4, expanded runtime contract V5,
 browser outcome/remedy integration and attributed end-to-end measurement remain.
 No deployment, ongoing access, gate bypass, source mutation or credentials change.
+
+## Publication blocker and recoverable handoff
+
+Focused HTTPS push was attempted after passing final validation and was rejected
+with HTTP 403: the existing active identity `stillroom` lacks repository write
+permission. The existing GitHub CLI and connected GitHub API both identify that
+account; the API lists no accessible `adamjralph` repositories. No credential,
+profile, account or security setting was changed, and no unauthorized fallback
+write was attempted. Remote publication is blocked, not complete. The known
+predecessor remote remains verified; ticket37's local branch and commits are
+preserved for a permitted push or local integration. Parent was notified and
+asked for the predecessor's existing authorized push recipe.
+
+Private validation evidence remains outside Git. Five combined status files remain
+uncommitted and separate from focused commits. The cumulative successor status
+patch is `../ticket37-status.patch`; it excludes the original inherited five-file
+edits. `../ticket36-status.patch` remains byte-identical to its source.
